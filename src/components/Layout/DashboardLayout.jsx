@@ -63,6 +63,10 @@ const DashboardLayout = () => {
     navigate('/login');
   };
 
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   return (
     <div className="dashboard-wrapper">
       {/* Sidebar */}
