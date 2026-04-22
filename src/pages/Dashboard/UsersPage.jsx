@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
-
-const useApi = () => {
-  const { token } = useAuth();
-  const request = async (url, method = 'GET', body = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
-    return data;
-  };
-  return { request };
-};
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const roleBadge = (role) => {
   const colors = {
@@ -30,7 +18,7 @@ const roleBadge = (role) => {
 
 const UsersPage = () => {
   const { user } = useAuth();
-  const { request } = useApi();
+  const { request } = useApiRequest();
 
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);

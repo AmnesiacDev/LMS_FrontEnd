@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
-
-const useApi = () => {
-  const { token } = useAuth();
-  const request = async (url, method = 'GET', body = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
-    return data;
-  };
-  return { request };
-};
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const statusColor = (s) => {
   if (s === 'completed') return '#10b981';
@@ -23,7 +11,7 @@ const statusColor = (s) => {
 
 const SessionsPage = () => {
   const { user } = useAuth();
-  const { request } = useApi();
+  const { request } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
 
@@ -44,7 +32,7 @@ const SessionsPage = () => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const data = await request(isAdmin ? '/api/v1/session' : '/api/v1/session/me/');
+      const data = await request(isAdmin ? '/api/v1/session' : '/api/v1/session/me');
       const list = data.data?.docs || data.data?.sessions || [];
       setSessions(Array.isArray(list) ? list : [list]);
       setError(null);

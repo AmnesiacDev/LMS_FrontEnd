@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
-import { useAuth } from '../../context/AuthContext';
 import './DashboardLayout.css';
 
-// Role-based nav config
 const navConfig = {
   student: [
     { to: '/dashboard', icon: '📊', label: 'Overview', end: true },
@@ -48,9 +46,20 @@ const roleLabels = {
 
 const DashboardLayout = () => {
   const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
+
+  const localStorageToken = localStorage.getItem('access-token');
+  
+  let user = null;
+  try {
+    const stored = localStorage.getItem('lms-user');
+    if (stored) {
+      user = JSON.parse(stored);
+    }
+  } catch (e) {
+    user = null;
+  }
 
   const role = user?.role || 'student';
   const navItems = navConfig[role] || navConfig.student;
@@ -59,17 +68,18 @@ const DashboardLayout = () => {
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   const handleLogout = () => {
-    logout();
+    localStorage.removeItem('access-token');
+    localStorage.removeItem('lms-user');
+    localStorage.removeItem('token-expiry');
     navigate('/login');
   };
 
-  if (!user) {
-    return <Navigate to="/login" replace />;
+  if (!localStorageToken || !user) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return (
     <div className="dashboard-wrapper">
-      {/* Sidebar */}
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <h2 className="brand-logo">Youssef's <span className="gradient-text">LMS</span></h2>
@@ -78,7 +88,6 @@ const DashboardLayout = () => {
           </button>
         </div>
 
-        {/* Role Badge */}
         {sidebarOpen && (
           <div className="sidebar-role-badge">
             <span className="role-pill">{role}</span>
@@ -107,9 +116,7 @@ const DashboardLayout = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <div className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
-        {/* Top Header */}
         <header className="dashboard-header glass-panel">
            <div className="header-left">
              {!sidebarOpen && (
@@ -124,9 +131,6 @@ const DashboardLayout = () => {
              <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme">
                {theme === 'light' ? '🌙' : '☀️'}
              </button>
-             <div className="notifications" title="Notifications">
-                🔔 <span className="badge">3</span>
-             </div>
              <div className="user-profile">
                <div className="avatar">{initials}</div>
                <span>{userName}</span>
@@ -134,7 +138,6 @@ const DashboardLayout = () => {
            </div>
         </header>
 
-        {/* Dynamic Page Content */}
         <div className="dashboard-content">
            <Outlet />
         </div>

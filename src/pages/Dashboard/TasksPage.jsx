@@ -1,19 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
-
-const useApi = () => {
-  const { token } = useAuth();
-  const request = async (url, method = 'GET', body = null) => {
-    const opts = { method, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` } };
-    if (body) opts.body = JSON.stringify(body);
-    const res = await fetch(url, opts);
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || `Request failed (${res.status})`);
-    return data;
-  };
-  return { request };
-};
+import { useApiRequest } from '../../hooks/useApiRequest';
 
 const statusColor = (s) => {
   if (s === 'completed') return '#10b981';
@@ -23,9 +11,10 @@ const statusColor = (s) => {
 
 const TasksPage = () => {
   const { user } = useAuth();
-  const { request } = useApi();
+  const { request } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
+  const isStudent = role === 'student' || role === 'parent';
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -36,11 +25,15 @@ const TasksPage = () => {
   const [editTask, setEditTask] = useState(null);
   const [deleteTask, setDeleteTask] = useState(null);
   const [viewTask, setViewTask] = useState(null);
+  const [submitTask, setSubmitTask] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
   const emptyForm = { title: '', description: '', dueDate: '', sessionId: '', studentProfileId: '', instructorId: '', status: 'pending', taskLinks: [{ title: '', link: '' }] };
   const [formData, setFormData] = useState(emptyForm);
+  
+  const [submissionLinks, setSubmissionLinks] = useState([{ name: '', url: '' }]);
+  const [submissionNote, setSubmissionNote] = useState('');
 
   const fetchTasks = async () => {
     try {
@@ -83,6 +76,32 @@ const TasksPage = () => {
     finally { setFormLoading(false); }
   };
 
+  const handleSubmitTask = async (e) => {
+    e.preventDefault(); setFormLoading(true); setFormError(null);
+    try {
+      const validLinks = submissionLinks.filter(l => l.name.trim() && l.url.trim());
+      if (validLinks.length === 0) {
+        setFormError('Please add at least one submission link');
+        setFormLoading(false);
+        return;
+      }
+      
+      const payload = {
+        taskId: submitTask._id,
+        submissionLinks: validLinks,
+        note: submissionNote,
+      };
+      
+      await request('/api/v1/submission', 'POST', payload);
+      await request(`/api/v1/task/${submitTask._id}/status`, 'PATCH', { status: 'completed' });
+      setSubmitTask(null);
+      setSubmissionLinks([{ name: '', url: '' }]);
+      setSubmissionNote('');
+      await fetchTasks();
+    } catch (err) { setFormError(err.message); }
+    finally { setFormLoading(false); }
+  };
+
   const handleStatusChange = async (taskId, newStatus) => {
     try { await request(`/api/v1/task/${taskId}/status`, 'PATCH', { status: newStatus }); await fetchTasks(); }
     catch (err) { alert(err.message); }
@@ -100,9 +119,20 @@ const TasksPage = () => {
     setFormError(null); setEditTask(t);
   };
 
+  const openSubmit = (t) => {
+    setSubmissionLinks([{ name: '', url: '' }]);
+    setSubmissionNote('');
+    setFormError(null);
+    setSubmitTask(t);
+  };
+
   const updateLink = (i, field, value) => { const u = [...formData.taskLinks]; u[i] = { ...u[i], [field]: value }; setFormData({ ...formData, taskLinks: u }); };
   const addLink = () => setFormData({ ...formData, taskLinks: [...formData.taskLinks, { title: '', link: '' }] });
   const removeLink = (i) => { const u = formData.taskLinks.filter((_, idx) => idx !== i); setFormData({ ...formData, taskLinks: u.length ? u : [{ title: '', link: '' }] }); };
+
+  const updateSubmissionLink = (i, field, value) => { const u = [...submissionLinks]; u[i] = { ...u[i], [field]: value }; setSubmissionLinks(u); };
+  const addSubmissionLink = () => setSubmissionLinks([...submissionLinks, { name: '', url: '' }]);
+  const removeSubmissionLink = (i) => { const u = submissionLinks.filter((_, idx) => idx !== i); setSubmissionLinks(u.length ? u : [{ name: '', url: '' }]); };
 
   const filteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
   const isOverdue = (d) => d && new Date(d) < new Date();
@@ -176,7 +206,6 @@ const TasksPage = () => {
         )}
       </div>
 
-      {/* Filter Tabs */}
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
         {['all', 'pending', 'completed', 'canceled'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
@@ -208,6 +237,11 @@ const TasksPage = () => {
             {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}>🔗 {l.title || 'Resource'}</a>)}</div>}
             <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
               <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.4rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>👁️ View</button>
+              
+              {isStudent && task.status === 'pending' && (
+                <button onClick={() => openSubmit(task)} style={{ flex: 1, padding: '0.4rem', background: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>📤 Submit</button>
+              )}
+              
               {isAdmin && (
                 <>
                   {task.status === 'pending' && <button onClick={() => handleStatusChange(task._id, 'completed')} style={{ flex: 1, padding: '0.4rem', background: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>✅ Done</button>}
@@ -220,7 +254,7 @@ const TasksPage = () => {
         ))}
       </div>
 
-      {/* ═══ VIEW ═══ */}
+      {/* VIEW MODAL */}
       <Modal isOpen={!!viewTask} onClose={() => setViewTask(null)} title={viewTask?.title || 'Task Details'} size="lg">
         {viewTask && (
           <>
@@ -241,17 +275,51 @@ const TasksPage = () => {
         )}
       </Modal>
 
-      {/* ═══ CREATE ═══ */}
+      {/* CREATE MODAL */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create New Task" size="lg">
         <form onSubmit={handleCreate}>{formError && <div className="modal-error">⚠️ {formError}</div>}{renderFormFields(false)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : '➕ Create Task'}</button></form>
       </Modal>
 
-      {/* ═══ EDIT ═══ */}
+      {/* EDIT MODAL */}
       <Modal isOpen={!!editTask} onClose={() => setEditTask(null)} title={`Edit — ${editTask?.title}`} size="lg">
         <form onSubmit={handleUpdate}>{formError && <div className="modal-error">⚠️ {formError}</div>}{renderFormFields(true)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : '💾 Save Changes'}</button></form>
       </Modal>
 
-      {/* ═══ DELETE ═══ */}
+      {/* SUBMIT MODAL */}
+      <Modal isOpen={!!submitTask} onClose={() => setSubmitTask(null)} title={`Submit — ${submitTask?.title}`} size="lg">
+        <form onSubmit={handleSubmitTask}>
+          <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
+            Submit your completed work by adding links to your project, GitHub repo, or any other resource.
+          </p>
+          
+          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          
+          <div className="modal-form-group">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+              <label className="modal-label" style={{ margin: 0 }}>Submission Links</label>
+              <button type="button" onClick={addSubmissionLink} className="modal-add-btn">+ Add Link</button>
+            </div>
+            {submissionLinks.map((link, i) => (
+              <div key={i} className="modal-link-row">
+                <input className="modal-input" placeholder="Name (e.g., GitHub, Live Demo)" value={link.name} onChange={e => updateSubmissionLink(i, 'name', e.target.value)} />
+                <input className="modal-input" style={{ flex: 2 }} placeholder="https://..." type="url" value={link.url} onChange={e => updateSubmissionLink(i, 'url', e.target.value)} />
+                {submissionLinks.length > 1 && <button type="button" onClick={() => removeSubmissionLink(i)} className="modal-link-remove">✕</button>}
+              </div>
+            ))}
+          </div>
+          
+          <div className="modal-form-group">
+            <label className="modal-label">Notes (Optional)</label>
+            <textarea className="modal-textarea" placeholder="Any additional notes about your submission..." value={submissionNote} onChange={e => setSubmissionNote(e.target.value)} style={{ minHeight: '80px' }} />
+          </div>
+          
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-success" style={{ marginTop: '0.5rem' }}>
+            {formLoading ? 'Submitting...' : '✅ Submit Task'}
+          </button>
+        </form>
+      </Modal>
+
+      {/* DELETE MODAL */}
       <Modal isOpen={!!deleteTask} onClose={() => setDeleteTask(null)} title="Delete Task" size="sm">
         <div className="modal-warning-icon">⚠️</div>
         <p className="modal-warning-text">Delete <strong>"{deleteTask?.title}"</strong>?</p>

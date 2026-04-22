@@ -1,0 +1,159 @@
+.error-container,
+.unauthorized-container,
+.notfound-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  background: var(--bg-primary);
+}
+
+.error-content,
+.unauthorized-content,
+.notfound-content {
+  text-align: center;
+  max-width: 500px;
+}
+
+.error-icon,
+.unauthorized-icon,
+.notfound-icon {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3rem;
+  margin: 0 auto 2rem;
+}
+
+.error-icon {
+  background: linear-gradient(135deg, var(--brand-primary), var(--info));
+  box-shadow: 0 8px 30px rgba(16, 185, 129, 0.25);
+}
+
+.unauthorized-icon {
+  background: linear-gradient(135deg, var(--warning), #d97706);
+  box-shadow: 0 8px 30px rgba(245, 158, 11, 0.25);
+}
+
+.notfound-icon {
+  background: linear-gradient(135deg, var(--error), #dc2626);
+  box-shadow: 0 8px 30px rgba(239, 68, 68, 0.25);
+}
+
+.error-title,
+.unauthorized-title,
+.notfound-title {
+  font-size: 3.5rem;
+  font-weight: 800;
+  margin: 0 0 0.5rem;
+}
+
+.error-title {
+  background: linear-gradient(135deg, var(--brand-primary), var(--info));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.unauthorized-title {
+  background: linear-gradient(135deg, var(--warning), #d97706);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.notfound-title {
+  background: linear-gradient(135deg, var(--error), #dc2626);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.error-subtitle,
+.unauthorized-subtitle,
+.notfound-subtitle {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+  font-weight: 700;
+}
+
+.error-desc,
+.unauthorized-desc,
+.notfound-desc {
+  color: var(--text-secondary);
+  font-size: 1.1rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.error-actions,
+.unauthorized-actions,
+.notfound-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.error-btn-primary,
+.unauthorized-btn-primary,
+.notfound-btn-primary {
+  background: linear-gradient(135deg, var(--brand-primary), #059669);
+  color: white;
+  padding: 0.85rem 1.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+  transition: all 0.2s ease;
+}
+
+.error-btn-primary:hover,
+.unauthorized-btn-primary:hover,
+.notfound-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+  color: white;
+}
+
+.error-btn-secondary,
+.unauthorized-btn-secondary,
+.notfound-btn-secondary {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 0.85rem 1.75rem;
+  border-radius: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1.5px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.error-btn-secondary:hover,
+.unauthorized-btn-secondary:hover,
+.notfound-btn-secondary:hover {
+  background: var(--bg-secondary);
+  transform: translateY(-2px);
+}
+
+@media (max-width: 480px) {
+  .error-actions,
+  .unauthorized-actions,
+  .notfound-actions {
+    flex-direction: column;
+  }
+  
+  .error-btn-primary,
+  .unauthorized-btn-primary,
+  .notfound-btn-primary,
+  .error-btn-secondary,
+  .unauthorized-btn-secondary,
+  .notfound-btn-secondary {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -1,20 +1,92 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
-  // Restore user from localStorage on mount
-  const [user, setUser] = useState(() => {
-    const stored = localStorage.getItem('lms-user');
-    return stored ? JSON.parse(stored) : null;
-  });
-  const [token, setToken] = useState(localStorage.getItem('access-token') || null);
+  const storedUser = (() => {
+    try {
+      const stored = localStorage.getItem('lms-user');
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const storedToken = localStorage.getItem('access-token');
+
+  const [user, setUser] = useState(storedUser);
+  const [token, setToken] = useState(storedToken);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const refreshPromise = useRef(null);
 
-  // Sync to localStorage whenever user/token changes
+  const clearAuth = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem('access-token');
+    localStorage.removeItem('lms-user');
+    localStorage.removeItem('token-expiry');
+  }, []);
+
+  const refreshAccessToken = useCallback(async () => {
+    if (isRefreshing && refreshPromise.current) {
+      return refreshPromise.current;
+    }
+
+    const currentToken = localStorage.getItem('access-token');
+    if (!currentToken) {
+      return false;
+    }
+
+    setIsRefreshing(true);
+    refreshPromise.current = (async () => {
+      try {
+        const response = await fetch('/api/v1/auth/refresh', {
+          method: 'POST',
+          credentials: 'include',
+        });
+
+        if (!response.ok) {
+          clearAuth();
+          return false;
+        }
+
+        const data = await response.json();
+        
+        if (data.status === 'success' && data.data?.token) {
+          const newToken = data.data.token;
+          setToken(newToken);
+          localStorage.setItem('access-token', newToken);
+          return true;
+        }
+        
+        clearAuth();
+        return false;
+      } catch (err) {
+        clearAuth();
+        return false;
+      } finally {
+        setIsRefreshing(false);
+        refreshPromise.current = null;
+      }
+    })();
+
+    return refreshPromise.current;
+  }, [isRefreshing, clearAuth]);
+
+  const ensureValidToken = useCallback(async () => {
+    const currentToken = localStorage.getItem('access-token');
+    
+    if (!currentToken) {
+      return false;
+    }
+    
+    return true;
+  }, []);
+
   useEffect(() => {
     if (token) {
       localStorage.setItem('access-token', token);
@@ -38,19 +110,28 @@ export const AuthProvider = ({ children }) => {
       const response = await fetch('/api/v1/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // Important for cookies
+        credentials: 'include',
         body: JSON.stringify({ email, password })
       });
+      
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Login failed');
+      }
+      
       const data = await response.json();
       
-      if (!response.ok) throw new Error(data.message || 'Login failed');
-      
-      // Backend returns: { status, data: { user, token } }
       const loggedInUser = data.data?.user;
       const accessToken = data.data?.token || data.token;
 
+      if (!accessToken) {
+        throw new Error('No token received from server');
+      }
+
       setToken(accessToken);
+      localStorage.setItem('access-token', accessToken);
       setUser(loggedInUser);
+      localStorage.setItem('lms-user', JSON.stringify(loggedInUser));
       return true;
     } catch (err) {
       setError(err.message);
@@ -70,20 +151,25 @@ export const AuthProvider = ({ children }) => {
         credentials: 'include',
         body: JSON.stringify(formData)
       });
+      
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Signup failed');
+      }
+      
       const data = await response.json();
       
-      if (!response.ok) throw new Error(data.message || 'Signup failed');
-      
-      // Signup returns: { status, data: { user } }
       const newUser = data.data?.user;
-      // Signup might not return a token directly — user may need to login
-      // But if it does:
       const accessToken = data.data?.token || data.token;
 
       if (accessToken) {
         setToken(accessToken);
+        localStorage.setItem('access-token', accessToken);
       }
       setUser(newUser);
+      if (newUser) {
+        localStorage.setItem('lms-user', JSON.stringify(newUser));
+      }
       return true;
     } catch (err) {
       setError(err.message);
@@ -93,21 +179,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    // Optionally call backend logout
-    if (token) {
-      fetch('/api/v1/auth/logout', {
+  const logout = async () => {
+    try {
+      await fetch('/api/v1/auth/logout', {
         method: 'GET',
-        headers: { 'Authorization': `Bearer ${token}` },
         credentials: 'include',
-      }).catch(() => {}); // fire and forget
-    }
-    setToken(null);
-    setUser(null);
+      });
+    } catch (e) {}
+    clearAuth();
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, error, login, signup, logout, setError }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      token, 
+      loading, 
+      error, 
+      login, 
+      signup, 
+      logout, 
+      setError,
+      refreshToken: refreshAccessToken,
+      ensureValidToken,
+    }}>
       {children}
     </AuthContext.Provider>
   );

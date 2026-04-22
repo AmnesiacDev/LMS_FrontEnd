@@ -14,7 +14,7 @@ const DashboardOverview = () => {
   const { data: reviewStats, loading: reviewStatsLoading } = useFetchData('/api/v1/sessionReview/me/stats');
   // Recent data
   const { data: tasksRaw } = useFetchData('/api/v1/task/me');
-  const { data: sessionsRaw } = useFetchData('/api/v1/session/me/');
+  const { data: sessionsRaw } = useFetchData('/api/v1/session/me');
 
   const studentName = user?.FullName?.split(' ')[0] || user?.name || "Student";
   

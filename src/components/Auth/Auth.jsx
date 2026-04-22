@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './Auth.css';
 import { useTheme } from '../../context/ThemeContext';
@@ -8,9 +8,20 @@ const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
-  const { login, signup, loading, error } = useAuth();
+  const { user, login, signup, loading, error, setError } = useAuth();
 
-  // Form State
+  useEffect(() => {
+    if (user) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    return () => {
+      setError(null);
+    };
+  }, [isLogin, setError]);
+
   const [formData, setFormData] = useState({
     FullName: '',
     UserName: '',
@@ -45,9 +56,13 @@ const Auth = () => {
     }
   };
 
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setError(null);
+  };
+
   return (
     <div className="auth-container">
-      {/* Visual / Branding Side */}
       <div className="auth-visual">
          <div className="auth-visual-content">
             <h1>Elevate Your Learning</h1>
@@ -55,7 +70,6 @@ const Auth = () => {
          </div>
       </div>
 
-      {/* Form Side */}
       <div className="auth-form-wrapper">
          <button className="theme-toggle-btn" onClick={toggleTheme}>
             {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
@@ -67,7 +81,11 @@ const Auth = () => {
               {isLogin ? 'Enter your credentials to access your dashboard.' : 'Sign up to embark on your learning journey.'}
             </p>
 
-            {error && <div className="auth-error-msg" style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--error)', padding: '0.75rem', borderRadius: 'var(--radius-md)', marginBottom: '1rem', border: '1px solid var(--error)' }}>{error}</div>}
+            {error && (
+              <div className="auth-error-msg">
+                {error}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="auth-form">
                {!isLogin && (
@@ -93,15 +111,7 @@ const Auth = () => {
                {!isLogin && (
                  <div className="form-group">
                    <label>I am a...</label>
-                   <select name="role" value={formData.role} onChange={handleChange} style={{
-                     padding: '0.75rem 1rem',
-                     borderRadius: 'var(--radius-md)',
-                     border: '1px solid var(--border-color)',
-                     background: 'var(--bg-secondary)',
-                     color: 'var(--text-primary)',
-                     fontFamily: 'inherit',
-                     fontSize: '1rem',
-                   }}>
+                   <select name="role" value={formData.role} onChange={handleChange} className="auth-select">
                      <option value="student">Student</option>
                      <option value="parent">Parent</option>
                      <option value="instructor">Instructor</option>
@@ -116,11 +126,7 @@ const Auth = () => {
 
             <div className="auth-switch">
               <span>{isLogin ? "Don't have an account?" : "Already have an account?"}</span>
-              <button 
-                className="switch-btn" 
-                onClick={() => setIsLogin(!isLogin)}
-                type="button"
-              >
+              <button className="switch-btn" onClick={toggleMode} type="button">
                 {isLogin ? 'Sign Up' : 'Log In'}
               </button>
             </div>
