@@ -66,7 +66,7 @@ const DashboardLayout = () => {
     <div className="dashboard-wrapper">
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h2 className="brand-logo">Edu<span className="gradient-text">Nova</span></h2>
+          <h2 className="brand-logo">Algo<span className="gradient-text">Gambit</span></h2>
           <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
           </button>

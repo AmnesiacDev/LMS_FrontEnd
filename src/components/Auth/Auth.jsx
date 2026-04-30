@@ -65,8 +65,8 @@ const Auth = () => {
     <div className="auth-container">
       <div className="auth-visual">
          <div className="auth-visual-content">
-            <h1>Elevate Your Learning</h1>
-            <p>Access your curriculum, track progress, and interact with sessions dynamically.</p>
+            <h1>Welcome to AlgoGambit</h1>
+            <p>Access your curriculum, track progress, and manage learning in one place.</p>
          </div>
       </div>
 

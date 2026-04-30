@@ -19,7 +19,7 @@ const Contact = () => {
           We'd Love to <span className="gradient-text">Hear From You</span>
         </h1>
         <p className="hero-subtitle">
-          Have a question about EduNova LMS? Want to request a demo, report an issue, 
+          Have a question about AlgoGambit? Want to request a demo, report an issue, 
           or explore a partnership? Our team is here to help.
         </p>
       </section>
@@ -33,7 +33,7 @@ const Contact = () => {
             {/* Company Info Card */}
             <div className="feature-card glass-panel">
               <div className="feature-icon">🏢</div>
-              <h3>EduNova LMS</h3>
+              <h3>AlgoGambit</h3>
               <p>A modern learning management platform built for educational institutions worldwide.</p>
             </div>
 
@@ -43,7 +43,7 @@ const Contact = () => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                 <div>
                   <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>Email</div>
-                  <a href="mailto:support@edunova.io" style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--info)' }}>support@edunova.io</a>
+                  <a href="mailto:support@algogambit.io" style={{ fontWeight: 600, fontSize: '1rem', color: 'var(--info)' }}>support@algogambit.io</a>
                 </div>
                 <div>
                   <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--text-muted)', fontWeight: 600, marginBottom: '0.25rem' }}>Phone</div>
@@ -60,7 +60,7 @@ const Contact = () => {
             <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-xl)' }}>
               <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', fontWeight: 700 }}>Quick Links</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <a href="mailto:support@edunova.io" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
+                <a href="mailto:support@algogambit.io" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
                   📧 Email Support
                 </a>
                 <a href="#faq" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
@@ -141,7 +141,7 @@ const Contact = () => {
         <h2 className="section-title">Frequently Asked Questions</h2>
         <div className="features-grid">
           {[
-            { icon: '🆓', title: 'Is EduNova free to use?', desc: 'Yes! EduNova offers a free tier for individual learners and small teams. Premium plans are available for larger institutions.' },
+            { icon: '🆓', title: 'Is AlgoGambit free to use?', desc: 'Yes! AlgoGambit offers a free tier for individual learners and small teams. Premium plans are available for larger institutions.' },
             { icon: '🔐', title: 'How secure is my data?', desc: 'We use JWT-based authentication with refresh token rotation, encrypted data storage, and follow industry-standard security practices.' },
             { icon: '🔗', title: 'Can I integrate external courses?', desc: 'Absolutely. Track your progress on Coursera, Udemy, LinkedIn Learning, and more directly from your dashboard.' },
           ].map(faq => (

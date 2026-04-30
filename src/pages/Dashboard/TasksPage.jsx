@@ -14,7 +14,7 @@ const TasksPage = () => {
   const { request } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
-  const isStudent = role === 'student' || role === 'parent';
+  const isStudent = role === 'student';
 
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,10 @@ const TasksPage = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchTasks(); }, []);
+  useEffect(() => {
+    fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -86,10 +89,10 @@ const TasksPage = () => {
         return;
       }
       
-      // Backend expects: { taskId, studentId, Task_links, note }
+      // Backend expects studentProfileId when we already have the profile id on the task.
       const payload = {
         taskId: submitTask._id,
-        studentId: user._id,
+        studentProfileId: submitTask.studentProfileId?._id || submitTask.studentProfileId,
         Task_links: validLinks,
         note: submissionNote,
       };

@@ -14,7 +14,7 @@ const LandingLayout = () => {
       <nav className="landing-navbar glass-panel">
         <div className="nav-brand">
           <Link to="/">
-            <span className="brand-logo">Edu<span className="gradient-text">Nova</span></span>
+            <span className="brand-logo">Algo<span className="gradient-text">Gambit</span></span>
           </Link>
         </div>
         
@@ -38,7 +38,7 @@ const LandingLayout = () => {
       </main>
 
       <footer className="landing-footer glass-panel">
-        <p>&copy; {new Date().getFullYear()} EduNova LMS. All rights reserved.</p>
+        <p>&copy; {new Date().getFullYear()} AlgoGambit. All rights reserved.</p>
         <div className="footer-links">
           <Link to="/about">Privacy Policy</Link>
           <Link to="/contact">Terms of Service</Link>

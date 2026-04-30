@@ -11,7 +11,7 @@ const About = () => {
           Built to <span className="gradient-text">Empower Learners</span>
         </h1>
         <p className="hero-subtitle">
-          EduNova LMS is a comprehensive learning management platform designed to bridge the gap 
+          AlgoGambit is a comprehensive learning management platform designed to bridge the gap 
           between students, parents, instructors, and administrators — providing a unified ecosystem 
           for education management.
         </p>
@@ -97,7 +97,7 @@ const About = () => {
       <section className="stack-section">
         <h2 className="section-title">Our Technology</h2>
         <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: '2rem', maxWidth: '600px', marginLeft: 'auto', marginRight: 'auto' }}>
-          EduNova is built on a modern, battle-tested stack chosen for performance, security, and developer experience.
+          AlgoGambit is built on a modern, battle-tested stack chosen for performance, security, and developer experience.
         </p>
         <div className="stack-tags">
           {['React 19', 'Vite', 'Node.js', 'Express', 'MongoDB', 'Mongoose', 'JWT Auth', 'REST API', 'CSS3', 'Docker'].map(tech => (
@@ -109,7 +109,7 @@ const About = () => {
       {/* ─── Stats ─── */}
       <section className="features-section">
         <div className="cta-card glass-panel">
-          <h2>EduNova by the Numbers</h2>
+          <h2>AlgoGambit by the Numbers</h2>
           <div className="hero-stats" style={{ marginTop: '2rem' }}>
             {[
               { value: '4', label: 'User Roles' },

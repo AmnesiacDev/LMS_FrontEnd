@@ -45,7 +45,7 @@ const Home = () => {
         </div>
         <h1 className="hero-title">
           Empower Education with<br />
-          <span className="gradient-text">EduNova LMS</span>
+          <span className="gradient-text">AlgoGambit</span>
         </h1>
         <p className="hero-subtitle">
           A comprehensive learning management system designed to connect students, 
@@ -78,7 +78,7 @@ const Home = () => {
 
       {/* ─── Features ─── */}
       <section className="features-section">
-        <h2 className="section-title">Why Choose EduNova?</h2>
+        <h2 className="section-title">Why Choose AlgoGambit?</h2>
         <div className="features-grid">
           {features.map(f => (
             <div key={f.title} className="feature-card glass-panel">
@@ -122,7 +122,7 @@ const Home = () => {
       <section className="cta-section">
         <div className="cta-card glass-panel">
           <h2>Ready to Transform Learning?</h2>
-          <p>Join EduNova and experience the future of education management.</p>
+          <p>Join AlgoGambit and experience a clearer way to manage learning.</p>
           <Link to="/login" className="btn btn-primary">
             Start Your Journey
           </Link>

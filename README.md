@@ -1,6 +1,6 @@
-#LMS Frontend
+# AlgoGambit Frontend
 
-A modern, responsive Learning Management System (LMS) frontend built with React and Vite. It features a polished dashboard UI, dynamic theming, and an intuitive user experience for administrators, instructors, parents, and students.
+A modern, responsive learning platform frontend built with React and Vite. It features a polished dashboard UI, dynamic theming, and an intuitive user experience for administrators, instructors, parents, and students.
 
 ## Features
 
