@@ -1,32 +1,24 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const location = useLocation();
+  const { user, token, isAuthenticated } = useAuth();
 
-  const localStorageToken = localStorage.getItem('access-token');
-  
-  let localStorageUser = null;
-  try {
-    const stored = localStorage.getItem('lms-user');
-    if (stored) {
-      localStorageUser = JSON.parse(stored);
-    }
-  } catch (e) {
-    localStorageUser = null;
-  }
-
-  if (!localStorageToken || !localStorageUser) {
+  // Not authenticated — redirect to login page (not unauthorized)
+  if (!isAuthenticated) {
     return (
       <Navigate 
-        to="/unauthorized" 
+        to="/login" 
         state={{ from: location }} 
         replace 
       />
     );
   }
 
-  if (allowedRoles && localStorageUser?.role && !allowedRoles.includes(localStorageUser.role)) {
+  // Authenticated but wrong role — show forbidden
+  if (allowedRoles && user?.role && !allowedRoles.includes(user.role)) {
     return (
       <Navigate 
         to="/forbidden" 

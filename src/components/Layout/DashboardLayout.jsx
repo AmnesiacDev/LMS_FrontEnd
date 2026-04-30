@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate, Navigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import './DashboardLayout.css';
 
 const navConfig = {
@@ -48,18 +49,7 @@ const DashboardLayout = () => {
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const navigate = useNavigate();
-
-  const localStorageToken = localStorage.getItem('access-token');
-  
-  let user = null;
-  try {
-    const stored = localStorage.getItem('lms-user');
-    if (stored) {
-      user = JSON.parse(stored);
-    }
-  } catch (e) {
-    user = null;
-  }
+  const { user, logout } = useAuth();
 
   const role = user?.role || 'student';
   const navItems = navConfig[role] || navConfig.student;
@@ -67,22 +57,16 @@ const DashboardLayout = () => {
   const userName = user?.FullName || user?.UserName || 'User';
   const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
-  const handleLogout = () => {
-    localStorage.removeItem('access-token');
-    localStorage.removeItem('lms-user');
-    localStorage.removeItem('token-expiry');
+  const handleLogout = async () => {
+    await logout();
     navigate('/login');
   };
-
-  if (!localStorageToken || !user) {
-    return <Navigate to="/unauthorized" replace />;
-  }
 
   return (
     <div className="dashboard-wrapper">
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h2 className="brand-logo">Youssef's <span className="gradient-text">LMS</span></h2>
+          <h2 className="brand-logo">Edu<span className="gradient-text">Nova</span></h2>
           <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
           </button>

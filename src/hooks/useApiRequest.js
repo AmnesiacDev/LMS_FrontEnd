@@ -1,11 +1,16 @@
 import { useAuth } from '../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export const useApiRequest = () => {
-  const { ensureValidToken, refreshToken } = useAuth();
+  const { ensureValidToken, refreshToken, logout } = useAuth();
+  const navigate = useNavigate();
 
   const request = async (url, method = 'GET', body = null) => {
+    // Ensure we have a valid (non-expired) token before making the request
     const isValid = await ensureValidToken();
     if (!isValid) {
+      logout();
+      navigate('/login');
       throw new Error('Please login to continue.');
     }
 
@@ -19,9 +24,12 @@ export const useApiRequest = () => {
 
     const response = await fetch(url, options);
 
+    // If we get a 401/419, try to refresh the token and retry once
     if (response.status === 401 || response.status === 419) {
       const refreshed = await refreshToken();
       if (!refreshed) {
+        logout();
+        navigate('/login');
         throw new Error('Session expired. Please login again.');
       }
 

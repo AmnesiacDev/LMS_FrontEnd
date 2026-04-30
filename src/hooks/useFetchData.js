@@ -30,6 +30,7 @@ const useFetchData = (endpoint, options = {}) => {
       setLoading(true);
       setError(null);
       
+      // ensureValidToken now actually checks JWT expiry and refreshes if needed
       const isValid = await ensureValidToken();
       if (!isValid) {
         setError('Please login to continue.');

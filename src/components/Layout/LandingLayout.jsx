@@ -14,7 +14,7 @@ const LandingLayout = () => {
       <nav className="landing-navbar glass-panel">
         <div className="nav-brand">
           <Link to="/">
-            <span className="brand-logo">Youssef's <span className="gradient-text">LMS</span></span>
+            <span className="brand-logo">Edu<span className="gradient-text">Nova</span></span>
           </Link>
         </div>
         

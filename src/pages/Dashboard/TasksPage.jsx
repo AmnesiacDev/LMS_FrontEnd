@@ -86,14 +86,15 @@ const TasksPage = () => {
         return;
       }
       
+      // Backend expects: { taskId, studentId, Task_links, note }
       const payload = {
         taskId: submitTask._id,
-        submissionLinks: validLinks,
+        studentId: user._id,
+        Task_links: validLinks,
         note: submissionNote,
       };
       
       await request('/api/v1/submission', 'POST', payload);
-      await request(`/api/v1/task/${submitTask._id}/status`, 'PATCH', { status: 'completed' });
       setSubmitTask(null);
       setSubmissionLinks([{ name: '', url: '' }]);
       setSubmissionNote('');
