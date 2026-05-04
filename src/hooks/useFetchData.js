@@ -12,7 +12,7 @@ const useFetchData = (endpoint, options = {}) => {
   const { skip = false } = options;
 
   const fetchData = useCallback(async (retry = false) => {
-    if (skip) {
+    if (skip || !endpoint) {
       setLoading(false);
       return;
     }

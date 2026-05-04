@@ -1,84 +1,110 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {
   /* =====================================================================
-     LIGHT THEME (Default)
+     LIGHT THEME — "The Sunny Workshop" (Neo-Brutalist)
      ===================================================================== */
   
   /* Backgrounds */
-  --bg-primary: #f8fafc;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #f1f5f9;
+  --bg-primary: #FFFFFF;
+  --bg-secondary: #FAFAFA;
+  --bg-tertiary: #F4F4F5;
   
   /* Foreground / Text */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
+  --text-primary: #1C1917;
+  --text-secondary: #44403C;
+  --text-muted: #78716C;
   
-  /* Primary Brand (Emerald Green) */
-  --brand-primary: #10b981; /* Emerald default */
-  --brand-primary-hover: #059669;
-  --brand-light: #d1fae5;
+  /* Primary Brand (Vibrant Blue) */
+  --brand-primary: #2563EB;
+  --brand-primary-hover: #1D4ED8;
+  --brand-light: rgba(37, 99, 235, 0.1);
+  
+  /* Accent Colors (Warm Palette) */
+  --accent-yellow: #FDE047;
+  --accent-orange: #FDBA74;
+  --accent-peach: #FCA5A5;
+  --accent-rose: #FDA4AF;
   
   /* Semantic Colors */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
-  --info: #3b82f6;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
 
-  /* Borders & Shadows */
-  --border-color: #e2e8f0;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --glass-bg: rgba(255, 255, 255, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.5);
-  --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  /* Borders & Neo-Brutalist Shadows */
+  --border-color: #1C1917;
+  --border-width: 3px;
+  --shadow-color: #1C1917;
+  --shadow-sm: 3px 3px 0px 0px var(--shadow-color);
+  --shadow-md: 5px 5px 0px 0px var(--shadow-color);
+  --shadow-lg: 8px 8px 0px 0px var(--shadow-color);
+  --shadow-hover: 6px 6px 0px 0px var(--shadow-color);
   
-  /* Spacing & Radii */
-  --radius-md: 0.5rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.5rem;
-  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Card Surfaces */
+  --card-bg: #FFFFFF;
+  --card-border: var(--border-width) solid var(--border-color);
+  
+  /* Spacing & Radii — Neo-Brutalist uses minimal rounding */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Typography */
+  --font-heading: 'DM Serif Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 [data-theme='dark'] {
   /* =====================================================================
-     DARK THEME
+     DARK THEME — Sleek Warm Zinc (Neo-Brutalist)
      ===================================================================== */
   
   /* Backgrounds */
-  --bg-primary: #020617; /* Deep midnight */
-  --bg-secondary: #0f172a;
-  --bg-tertiary: #1e293b;
+  --bg-primary: #18181B;
+  --bg-secondary: #27272A;
+  --bg-tertiary: #3F3F46;
   
   /* Foreground / Text */
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #64748b;
+  --text-primary: #F4F4F5;
+  --text-secondary: #D4D4D8;
+  --text-muted: #A1A1AA;
   
   /* Primary Brand */
-  --brand-primary: #34d399; /* Lighter Emerald for dark mode */
-  --brand-primary-hover: #10b981;
-  --brand-light: rgba(16, 185, 129, 0.1);
+  --brand-primary: #3B82F6;
+  --brand-primary-hover: #2563EB;
+  --brand-light: rgba(59, 130, 246, 0.15);
+  
+  /* Warm Accent Colors */
+  --accent-yellow: #CA8A04;
+  --accent-orange: #C2410C;
+  --accent-peach: #BE123C;
+  --accent-rose: #9F1239;
   
   /* Semantic Colors */
-  --success: #34d399;
-  --warning: #fbbf24;
-  --error: #f87171;
-  --info: #60a5fa;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
 
   /* Borders & Shadows */
-  --border-color: #334155;
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4);
-  --glass-bg: rgba(15, 23, 42, 0.6);
-  --glass-border: rgba(255, 255, 255, 0.05);
-  --glass-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+  --border-color: #52525B;
+  --border-width: 3px;
+  --shadow-color: #000000;
+  --shadow-sm: 3px 3px 0px 0px var(--shadow-color);
+  --shadow-md: 5px 5px 0px 0px var(--shadow-color);
+  --shadow-lg: 8px 8px 0px 0px var(--shadow-color);
+  --shadow-hover: 6px 6px 0px 0px var(--brand-primary);
+  
+  /* Card Surfaces */
+  --card-bg: #27272A;
+  --card-border: var(--border-width) solid var(--border-color);
 }
 
 /* =====================================================================
-   GLOBAL UTILITIES AND RESETS
+   GLOBAL RESETS & BASE STYLES
    ===================================================================== */
 
 * {
@@ -88,17 +114,18 @@
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  line-height: 1.5;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
-  transition: background-color var(--transition), color var(--transition);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
   color: var(--text-primary);
-  font-weight: 600;
+  font-weight: 400;
   line-height: 1.2;
   margin-bottom: 0.5rem;
 }
@@ -114,13 +141,13 @@ a:hover {
 }
 
 button {
-  font-family: inherit;
+  font-family: var(--font-body);
   cursor: pointer;
   border: none;
   outline: none;
 }
 
-/* Base App Layout Utilities */
+/* Base App Layout */
 .app-container {
   display: flex;
   min-height: 100vh;
@@ -131,11 +158,10 @@ button {
   flex-grow: 1;
   padding: 2rem;
   overflow-y: auto;
-  margin-left: 260px; /* Sidebar width */
+  margin-left: 260px;
   transition: margin-left var(--transition);
 }
 
-/* Responsive adjustments */
 @media (max-width: 1024px) {
   .main-content {
     margin-left: 0;
@@ -143,38 +169,160 @@ button {
   }
 }
 
-/* Helper Classes */
+/* =====================================================================
+   NEO-BRUTALIST UTILITY CLASSES
+   ===================================================================== */
+
+/* Replaces glass-panel — now a brutalist card */
 .glass-panel {
-  background: var(--glass-bg);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border);
-  box-shadow: var(--glass-shadow);
-  border-radius: var(--radius-xl);
+  background: var(--card-bg);
+  border: var(--card-border);
+  box-shadow: var(--shadow-md);
+  border-radius: var(--radius-md);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
+.glass-panel:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Gradient text is replaced by solid-color bold */
 .gradient-text {
-  background: linear-gradient(135deg, var(--brand-primary), var(--info));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: var(--brand-primary);
+  -webkit-text-fill-color: var(--brand-primary);
 }
 
+/* Avatar — brutalist style */
 .avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand-primary), var(--info));
-  color: white;
+  border-radius: var(--radius-sm);
+  background: var(--accent-yellow);
+  color: var(--text-primary);
+  border: 2px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 700;
   font-size: 0.85rem;
   flex-shrink: 0;
+  font-family: var(--font-body);
 }
 
+/* Neo-Brutalist Button Base */
+.nb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.25rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: var(--card-border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  cursor: pointer;
+}
+
+.nb-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+
+.nb-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+.nb-btn-primary {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+.nb-btn-secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Badge */
+.nb-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  background: var(--accent-yellow);
+  color: var(--text-primary);
+}
+
+.nb-badge-orange {
+  background: var(--accent-orange);
+}
+
+.nb-badge-peach {
+  background: var(--accent-peach);
+}
+
+.nb-badge-red {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+}
+
+/* Progress Bar — Neo-Brutalist */
+.nb-progress {
+  width: 100%;
+  height: 14px;
+  background: var(--bg-tertiary);
+  border: 2px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.nb-progress-fill {
+  height: 100%;
+  background: var(--brand-primary);
+  transition: width 0.6s ease;
+}
+
+.nb-progress-fill-green {
+  background: var(--success);
+}
+
+/* Animations */
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes popIn {
+  0% { opacity: 0; transform: scale(0.9) translate(2px, 2px); }
+  70% { transform: scale(1.02) translate(-1px, -1px); }
+  100% { opacity: 1; transform: scale(1) translate(0, 0); }
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-primary);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border: 2px solid var(--bg-primary);
+  border-radius: 0;
 }

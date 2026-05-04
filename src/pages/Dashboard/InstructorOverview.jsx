@@ -30,34 +30,36 @@ const InstructorOverview = () => {
 
   return (
     <div className="overview-container">
-      <h1 className="page-title">Welcome, {instructorName}! 🎓</h1>
-      <p className="page-subtitle">Here's an overview of your teaching activity.</p>
+      <div>
+        <h1 className="page-title">Welcome, {instructorName}! 🎓</h1>
+        <p className="page-subtitle">Here's an overview of your teaching activity.</p>
+      </div>
 
       {/* Stats Cards */}
       <div className="stats-grid">
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'var(--brand-light)', color: 'var(--brand-primary)' }}>📅</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📅</div>
           <div className="stat-info">
             <h3>{sessionsLoading ? '...' : sessionList.length}</h3>
             <p>Total Sessions</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--info)' }}>📝</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>📝</div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : taskList.length}</h3>
             <p>Tasks Assigned</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)' }}>📩</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>📩</div>
           <div className="stat-info">
             <h3>{subsLoading ? '...' : pendingSubs.length}</h3>
             <p>Pending Reviews</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(52, 211, 153, 0.1)', color: 'var(--success)' }}>🏆</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>🏆</div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : `${completionRate}%`}</h3>
             <p>Task Completion</p>
@@ -66,30 +68,30 @@ const InstructorOverview = () => {
       </div>
 
       {/* Second Stats Row */}
-      <div className="stats-grid" style={{ marginTop: '1rem' }}>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>⭐</div>
+      <div className="stats-grid">
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}>⭐</div>
           <div className="stat-info">
             <h3>{reviewsLoading ? '...' : avgOverall}</h3>
             <p>Avg Rating</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>✅</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>✅</div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : completedTasks.length}</h3>
             <p>Completed Tasks</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: 'var(--warning)' }}>⏳</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>⏳</div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : pendingTasks.length}</h3>
             <p>Pending Tasks</p>
           </div>
         </div>
-        <div className="stat-card glass-panel">
-          <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--info)' }}>📚</div>
+        <div className="stat-card">
+          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>📚</div>
           <div className="stat-info">
             <h3>{reviewsLoading ? '...' : reviewList.length}</h3>
             <p>Reviews Given</p>
@@ -97,25 +99,80 @@ const InstructorOverview = () => {
         </div>
       </div>
 
+      {/* Progress Tracker */}
+      <div style={{
+        background: 'var(--card-bg)',
+        border: 'var(--card-border)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-md)',
+        padding: '1.25rem',
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', margin: 0, fontWeight: 400 }}>Task Completion</h2>
+          <span style={{
+            display: 'inline-flex',
+            padding: '0.2rem 0.6rem',
+            background: completionRate >= 75 ? 'var(--accent-yellow)' : completionRate >= 40 ? 'var(--accent-orange)' : 'var(--brand-primary)',
+            color: completionRate >= 75 ? 'var(--text-primary)' : 'var(--text-primary)',
+            border: '2px solid var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.78rem',
+            fontWeight: '700',
+          }}>{completionRate}%</span>
+        </div>
+        <div className="progress-bar-container">
+          <div className="progress-bar" style={{ width: `${completionRate}%` }}></div>
+        </div>
+      </div>
+
       <div className="dashboard-main-row">
         {/* Upcoming Sessions */}
-        <div className="courses-section glass-panel">
+        <div className="courses-section">
           <div className="section-header">
             <h2>Upcoming Sessions</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{upcomingSessions.length} upcoming</span>
+            <span style={{ 
+              fontSize: '0.72rem', 
+              padding: '0.15rem 0.5rem',
+              background: 'var(--accent-yellow)',
+              border: '2px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: '700'
+            }}>{upcomingSessions.length} UPCOMING</span>
           </div>
+
+          {/* Next Session Highlight */}
+          {upcomingSessions.length > 0 && (
+            <div style={{
+              background: 'var(--brand-primary)',
+              color: '#FFFFFF',
+              padding: '1rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '3px solid var(--border-color)',
+              boxShadow: 'var(--shadow-sm)',
+              marginBottom: '1rem'
+            }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.3rem', opacity: 0.9 }}>▶ Next Session</p>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.1rem', margin: '0 0 0.2rem', color: '#FFFFFF' }}>{upcomingSessions[0].title}</h3>
+              <p style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
+                {new Date(upcomingSessions[0].date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+                {' · '}
+                {new Date(upcomingSessions[0].date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            </div>
+          )}
+
           <div className="course-list">
             {sessionsLoading ? <p style={{ color: 'var(--text-muted)' }}>Loading sessions...</p> :
              upcomingSessions.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No upcoming sessions.</p> :
-             upcomingSessions.slice(0, 5).map(session => (
+             upcomingSessions.slice(1, 6).map(session => (
               <div key={session._id} className="course-item">
-                <div className="course-img" style={{ background: 'linear-gradient(135deg, var(--brand-primary), var(--info))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: '700', fontSize: '0.8rem', borderRadius: 'var(--radius-md)' }}>
+                <div className="course-img" style={{ background: 'var(--accent-yellow)' }}>
                   {new Date(session.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                 </div>
                 <div className="course-details">
                   <h4>{session.title}</h4>
                   <p>{session.description?.slice(0, 60) || 'No description'}</p>
-                  <p style={{ fontWeight: '500', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                  <p style={{ fontWeight: '600', color: 'var(--text-muted)', fontSize: '0.78rem' }}>
                     {new Date(session.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </p>
                 </div>
@@ -125,20 +182,35 @@ const InstructorOverview = () => {
         </div>
 
         {/* Submissions Needing Review */}
-        <div className="tasks-section glass-panel">
+        <div className="tasks-section">
           <div className="section-header">
             <h2>Submissions to Review</h2>
           </div>
           <ul className="task-list">
             {subsLoading ? <li className="task-item"><div className="task-meta"><h4>Loading...</h4></div></li> :
-             pendingSubs.length === 0 ? <li className="task-item"><div className="task-meta"><h4>All caught up! ✅</h4></div></li> :
+             pendingSubs.length === 0 ? (
+              <li style={{
+                padding: '1.5rem',
+                textAlign: 'center',
+                background: 'var(--bg-tertiary)',
+                border: '2px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)',
+                boxShadow: '2px 2px 0px 0px var(--shadow-color)'
+              }}>
+                <p style={{ fontSize: '1.5rem', margin: '0 0 0.25rem' }}>✅</p>
+                <p style={{ color: 'var(--text-muted)', fontWeight: '600', margin: 0, fontSize: '0.85rem' }}>All caught up!</p>
+              </li>
+             ) :
              pendingSubs.slice(0, 6).map(sub => (
               <li key={sub._id} className="task-item upcoming">
                 <div className="task-meta">
                   <h4>{sub.task?.title || 'Submission'}</h4>
                   <p>Submitted: {sub.SubmissionDate ? new Date(sub.SubmissionDate).toLocaleDateString() : 'Pending'}</p>
                 </div>
-                <div className="task-status" style={{ color: sub.status === 'Completed' ? 'var(--success)' : 'var(--warning)' }}>{sub.status}</div>
+                <div className="task-status" style={{ 
+                  background: sub.status === 'Completed' ? 'var(--accent-yellow)' : 'var(--accent-orange)',
+                  color: sub.status === 'Completed' ? 'var(--text-primary)' : 'var(--text-primary)'
+                }}>{sub.status}</div>
               </li>
             ))}
           </ul>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
@@ -10,6 +11,7 @@ const statusColor = (s) => {
 };
 
 const TasksPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { request } = useApiRequest();
   const role = user?.role || 'student';
@@ -237,6 +239,15 @@ const TasksPage = () => {
               <span>📅 Due: <strong style={{ color: isOverdue(task.dueDate) && task.status !== 'completed' ? '#ef4444' : 'var(--text-primary)' }}>{task.dueDate ? new Date(task.dueDate).toLocaleString() : 'N/A'}</strong></span>
               {task.sessionId?.title && <span>📚 {task.sessionId.title}</span>}
               {task.instructorId?.FullName && <span>👨‍🏫 {task.instructorId.FullName}</span>}
+              {isAdmin && task.studentProfileId?.user?.FullName && (
+                <span 
+                  style={{ color: 'var(--brand-primary)', cursor: 'pointer', textDecoration: 'underline' }} 
+                  onClick={() => navigate(`/dashboard/child/${task.studentProfileId._id}`)}
+                  title="View student profile"
+                >
+                  🎓 {task.studentProfileId.user.FullName}
+                </span>
+              )}
             </div>
             {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}>🔗 {l.title || 'Resource'}</a>)}</div>}
             <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>

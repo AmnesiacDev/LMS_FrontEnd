@@ -94,6 +94,7 @@ const ExternalCoursesPage = () => {
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
   const canManageCourses = isAdmin || role === 'parent';
+  const canManageHw = isAdmin || role === 'parent';
   const canSubmitHomework = role === 'student';
 
   const [courses, setCourses] = useState([]);
@@ -108,6 +109,7 @@ const ExternalCoursesPage = () => {
 
   const [selectedProfileId, setSelectedProfileId] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [expandedCourses, setExpandedCourses] = useState(new Set());
 
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [editCourse, setEditCourse] = useState(null);
@@ -583,7 +585,7 @@ const ExternalCoursesPage = () => {
               <Send size={15} /> Submit
             </button>
           )}
-          {isAdmin && (
+          {canManageHw && (
             <>
               <button onClick={() => openEditHw(hw)} style={iconButtonStyle} aria-label="Edit homework">
                 <Pencil size={15} />
@@ -605,12 +607,24 @@ const ExternalCoursesPage = () => {
     );
   };
 
+  const toggleCourseExpand = (courseId) => {
+    setExpandedCourses(prev => {
+      const next = new Set(prev);
+      if (next.has(courseId)) next.delete(courseId);
+      else next.add(courseId);
+      return next;
+    });
+  };
+
   const renderCoursePanel = (course) => {
     const courseHomeworks = homeworksByCourse.get(course._id) || [];
     const allCourseHomeworks = visibleHomeworks.filter((hw) => getCourseIdFromHw(hw) === course._id);
     const submittedCount = allCourseHomeworks.filter(isSubmitted).length;
+    const pendingCount = allCourseHomeworks.filter(isPending).length;
+    const lateCount = allCourseHomeworks.filter(isLateOrOverdue).length;
     const progress = allCourseHomeworks.length ? Math.round((submittedCount / allCourseHomeworks.length) * 100) : 0;
     const color = course.color || '#10b981';
+    const isExpanded = expandedCourses.has(course._id);
 
     return (
       <section
@@ -618,78 +632,138 @@ const ExternalCoursesPage = () => {
         className="glass-panel"
         style={{
           borderRadius: '14px',
-          padding: '1.25rem',
+          padding: 0,
           borderLeft: `5px solid ${color}`,
           overflow: 'hidden',
+          transition: 'box-shadow 0.2s ease',
         }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start', marginBottom: '1rem' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', color, marginBottom: '0.35rem' }}>
-              <BookOpen size={20} />
-              <h2 style={{ margin: 0, fontSize: '1.2rem' }}>{course.subject || 'External course'}</h2>
+        {/* ─── Clickable Course Header (Accordion Toggle) ─── */}
+        <div
+          onClick={() => toggleCourseExpand(course._id)}
+          style={{
+            padding: '1.25rem',
+            cursor: 'pointer',
+            userSelect: 'none',
+            transition: 'background 0.15s ease',
+          }}
+          onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'}
+          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem', alignItems: 'flex-start' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', color, marginBottom: '0.35rem' }}>
+                <BookOpen size={20} />
+                <h2 style={{ margin: 0, fontSize: '1.2rem' }}>{course.subject || 'External course'}</h2>
+                {/* Expand/Collapse arrow */}
+                <span style={{
+                  marginLeft: '0.25rem', fontSize: '0.85rem', color: 'var(--text-muted)',
+                  transition: 'transform 0.25s ease',
+                  transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                  display: 'inline-block',
+                }}>▼</span>
+              </div>
+              <div style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <UserRound size={15} /> {course.teacher || 'No teacher'}
+                </span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                  <GraduationCap size={15} /> {getStudentNameFromCourse(course)}
+                </span>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '0.9rem', flexWrap: 'wrap', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                <UserRound size={15} /> {course.teacher || 'No teacher'}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
-                <GraduationCap size={15} /> {getStudentNameFromCourse(course)}
-              </span>
-            </div>
-          </div>
 
-          <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center' }}>
-            {isAdmin && (
-              <button
-                onClick={() => openCreateHw(course._id)}
-                style={{
-                  ...iconButtonStyle,
-                  width: 'auto',
-                  padding: '0 0.7rem',
-                  color: 'var(--brand-primary)',
-                  fontWeight: 700,
-                }}
-              >
-                <Plus size={15} /> HW
-              </button>
-            )}
-            {canManageCourses && (
-              <>
-                <button onClick={() => openEditCourse(course)} style={iconButtonStyle} aria-label="Edit course">
-                  <Pencil size={15} />
-                </button>
+            {/* Quick Stats Badges (always visible) */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', flexShrink: 0 }}>
+              <span style={{
+                padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
+                background: 'rgba(16,185,129,0.12)', color: '#10b981',
+              }}>
+                ✓ {submittedCount}
+              </span>
+              {pendingCount > 0 && (
+                <span style={{
+                  padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
+                  background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
+                }}>
+                  ⏳ {pendingCount}
+                </span>
+              )}
+              {lateCount > 0 && (
+                <span style={{
+                  padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
+                  background: 'rgba(239,68,68,0.12)', color: '#ef4444',
+                }}>
+                  ⚠ {lateCount}
+                </span>
+              )}
+            </div>
+
+            {/* Action Buttons (stop propagation so click doesn't toggle) */}
+            <div style={{ display: 'flex', gap: '0.45rem', alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+              {canManageHw && (
                 <button
-                  onClick={() => {
-                    setFormError(null);
-                    setDeleteCourse(course);
+                  onClick={() => openCreateHw(course._id)}
+                  style={{
+                    ...iconButtonStyle,
+                    width: 'auto',
+                    padding: '0 0.7rem',
+                    color: 'var(--brand-primary)',
+                    fontWeight: 700,
                   }}
-                  style={{ ...iconButtonStyle, color: 'var(--error)' }}
-                  aria-label="Delete course"
+                  title="Add Homework"
                 >
-                  <Trash2 size={15} />
+                  <Plus size={15} /> HW
                 </button>
-              </>
+              )}
+              {canManageCourses && (
+                <>
+                  <button onClick={() => openEditCourse(course)} style={iconButtonStyle} aria-label="Edit course">
+                    <Pencil size={15} />
+                  </button>
+                  <button
+                    onClick={() => {
+                      setFormError(null);
+                      setDeleteCourse(course);
+                    }}
+                    style={{ ...iconButtonStyle, color: 'var(--error)' }}
+                    aria-label="Delete course"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Progress Bar (always visible) */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center', marginTop: '0.85rem' }}>
+            <div style={{ height: '8px', borderRadius: '999px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
+              <div style={{ width: `${progress}%`, height: '100%', background: color, borderRadius: '999px', transition: 'width 0.4s ease' }} />
+            </div>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
+              {submittedCount}/{allCourseHomeworks.length} submitted
+            </span>
+          </div>
+        </div>
+
+        {/* ─── Collapsible Homework Section ─── */}
+        <div style={{
+          maxHeight: isExpanded ? '2000px' : '0',
+          overflow: 'hidden',
+          transition: 'max-height 0.35s ease',
+          borderTop: isExpanded ? '2px solid var(--border-color)' : '0px solid transparent',
+        }}>
+          <div style={{ padding: '0.5rem 1.25rem 1.25rem' }}>
+            {courseHomeworks.length === 0 ? (
+              <div style={{ padding: '1rem 0 0.25rem', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                {statusFilter === 'all' ? 'No homework assigned yet.' : 'No homework matches this filter.'}
+              </div>
+            ) : (
+              <div>{courseHomeworks.map(renderHomeworkRow)}</div>
             )}
           </div>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '1rem', alignItems: 'center', marginBottom: '0.75rem' }}>
-          <div style={{ height: '8px', borderRadius: '999px', background: 'var(--bg-tertiary)', overflow: 'hidden' }}>
-            <div style={{ width: `${progress}%`, height: '100%', background: color, borderRadius: '999px' }} />
-          </div>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem', fontWeight: 700 }}>
-            {submittedCount}/{allCourseHomeworks.length} submitted
-          </span>
-        </div>
-
-        {courseHomeworks.length === 0 ? (
-          <div style={{ padding: '1rem 0 0.25rem', color: 'var(--text-muted)', fontSize: '0.9rem', borderTop: '1px solid var(--border-color)' }}>
-            {statusFilter === 'all' ? 'No homework assigned yet.' : 'No homework matches this filter.'}
-          </div>
-        ) : (
-          <div>{courseHomeworks.map(renderHomeworkRow)}</div>
-        )}
       </section>
     );
   };
@@ -753,7 +827,7 @@ const ExternalCoursesPage = () => {
               <Plus size={17} /> Add Course
             </button>
           )}
-          {isAdmin && (
+          {canManageHw && (
             <button onClick={() => openCreateHw()} className="modal-btn modal-btn-info" style={{ width: 'auto', padding: '0.62rem 1rem' }}>
               <Plus size={17} /> Add Homework
             </button>

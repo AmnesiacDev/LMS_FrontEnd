@@ -23,6 +23,8 @@ import ExternalCoursesPage from './pages/Dashboard/ExternalCoursesPage';
 import UsersPage from './pages/Dashboard/UsersPage';
 import StudentProfilesPage from './pages/Dashboard/StudentProfilesPage';
 import ChildDetailsPage from './pages/Dashboard/ChildDetailsPage';
+import ProgressPage from './pages/Dashboard/ProgressPage';
+import MessagesPage from './pages/Dashboard/MessagesPage';
 
 function App() {
   return (
@@ -94,6 +96,30 @@ function App() {
                 <Route path="child/:profileId" element={
                   <ProtectedRoute allowedRoles={['parent', 'admin', 'instructor']}>
                     <ChildDetailsPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="progress" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <ProgressPage />
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="progress/:profileId" element={
+                  <ProtectedRoute allowedRoles={['parent', 'admin', 'instructor']}>
+                    <ProgressPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="messages" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <MessagesPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="messages/:userId" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <MessagesPage />
                   </ProtectedRoute>
                 } />
               </Route>

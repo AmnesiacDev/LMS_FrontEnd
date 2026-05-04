@@ -1,15 +1,148 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
+/* ─── Warm Status Colors ─── */
 const statusColor = (s) => {
-  if (s === 'completed') return '#10b981';
-  if (s === 'canceled' || s === 'student canceled') return '#ef4444';
-  return '#f59e0b';
+  if (s === 'completed') return { bg: 'var(--accent-yellow)', text: 'var(--text-primary)' };
+  if (s === 'canceled' || s === 'student canceled') return { bg: 'var(--brand-primary)', text: '#FFFFFF' };
+  return { bg: 'var(--accent-orange)', text: 'var(--text-primary)' };   // pending
+};
+
+/* ─── Styles (Neo-Brutalist) ─── */
+const styles = {
+  page: {
+    padding: '0',
+  },
+  /* ── Header ── */
+  header: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem',
+  },
+  title: { fontFamily: 'var(--font-heading)', fontSize: '2rem', margin: 0, fontWeight: 400 },
+  subtitle: { color: 'var(--text-muted)', margin: '0.2rem 0 0', fontSize: '0.9rem', fontWeight: 600 },
+  createBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+    padding: '0.65rem 1.4rem', background: 'var(--brand-primary)', color: '#FFFFFF',
+    border: '3px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase',
+    letterSpacing: '0.04em', boxShadow: 'var(--shadow-sm)',
+    cursor: 'pointer', transition: 'all 0.12s ease', fontFamily: 'var(--font-body)',
+  },
+
+  /* ── Filters ── */
+  filtersRow: {
+    display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center',
+  },
+  filterPill: (active) => ({
+    padding: '0.4rem 1rem', borderRadius: 'var(--radius-sm)',
+    border: '2px solid var(--border-color)',
+    background: active ? 'var(--brand-primary)' : 'var(--card-bg)',
+    color: active ? '#FFFFFF' : 'var(--text-primary)',
+    fontWeight: 700, fontSize: '0.78rem', textTransform: 'uppercase',
+    letterSpacing: '0.04em', cursor: 'pointer',
+    boxShadow: active ? 'var(--shadow-sm)' : '2px 2px 0px 0px var(--shadow-color)',
+    transition: 'all 0.12s ease', fontFamily: 'var(--font-body)',
+    transform: active ? 'translate(-1px, -1px)' : 'none',
+  }),
+  searchInput: {
+    flex: 1, minWidth: '200px', maxWidth: '320px',
+    padding: '0.5rem 0.85rem', border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)', background: 'var(--card-bg)',
+    color: 'var(--text-primary)', fontSize: '0.85rem', fontWeight: 500,
+    fontFamily: 'var(--font-body)', outline: 'none',
+    boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
+
+  /* ── Session Card ── */
+  card: {
+    background: 'var(--card-bg)', 
+    border: '3px solid var(--border-color)',
+    borderRadius: 'var(--radius-md)', 
+    boxShadow: '4px 4px 0px 0px var(--shadow-color)',
+    overflow: 'hidden', 
+    transition: 'all 0.2s ease',
+  },
+  cardHeader: {
+    padding: '1.25rem 1.5rem', cursor: 'pointer',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start',
+    gap: '1rem', transition: 'background 0.12s ease',
+  },
+  cardLeft: { flex: 1, minWidth: 0 },
+  cardTitle: {
+    fontFamily: 'var(--font-heading)', fontSize: '1.15rem', fontWeight: 400,
+    margin: '0 0 0.3rem', color: 'var(--text-primary)',
+  },
+  cardDesc: { color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 0.5rem', lineHeight: 1.4 },
+  metaRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 },
+  metaItem: { display: 'inline-flex', alignItems: 'center', gap: '0.3rem' },
+  cardRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 },
+  statusBadge: (status) => {
+    const c = statusColor(status);
+    return {
+      padding: '0.25rem 0.7rem', borderRadius: 'var(--radius-sm)',
+      border: '2px solid var(--border-color)', background: c.bg, color: c.text,
+      fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+      letterSpacing: '0.04em',
+    };
+  },
+  chevron: (expanded) => ({
+    width: '32px', height: '32px', borderRadius: 'var(--radius-sm)',
+    border: '2px solid var(--border-color)', background: 'var(--bg-tertiary)',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    fontSize: '0.9rem', transition: 'transform 0.2s ease, background 0.15s ease',
+    transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+    cursor: 'pointer',
+  }),
+  actionBtns: { display: 'flex', gap: '0.35rem' },
+  actionBtn: (color) => ({
+    padding: '0.3rem 0.5rem', background: 'var(--bg-tertiary)',
+    color: 'var(--text-primary)', border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem',
+    boxShadow: '1px 1px 0px 0px var(--shadow-color)',
+    transition: 'all 0.1s ease',
+  }),
+
+  /* ── Expandable Content ── */
+  expandedContent: {
+    borderTop: '2px solid var(--border-color)',
+    padding: '1.25rem 1.5rem', background: 'var(--bg-secondary)',
+    animation: 'slideDown 0.25s ease',
+  },
+  contentGrid: {
+    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem',
+  },
+  contentSection: {
+    padding: '1rem', background: 'var(--card-bg)', border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)', boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
+  sectionTitle: {
+    fontFamily: 'var(--font-body)', fontSize: '0.72rem', fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-muted)',
+    margin: '0 0 0.75rem', display: 'flex', alignItems: 'center', gap: '0.4rem',
+  },
+  linkItem: {
+    display: 'flex', alignItems: 'center', gap: '0.5rem',
+    padding: '0.5rem 0.65rem', borderRadius: 'var(--radius-sm)',
+    background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+    marginBottom: '0.5rem', textDecoration: 'none', color: 'var(--text-primary)',
+    fontSize: '0.85rem', fontWeight: 600, transition: 'all 0.1s ease',
+    cursor: 'pointer',
+  },
+  emptyState: {
+    color: 'var(--text-muted)', fontSize: '0.85rem', fontStyle: 'italic', padding: '0.25rem 0',
+  },
+  summaryBox: {
+    padding: '0.75rem', background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)', fontSize: '0.88rem', color: 'var(--text-secondary)',
+    lineHeight: 1.5,
+  },
 };
 
 const SessionsPage = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { request } = useApiRequest();
   const role = user?.role || 'student';
@@ -18,6 +151,13 @@ const SessionsPage = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Filters
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Expanded cards
+  const [expandedIds, setExpandedIds] = useState(new Set());
 
   const [showCreate, setShowCreate] = useState(false);
   const [editSession, setEditSession] = useState(null);
@@ -42,6 +182,35 @@ const SessionsPage = () => {
 
   useEffect(() => { fetchSessions(); }, []);
 
+  /* ── Toggle expand ── */
+  const toggleExpand = (id) => {
+    setExpandedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  /* ── Filtered sessions ── */
+  const filteredSessions = sessions.filter(s => {
+    if (statusFilter !== 'all' && s.status !== statusFilter) return false;
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      return (s.title?.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q));
+    }
+    return true;
+  });
+
+  // Count by status
+  const counts = {
+    all: sessions.length,
+    pending: sessions.filter(s => s.status === 'pending').length,
+    completed: sessions.filter(s => s.status === 'completed').length,
+    canceled: sessions.filter(s => s.status === 'canceled' || s.status === 'student canceled').length,
+  };
+
+  /* ── CRUD handlers ── */
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
@@ -137,89 +306,211 @@ const SessionsPage = () => {
   );
 
   return (
-    <div style={{ padding: '2rem 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+    <div style={styles.page}>
+      {/* ── CSS Keyframe for expand animation ── */}
+      <style>{`
+        @keyframes slideDown {
+          from { opacity: 0; max-height: 0; }
+          to { opacity: 1; max-height: 600px; }
+        }
+      `}</style>
+
+      {/* ═══ Header ═══ */}
+      <div style={styles.header}>
         <div>
-          <h1 style={{ fontSize: '2rem', margin: 0 }}>Sessions</h1>
-          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{sessions.length} sessions</p>
+          <h1 style={styles.title}>Sessions</h1>
+          <p style={styles.subtitle}>{filteredSessions.length} of {sessions.length} sessions</p>
         </div>
         {isAdmin && (
-          <button onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}>➕ Create Session</button>
+          <button
+            onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }}
+            style={styles.createBtn}
+            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+          >
+            ➕ Create Session
+          </button>
         )}
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading sessions...</p>}
-      {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
+      {/* ═══ Filters ═══ */}
+      <div style={styles.filtersRow}>
+        {['all', 'pending', 'completed', 'canceled'].map(f => (
+          <button
+            key={f}
+            onClick={() => setStatusFilter(f)}
+            style={styles.filterPill(statusFilter === f)}
+            onMouseEnter={e => { if (statusFilter !== f) { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0px 0px var(--shadow-color)'; } }}
+            onMouseLeave={e => { if (statusFilter !== f) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; } }}
+          >
+            {f === 'all' ? `All (${counts.all})` : `${f.charAt(0).toUpperCase() + f.slice(1)} (${counts[f]})`}
+          </button>
+        ))}
+        <input
+          type="text"
+          placeholder="🔍 Search sessions..."
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          style={styles.searchInput}
+        />
+      </div>
 
-      {!loading && sessions.length === 0 && (
-        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', borderRadius: '1rem' }}>
-          <h3>No sessions found</h3>
-          <p style={{ color: 'var(--text-muted)' }}>Sessions will appear here once created.</p>
+      {/* ═══ Loading / Error / Empty ═══ */}
+      {loading && <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading sessions...</p>}
+      {error && <p style={{ color: 'var(--error)', fontWeight: 600 }}>⚠️ {error}</p>}
+      {!loading && filteredSessions.length === 0 && (
+        <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
+          <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}>📅</p>
+          <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400 }}>No sessions found</h3>
+          <p style={{ color: 'var(--text-muted)' }}>
+            {searchQuery || statusFilter !== 'all' ? 'Try adjusting your filters.' : 'Sessions will appear here once created.'}
+          </p>
         </div>
       )}
 
+      {/* ═══ Session Cards ═══ */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {sessions.map(session => (
-          <div key={session._id} className="glass-panel" style={{ padding: '1.5rem', borderRadius: '1rem', borderLeft: `4px solid ${statusColor(session.status)}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: '1.2rem', marginBottom: '0.4rem' }}>{session.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', marginBottom: '0.4rem' }}>{session.description}</p>
-                <div style={{ display: 'flex', gap: '1.25rem', flexWrap: 'wrap', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-                  <span>📅 {session.date ? new Date(session.date).toLocaleString() : 'No date'}</span>
-                  {session.instructorId?.FullName && <span>👨‍🏫 {session.instructorId.FullName}</span>}
-                  <span>✅ Attended: {session.StudentAttended ? 'Yes' : 'No'}</span>
+        {filteredSessions.map(session => {
+          const isExpanded = expandedIds.has(session._id);
+          const hasLinks = session.attachmentsLinks?.length > 0;
+          const hasVideos = session.recapVideoLinks?.length > 0;
+          const hasSummary = !!session.summary;
+          const hasNotes = !!session.notes;
+          const hasContent = hasLinks || hasVideos || hasSummary || hasNotes;
+
+          return (
+            <div 
+              key={session._id} 
+              style={styles.card}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translate(-2px, -2px)';
+                e.currentTarget.style.boxShadow = '6px 6px 0px 0px var(--shadow-color)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'none';
+                e.currentTarget.style.boxShadow = '4px 4px 0px 0px var(--shadow-color)';
+              }}
+            >
+              {/* ── Card Header (Clickable) ── */}
+              <div
+                style={{
+                  ...styles.cardHeader,
+                  background: isExpanded ? 'var(--bg-secondary)' : 'transparent',
+                }}
+                onClick={() => toggleExpand(session._id)}
+              >
+                <div style={styles.cardLeft}>
+                  <h3 style={styles.cardTitle}>{session.title}</h3>
+                  <p style={styles.cardDesc}>{session.description}</p>
+                  <div style={styles.metaRow}>
+                    <span style={styles.metaItem}>📅 {session.date ? new Date(session.date).toLocaleString() : 'No date'}</span>
+                    {session.instructorId?.FullName && <span style={styles.metaItem}>👨‍🏫 {session.instructorId.FullName}</span>}
+                    {isAdmin && session.studentProfileId?.user?.FullName && (
+                      <span 
+                        style={{ ...styles.metaItem, color: 'var(--brand-primary)', cursor: 'pointer', textDecoration: 'underline' }} 
+                        onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/child/${session.studentProfileId._id}`); }}
+                        title="View student profile"
+                      >
+                        🎓 {session.studentProfileId.user.FullName}
+                      </span>
+                    )}
+                    <span style={styles.metaItem}>{session.StudentAttended ? '✅' : '❌'} Attended: {session.StudentAttended ? 'Yes' : 'No'}</span>
+                  </div>
+                </div>
+                <div style={styles.cardRight}>
+                  <span style={styles.statusBadge(session.status)}>{session.status}</span>
+                  <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
+                    {isAdmin && (
+                      <div style={styles.actionBtns}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); openEdit(session); }}
+                          style={styles.actionBtn()}
+                          title="Edit"
+                        >✏️</button>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setFormError(null); setDeleteSession(session); }}
+                          style={styles.actionBtn()}
+                          title="Delete"
+                        >🗑️</button>
+                      </div>
+                    )}
+                    <div style={styles.chevron(isExpanded)}>▼</div>
+                  </div>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
-                <span className="modal-badge" style={{ background: statusColor(session.status) + '18', color: statusColor(session.status), textTransform: 'capitalize' }}>{session.status}</span>
-                <div style={{ display: 'flex', gap: '0.35rem' }}>
-                  <button onClick={() => setViewSession(session)} style={{ padding: '0.3rem 0.55rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>👁️</button>
-                  {isAdmin && (
-                    <>
-                      <button onClick={() => openEdit(session)} style={{ padding: '0.3rem 0.55rem', background: 'rgba(59,130,246,0.08)', color: 'var(--info)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>✏️</button>
-                      <button onClick={() => { setFormError(null); setDeleteSession(session); }} style={{ padding: '0.3rem 0.55rem', background: 'rgba(239,68,68,0.08)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>🗑️</button>
-                    </>
+
+              {/* ── Expanded Dropdown Content ── */}
+              {isExpanded && (
+                <div style={styles.expandedContent}>
+                  {!hasContent ? (
+                    <p style={styles.emptyState}>No additional resources attached to this session.</p>
+                  ) : (
+                    <div style={styles.contentGrid}>
+                      {/* Recap Videos */}
+                      {hasVideos && (
+                        <div style={styles.contentSection}>
+                          <p style={styles.sectionTitle}>🎬 Recap Videos</p>
+                          {session.recapVideoLinks.map((v, i) => (
+                            <a
+                              key={i}
+                              href={v.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={styles.linkItem}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-yellow)'; e.currentTarget.style.transform = 'translate(-1px, -1px)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.transform = 'none'; }}
+                            >
+                              <span style={{ fontSize: '1.1rem' }}>▶️</span>
+                              <span>{v.title || `Video ${i + 1}`}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Attachments / Files */}
+                      {hasLinks && (
+                        <div style={styles.contentSection}>
+                          <p style={styles.sectionTitle}>📎 Files & Attachments</p>
+                          {session.attachmentsLinks.map((a, i) => (
+                            <a
+                              key={i}
+                              href={a.attachmentLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              style={styles.linkItem}
+                              onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-peach)'; e.currentTarget.style.transform = 'translate(-1px, -1px)'; }}
+                              onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.transform = 'none'; }}
+                            >
+                              <span style={{ fontSize: '1.1rem' }}>📄</span>
+                              <span>{a.title || `Attachment ${i + 1}`}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Summary */}
+                      {hasSummary && (
+                        <div style={styles.contentSection}>
+                          <p style={styles.sectionTitle}>📋 Session Summary</p>
+                          <div style={styles.summaryBox}>{session.summary}</div>
+                        </div>
+                      )}
+
+                      {/* Notes */}
+                      {hasNotes && (
+                        <div style={styles.contentSection}>
+                          <p style={styles.sectionTitle}>📝 Notes</p>
+                          <div style={styles.summaryBox}>{session.notes}</div>
+                        </div>
+                      )}
+                    </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
-            {session.summary && <p style={{ marginTop: '0.75rem', padding: '0.6rem 0.85rem', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>📋 {session.summary}</p>}
-          </div>
-        ))}
+          );
+        })}
       </div>
-
-      {/* ═══ VIEW ═══ */}
-      <Modal isOpen={!!viewSession} onClose={() => setViewSession(null)} title={viewSession?.title || 'Session Details'} size="lg">
-        {viewSession && (
-          <>
-            <div className="modal-detail-grid">
-              <div className="modal-detail-item">
-                <div className="detail-label">Status</div>
-                <span className="modal-badge" style={{ background: statusColor(viewSession.status) + '18', color: statusColor(viewSession.status), textTransform: 'capitalize' }}>{viewSession.status}</span>
-              </div>
-              <div className="modal-detail-item">
-                <div className="detail-label">Date</div>
-                <div className="detail-value">{viewSession.date ? new Date(viewSession.date).toLocaleString() : '—'}</div>
-              </div>
-              <div className="modal-detail-item">
-                <div className="detail-label">Attended</div>
-                <div className="detail-value">{viewSession.StudentAttended ? '✅ Yes' : '❌ No'}</div>
-              </div>
-              <div className="modal-detail-item">
-                <div className="detail-label">ID</div>
-                <div className="detail-value mono">{viewSession._id}</div>
-              </div>
-            </div>
-            <div className="modal-section-label">Description</div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>{viewSession.description}</p>
-            {viewSession.summary && (<><div className="modal-section-label">Summary</div><p style={{ color: 'var(--text-secondary)' }}>{viewSession.summary}</p></>)}
-            {viewSession.notes && (<><div className="modal-section-label">Notes</div><div className="modal-detail-item"><div className="detail-value" style={{ fontWeight: '400', color: 'var(--text-secondary)' }}>{viewSession.notes}</div></div></>)}
-            {viewSession.recapVideoLinks?.length > 0 && (<><div className="modal-section-label">Recap Videos</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewSession.recapVideoLinks.map((v, i) => <a key={i} href={v.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)' }}>🎬 {v.title || 'Video'}</a>)}</div></>)}
-            {viewSession.attachmentsLinks?.length > 0 && (<><div className="modal-section-label">Attachments</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewSession.attachmentsLinks.map((a, i) => <a key={i} href={a.attachmentLink} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--info)' }}>📎 {a.title || 'File'}</a>)}</div></>)}
-          </>
-        )}
-      </Modal>
 
       {/* ═══ CREATE ═══ */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create New Session" size="lg">

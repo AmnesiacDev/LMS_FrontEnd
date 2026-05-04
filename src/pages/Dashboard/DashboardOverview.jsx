@@ -48,47 +48,88 @@ const DashboardOverview = () => {
 
   const isLoading = profileLoading || taskStatsLoading;
 
-  // Rating bar helper
+  // Completion percentage for the progress tracker
+  const completionRate = ts.completionRate !== undefined ? Math.round(ts.completionRate) : 0;
+
+  // Rating bar helper — Neo-Brutalist style
   const ratingBar = (label, value, max = 5) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
-      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', minWidth: '100px' }}>{label}</span>
-      <div style={{ flex: 1, height: '8px', background: 'var(--bg-tertiary)', borderRadius: '4px', overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${(value / max) * 100}%`, background: 'linear-gradient(90deg, var(--brand-primary), var(--info))', borderRadius: '4px', transition: 'width 0.5s ease' }}></div>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.6rem' }}>
+      <span style={{ 
+        fontSize: '0.78rem', 
+        color: 'var(--text-muted)', 
+        minWidth: '95px', 
+        fontWeight: '700', 
+        textTransform: 'uppercase',
+        letterSpacing: '0.04em'
+      }}>{label}</span>
+      <div style={{ 
+        flex: 1, 
+        height: '12px', 
+        background: 'var(--bg-tertiary)', 
+        border: '2px solid var(--border-color)',
+        borderRadius: 'var(--radius-sm)', 
+        overflow: 'hidden' 
+      }}>
+        <div style={{ 
+          height: '100%', 
+          width: `${(value / max) * 100}%`, 
+          background: 'var(--brand-primary)',
+          borderRadius: 'var(--radius-sm)', 
+          transition: 'width 0.5s ease' 
+        }}></div>
       </div>
-      <span style={{ fontSize: '0.85rem', fontWeight: '600', minWidth: '35px', textAlign: 'right' }}>{typeof value === 'number' ? value.toFixed(1) : '—'}/{max}</span>
+      <span style={{ 
+        fontSize: '0.82rem', 
+        fontWeight: '700', 
+        minWidth: '38px', 
+        textAlign: 'right',
+        fontFamily: 'var(--font-heading)'
+      }}>{typeof value === 'number' ? value.toFixed(1) : '—'}/{max}</span>
     </div>
   );
 
   return (
     <div className="overview-container">
-      <h1 className="page-title">Welcome back, {isLoading ? "..." : studentName}! 👋</h1>
-      <p className="page-subtitle">Here is what's happening with your learning. (Grade: {grade})</p>
+      {/* ══════ HEADER ══════ */}
+      <div>
+        <h1 className="page-title">Welcome back, {isLoading ? "..." : studentName}! 👋</h1>
+        <p className="page-subtitle">Here is what's happening with your learning. <span style={{
+          display: 'inline-flex',
+          padding: '0.15rem 0.5rem',
+          background: 'var(--accent-yellow)',
+          border: '2px solid var(--border-color)',
+          borderRadius: 'var(--radius-sm)',
+          fontSize: '0.78rem',
+          fontWeight: '700',
+          marginLeft: '0.4rem'
+        }}>Grade: {grade}</span></p>
+      </div>
 
-      {/* ══════ STATS CARDS ══════ */}
+      {/* ══════ BENTO STATS ROW 1 ══════ */}
       <div className="stats-grid">
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'var(--brand-light)', color: 'var(--brand-primary)' }}>📋</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📋</div>
             <div className="stat-info">
                <h3>{ts.totalTasks ?? '—'}</h3>
                <p>Total Tasks</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(52, 211, 153, 0.1)', color: 'var(--success)' }}>✅</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>✅</div>
             <div className="stat-info">
                <h3>{ts.completedTasks ?? '—'}</h3>
                <p>Completed</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(245, 158, 11, 0.1)', color: 'var(--warning)' }}>⏳</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>⏳</div>
             <div className="stat-info">
                <h3>{ts.pendingTasks ?? '—'}</h3>
                <p>Pending Tasks</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(59, 130, 246, 0.1)', color: 'var(--info)' }}>🏆</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>🏆</div>
             <div className="stat-info">
                <h3>{ts.completionRate !== undefined ? `${Math.round(ts.completionRate)}%` : '—'}</h3>
                <p>Completion Rate</p>
@@ -96,31 +137,31 @@ const DashboardOverview = () => {
          </div>
       </div>
 
-      {/* ══════ SUBMISSION STATS ══════ */}
-      <div className="stats-grid" style={{ marginTop: '1rem' }}>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(139,92,246,0.1)', color: '#8b5cf6' }}>📄</div>
+      {/* ══════ BENTO STATS ROW 2 — Submissions ══════ */}
+      <div className="stats-grid">
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}>📄</div>
             <div className="stat-info">
                <h3>{ss.totalSubmissions ?? '—'}</h3>
                <p>Total Submissions</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(16,185,129,0.1)', color: 'var(--success)' }}>📥</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📥</div>
             <div className="stat-info">
                <h3>{ss.reviewed ?? '—'}</h3>
                <p>Reviewed</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: 'var(--warning)' }}>📤</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>📤</div>
             <div className="stat-info">
                <h3>{ss.pending ?? '—'}</h3>
                <p>Awaiting Review</p>
             </div>
          </div>
-         <div className="stat-card glass-panel">
-            <div className="stat-icon" style={{ background: 'rgba(239,68,68,0.1)', color: 'var(--error)' }}>⏰</div>
+         <div className="stat-card">
+            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>⏰</div>
             <div className="stat-info">
                <h3>{ss.late ?? '—'}</h3>
                <p>Late Submissions</p>
@@ -128,27 +169,79 @@ const DashboardOverview = () => {
          </div>
       </div>
 
+      {/* ══════ PROGRESS TRACKER (Colorful Neo-Brutalist bar) ══════ */}
+      <div style={{
+        background: 'var(--card-bg)',
+        border: 'var(--card-border)',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-md)',
+        padding: '1.25rem',
+        transition: 'transform 0.12s ease, box-shadow 0.12s ease'
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+          <h2 style={{ 
+            fontFamily: 'var(--font-heading)',
+            fontSize: '1.15rem',
+            margin: 0,
+            fontWeight: 400
+          }}>Progress Tracker</h2>
+          <span style={{
+            display: 'inline-flex',
+            padding: '0.2rem 0.6rem',
+            background: completionRate >= 75 ? 'var(--accent-yellow)' : completionRate >= 40 ? 'var(--accent-orange)' : 'var(--brand-primary)',
+            color: completionRate >= 75 ? 'var(--text-primary)' : 'var(--text-primary)',
+            border: '2px solid var(--border-color)',
+            borderRadius: 'var(--radius-sm)',
+            fontSize: '0.78rem',
+            fontWeight: '700',
+            letterSpacing: '0.04em',
+          }}>{completionRate}% COMPLETE</span>
+        </div>
+        <div className="progress-bar-container">
+          <div className="progress-bar" style={{ width: `${completionRate}%` }}></div>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+            {ts.completedTasks ?? 0} of {ts.totalTasks ?? 0} tasks completed
+          </span>
+          <span style={{ fontSize: '0.75rem', fontWeight: '600', color: 'var(--text-muted)' }}>
+            {ts.pendingTasks ?? 0} remaining
+          </span>
+        </div>
+      </div>
+
+      {/* ══════ BENTO MAIN ROW ══════ */}
       <div className="dashboard-main-row">
         {/* ══════ SESSION REVIEW AVERAGES ══════ */}
-        <div className="courses-section glass-panel">
+        <div className="courses-section">
           <div className="section-header">
             <h2>Performance Ratings</h2>
-            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>{rs.Count ?? 0} reviews</span>
+            <span style={{ 
+              fontSize: '0.75rem', 
+              padding: '0.15rem 0.5rem',
+              background: 'var(--accent-yellow)',
+              border: '2px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: '700'
+            }}>{rs.Count ?? 0} REVIEWS</span>
           </div>
           
-          <div style={{ padding: '0.5rem 0' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '1.5rem' }}>
+          <div style={{ padding: '0.25rem 0' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginBottom: '1.25rem' }}>
               <div style={{
-                width: '80px', height: '80px', borderRadius: '50%',
-                background: 'linear-gradient(135deg, var(--brand-primary), var(--info))',
+                width: '72px', height: '72px', borderRadius: 'var(--radius-sm)',
+                background: 'var(--brand-primary)',
+                border: '3px solid var(--border-color)',
+                boxShadow: '4px 4px 0px 0px var(--shadow-color)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 color: 'white', fontWeight: '700', fontSize: '1.4rem',
+                fontFamily: 'var(--font-heading)',
               }}>
                 {rs.avgOverall !== undefined ? rs.avgOverall.toFixed(1) : '—'}
               </div>
               <div style={{ marginLeft: '1rem' }}>
-                <p style={{ fontWeight: '600', fontSize: '1.1rem', margin: 0 }}>Overall Average</p>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 0 }}>out of 5.0</p>
+                <p style={{ fontFamily: 'var(--font-heading)', fontWeight: '400', fontSize: '1.15rem', margin: 0 }}>Overall Average</p>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: 0, fontWeight: '600' }}>out of 5.0</p>
               </div>
             </div>
             {ratingBar('Behavior', rs.avgBehavior || 0)}
@@ -158,18 +251,37 @@ const DashboardOverview = () => {
           </div>
         </div>
 
-        {/* ══════ UPCOMING ══════ */}
-        <div className="tasks-section glass-panel">
+        {/* ══════ UPCOMING (Next Lesson Card) ══════ */}
+        <div className="tasks-section">
           <div className="section-header">
             <h2>Upcoming</h2>
           </div>
           
-          {/* Upcoming Sessions */}
+          {/* Next Lesson Highlight */}
           {upcomingSessions.length > 0 && (
+            <div style={{
+              background: 'var(--brand-primary)',
+              color: '#FFFFFF',
+              padding: '1rem',
+              borderRadius: 'var(--radius-sm)',
+              border: '3px solid var(--border-color)',
+              boxShadow: 'var(--shadow-sm)',
+              marginBottom: '1rem'
+            }}>
+              <p style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.3rem', opacity: 0.9 }}>▶ Next Lesson</p>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', margin: '0 0 0.2rem', color: '#FFFFFF' }}>{upcomingSessions[0].title}</h3>
+              <p style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
+                {new Date(upcomingSessions[0].date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </p>
+            </div>
+          )}
+
+          {/* Upcoming Sessions */}
+          {upcomingSessions.length > 1 && (
             <>
-              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sessions</h4>
+              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '0 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>Sessions</h4>
               <ul className="task-list">
-                {upcomingSessions.map(s => (
+                {upcomingSessions.slice(1).map(s => (
                   <li key={s._id} className="task-item upcoming">
                     <div className="task-meta">
                       <h4>{s.title}</h4>
@@ -185,7 +297,7 @@ const DashboardOverview = () => {
           {/* Pending Tasks */}
           {pendingTasks.length > 0 && (
             <>
-              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Pending Tasks</h4>
+              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>Pending Tasks</h4>
               <ul className="task-list">
                 {pendingTasks.slice(0, 5).map(t => {
                   const isOverdue = t.dueDate && new Date(t.dueDate) < new Date();
@@ -206,7 +318,7 @@ const DashboardOverview = () => {
           {/* Pending External HW */}
           {pendingExtHws.length > 0 && (
             <>
-              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>External Homework</h4>
+              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>External Homework</h4>
               <ul className="task-list">
                 {pendingExtHws.slice(0, 4).map(hw => {
                   const isOverdue = hw.dueDate && new Date(hw.dueDate) < new Date();
@@ -225,23 +337,52 @@ const DashboardOverview = () => {
           )}
 
           {upcomingSessions.length === 0 && pendingTasks.length === 0 && pendingExtHws.length === 0 && (
-            <p style={{ color: 'var(--text-muted)', padding: '1rem 0', textAlign: 'center' }}>No upcoming items 🎉</p>
+            <div style={{ 
+              padding: '1.5rem', 
+              textAlign: 'center', 
+              background: 'var(--bg-tertiary)', 
+              border: '2px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              boxShadow: '2px 2px 0px 0px var(--shadow-color)'
+            }}>
+              <p style={{ fontSize: '1.5rem', margin: '0 0 0.35rem' }}>🎉</p>
+              <p style={{ color: 'var(--text-muted)', fontWeight: '600', margin: 0, fontSize: '0.85rem' }}>No upcoming items — you're all caught up!</p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* ══════ EXTERNAL COURSES QUICK VIEW ══════ */}
+      {/* ══════ EXTERNAL COURSES BENTO ══════ */}
       {extCourses.length > 0 && (
-        <div className="glass-panel" style={{ padding: '1.5rem' }}>
+        <div style={{
+          background: 'var(--card-bg)',
+          border: 'var(--card-border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-md)',
+          padding: '1.25rem',
+          transition: 'transform 0.12s ease, box-shadow 0.12s ease'
+        }}>
           <div className="section-header">
-            <h2>External Courses</h2>
-            <Link to="/dashboard/external-courses" className="view-all-btn">View All →</Link>
+            <h2>Active Modules</h2>
+            <Link to="/dashboard/external" className="view-all-btn">View All →</Link>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.85rem' }}>
             {extCourses.slice(0, 6).map(c => (
-              <div key={c._id} style={{ padding: '1rem', borderRadius: '12px', background: 'var(--bg-tertiary)', borderTop: `3px solid ${c.color || '#10b981'}`, transition: 'transform 0.2s ease' }}>
-                <h4 style={{ margin: '0 0 0.25rem', fontSize: '1rem' }}>{c.subject}</h4>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: 0 }}>{c.teacher || ''}</p>
+              <div key={c._id} style={{ 
+                padding: '1rem', 
+                borderRadius: 'var(--radius-sm)', 
+                background: 'var(--bg-tertiary)', 
+                border: '2px solid var(--border-color)',
+                borderTop: `4px solid ${c.color || 'var(--accent-yellow)'}`, 
+                boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                transition: 'all 0.12s ease',
+                cursor: 'pointer'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '4px 4px 0px 0px var(--shadow-color)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; }}
+              >
+                <h4 style={{ margin: '0 0 0.2rem', fontSize: '0.95rem', fontFamily: 'var(--font-heading)', fontWeight: 400 }}>{c.subject}</h4>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.78rem', margin: 0, fontWeight: '600' }}>{c.teacher || ''}</p>
               </div>
             ))}
           </div>

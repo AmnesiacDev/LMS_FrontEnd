@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useFetchData from '../../hooks/useFetchData';
+import { useAuth } from '../../context/AuthContext';
 import './DashboardOverview.css';
 
 // Styles for status badges
@@ -17,6 +18,9 @@ const statusStyles = {
 const ChildDetailsPage = () => {
   const { profileId } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
+  
   const [activeTab, setActiveTab] = useState('Overview');
 
   // Fetch Child Profile Data
@@ -24,13 +28,14 @@ const ChildDetailsPage = () => {
   const profile = profileRes || {};
   const childUser = profile.user || {};
   
-  // Fetch and filter other data
-  const { data: tasksRaw, loading: tasksLoading } = useFetchData('/api/v1/task/me');
-  const { data: extCoursesRaw, loading: extCoursesLoading } = useFetchData('/api/v1/external-course/my-course');
-  const { data: extHwRaw, loading: extHwLoading } = useFetchData('/api/v1/external-hw/my');
-  const { data: sessionsRaw, loading: sessionsLoading } = useFetchData('/api/v1/session/me');
+  // Fetch and filter other data based on role
+  const { data: tasksRaw, loading: tasksLoading } = useFetchData(isAdmin ? `/api/v1/task/student/${profileId}` : '/api/v1/task/me');
+  const { data: extCoursesRaw, loading: extCoursesLoading } = useFetchData(isAdmin ? `/api/v1/external-course/${profileId}/student` : '/api/v1/external-course/my-course');
+  const { data: extHwRaw, loading: extHwLoading } = useFetchData(isAdmin ? '/api/v1/external-hw' : '/api/v1/external-hw/my');
+  const { data: sessionsRaw, loading: sessionsLoading } = useFetchData(isAdmin ? `/api/v1/session/student/${profileId}` : '/api/v1/session/me');
+  const { data: reviewsRaw, loading: reviewsLoading } = useFetchData(isAdmin ? `/api/v1/sessionReview/student/${profileId}` : '/api/v1/sessionReview/me');
 
-  const isLoading = profileLoading || tasksLoading || extCoursesLoading || extHwLoading || sessionsLoading;
+  const isLoading = profileLoading || tasksLoading || extCoursesLoading || extHwLoading || sessionsLoading || reviewsLoading;
 
   if (isLoading) {
     return (
@@ -45,6 +50,7 @@ const ChildDetailsPage = () => {
   const extCoursesAll = Array.isArray(extCoursesRaw) ? extCoursesRaw : (extCoursesRaw?.docs || extCoursesRaw?.courses || []);
   const extHwAll = Array.isArray(extHwRaw) ? extHwRaw : (extHwRaw?.docs || []);
   const sessionsAll = Array.isArray(sessionsRaw) ? sessionsRaw : (sessionsRaw?.docs || sessionsRaw?.sessions || []);
+  const reviewsAll = Array.isArray(reviewsRaw) ? reviewsRaw : (reviewsRaw?.docs || reviewsRaw?.reviews || []);
 
   // Ensure robust filtering handling both populated/unpopulated studentProfileId
   const getProfileId = (item, field = 'studentProfileId') => {
@@ -66,8 +72,9 @@ const ChildDetailsPage = () => {
       return childCourseIds.includes(hwCourseId);
   });
 
-  // 3. Sessions
+  // 3. Sessions & Reviews
   const childSessions = sessionsAll.filter(s => getProfileId(s) === profileId);
+  const childReviews = reviewsAll.filter(r => getProfileId(r) === profileId);
 
   // Deriving Stats locally to substitute aggregate APIs
   const completionRate = childTasks.length > 0 ? Math.round((completedTasks.length / childTasks.length) * 100) : 0;
@@ -92,11 +99,19 @@ const ChildDetailsPage = () => {
             Grade: <strong>{profile.grade || 'N/A'}</strong> • Joined: {new Date(profile.createdAt).toLocaleDateString()}
           </p>
         </div>
+        <div style={{ marginLeft: 'auto' }}>
+          <button 
+            className="nb-btn nb-btn-primary" 
+            onClick={() => navigate(`/dashboard/progress/${profileId}`)}
+          >
+            📈 View Progress Report
+          </button>
+        </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem' }}>
-        {['Overview', 'External Curriculum', 'Internal Sessions'].map(tab => (
+      <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap' }}>
+        {['Overview', 'External Curriculum', 'Internal Sessions', 'Session Reviews'].map(tab => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab)}
@@ -256,6 +271,48 @@ const ChildDetailsPage = () => {
                   </div>
                 )
               })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {activeTab === 'Session Reviews' && (
+        <div>
+          <h2 style={{ marginBottom: '1rem', color: 'var(--text-primary)' }}>Session Reviews</h2>
+          {childReviews.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No reviews available yet.</p> : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+              {childReviews.map(review => (
+                <div key={review._id} className="glass-panel" style={{ padding: '1.5rem', borderRadius: 'var(--radius-md)', border: '3px solid var(--border-color)', boxShadow: '4px 4px 0px 0px var(--shadow-color)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                    <div>
+                      <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.1rem' }}>Session Review</h3>
+                      {review.session?.title && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>📚 {review.session.title}</p>}
+                    </div>
+                    <div style={{ background: 'linear-gradient(135deg, var(--brand-primary), var(--info))', color: 'white', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: '700', fontSize: '0.9rem' }}>
+                      {review.overAllRating?.toFixed(1) || '—'}
+                    </div>
+                  </div>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', marginTop: '1rem' }}>
+                    {['Behavior', 'underStanding', 'participation', 'coding'].map(key => (
+                      <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', width: '90px', textTransform: 'capitalize' }}>{key === 'underStanding' ? 'Understanding' : key}</span>
+                        <div style={{ flex: 1, height: '6px', background: 'var(--bg-tertiary)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${((review[key] || 0) / 5) * 100}%`, background: 'var(--brand-primary)' }}></div>
+                        </div>
+                        <span style={{ fontSize: '0.8rem', fontWeight: '600' }}>{review[key] || 0}/5</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {review.notes && (
+                    <p style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                      📝 {review.notes}
+                    </p>
+                  )}
+                  <p style={{ marginTop: '0.75rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>{review.createdAt ? new Date(review.createdAt).toLocaleDateString() : ''}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>

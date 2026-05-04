@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import NotificationBell from '../NotificationBell/NotificationBell';
 import './DashboardLayout.css';
 
 const navConfig = {
@@ -11,12 +12,16 @@ const navConfig = {
     { to: '/dashboard/tasks', icon: '📝', label: 'My Tasks' },
     { to: '/dashboard/submissions', icon: '📤', label: 'Submissions' },
     { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
+    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
+    { to: '/dashboard/progress', icon: '📈', label: 'My Progress' },
   ],
   parent: [
     { to: '/dashboard', icon: '👪', label: 'Children', end: true },
     { to: '/dashboard/sessions', icon: '📅', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: '📝', label: 'Tasks' },
     { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
+    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
+    { to: '/dashboard/progress', icon: '📈', label: 'Children Progress' },
   ],
   instructor: [
     { to: '/dashboard', icon: '🎓', label: 'Overview', end: true },
@@ -25,6 +30,8 @@ const navConfig = {
     { to: '/dashboard/submissions', icon: '📩', label: 'Submissions' },
     { to: '/dashboard/reviews', icon: '⭐', label: 'Reviews' },
     { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
+    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
+    { to: '/dashboard/progress', icon: '📈', label: 'Progress Reports' },
   ],
   admin: [
     { to: '/dashboard', icon: '🛡️', label: 'Overview', end: true },
@@ -35,6 +42,8 @@ const navConfig = {
     { to: '/dashboard/submissions', icon: '📩', label: 'Submissions' },
     { to: '/dashboard/reviews', icon: '⭐', label: 'Reviews' },
     { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
+    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
+    { to: '/dashboard/progress', icon: '📈', label: 'Progress Reports' },
   ],
 };
 
@@ -112,6 +121,7 @@ const DashboardLayout = () => {
            </div>
            
            <div className="header-right">
+             <NotificationBell />
              <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme">
                {theme === 'light' ? '🌙' : '☀️'}
              </button>
