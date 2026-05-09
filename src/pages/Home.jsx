@@ -54,10 +54,10 @@ const Home = () => {
         </p>
         
         <div className="hero-actions">
-          <Link to="/login" className="btn btn-primary btn-lg">
+          <Link to="/login" className="nb-btn nb-btn-primary nb-btn-lg">
             Get Started Free
           </Link>
-          <Link to="/about" className="btn btn-secondary btn-lg">
+          <Link to="/about" className="nb-btn nb-btn-secondary nb-btn-lg">
             Learn More
           </Link>
         </div>
@@ -123,7 +123,7 @@ const Home = () => {
         <div className="cta-card glass-panel">
           <h2>Ready to Transform Learning?</h2>
           <p>Join AlgoGambit and experience a clearer way to manage learning.</p>
-          <Link to="/login" className="btn btn-primary">
+          <Link to="/login" className="nb-btn nb-btn-primary">
             Start Your Journey
           </Link>
         </div>

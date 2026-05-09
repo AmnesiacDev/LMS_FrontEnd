@@ -223,29 +223,31 @@ export const AuthProvider = ({ children }) => {
         credentials: 'include',
         body: JSON.stringify(formData)
       });
-      
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message || 'Signup failed');
       }
-      
+
       const data = await response.json();
-      
-      const newUser = data.data?.user;
+
       const accessToken = data.data?.token || data.token;
 
       if (accessToken) {
+        // Token present → role that skips email verification, log them in
+        const newUser = data.data?.user;
         setToken(accessToken);
         localStorage.setItem('access-token', accessToken);
+        setUser(newUser);
+        if (newUser) localStorage.setItem('lms-user', JSON.stringify(newUser));
+        return { success: true, needsVerification: false };
       }
-      setUser(newUser);
-      if (newUser) {
-        localStorage.setItem('lms-user', JSON.stringify(newUser));
-      }
-      return true;
+
+      // No token → email verification required (students)
+      return { success: true, needsVerification: true, message: data.message || 'Please check your email to verify your account.' };
     } catch (err) {
       setError(err.message);
-      return false;
+      return { success: false };
     } finally {
       setLoading(false);
     }

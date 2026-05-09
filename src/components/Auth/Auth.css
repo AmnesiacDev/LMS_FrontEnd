@@ -9,7 +9,7 @@
 /* Visual / Branding Side */
 .auth-visual {
   flex: 1;
-  background: linear-gradient(135deg, var(--brand-primary), #059669, var(--info));
+  background: linear-gradient(135deg, var(--brand-primary), var(--success), var(--info));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -217,20 +217,28 @@
 
 .auth-submit-btn {
   margin-top: 0.5rem;
-  background: linear-gradient(135deg, var(--brand-primary), #059669);
-  color: white;
+  background: var(--brand-primary);
+  color: #FFFFFF;
   padding: 0.9rem;
-  border-radius: 12px;
-  font-weight: 600;
+  border: var(--border-width) solid var(--border-color);
+  border-radius: var(--radius-sm);
+  font-weight: 700;
   font-size: 1rem;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
 }
 
 .auth-submit-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669, var(--brand-primary));
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(16, 185, 129, 0.35);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-submit-btn:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: none;
 }
 
 .auth-submit-btn:disabled {

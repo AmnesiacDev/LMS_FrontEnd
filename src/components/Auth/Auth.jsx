@@ -6,6 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [verificationMsg, setVerificationMsg] = useState(null);
   const navigate = useNavigate();
   const { theme, toggleTheme } = useTheme();
   const { user, login, signup, loading, error, setError } = useAuth();
@@ -17,6 +18,7 @@ const Auth = () => {
   }, [user, navigate]);
 
   useEffect(() => {
+    setVerificationMsg(null);
     return () => {
       setError(null);
     };
@@ -37,22 +39,24 @@ const Auth = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    let success = false;
-    
+
     if (isLogin) {
-      success = await login(formData.Email, formData.password);
+      const success = await login(formData.Email, formData.password);
+      if (success) navigate('/dashboard');
     } else {
-      success = await signup({
+      const result = await signup({
         FullName: formData.FullName,
         UserName: formData.UserName,
         Email: formData.Email,
         password: formData.password,
         role: formData.role,
       });
-    }
 
-    if (success) {
-      navigate('/dashboard');
+      if (result.success && result.needsVerification) {
+        setVerificationMsg(result.message);
+      } else if (result.success) {
+        navigate('/dashboard');
+      }
     }
   };
 
@@ -84,6 +88,22 @@ const Auth = () => {
             {error && (
               <div className="auth-error-msg">
                 {error}
+              </div>
+            )}
+
+            {verificationMsg && (
+              <div className="auth-success-msg" style={{
+                background: 'var(--success, #22c55e)',
+                color: '#fff',
+                padding: '0.85rem 1rem',
+                borderRadius: 'var(--radius-sm, 6px)',
+                marginBottom: '1rem',
+                fontWeight: 600,
+                fontSize: '0.9rem',
+                border: '2px solid var(--border-color, #333)',
+                textAlign: 'center',
+              }}>
+                {verificationMsg}
               </div>
             )}
 

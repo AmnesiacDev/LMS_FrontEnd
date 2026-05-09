@@ -6,31 +6,31 @@
      ===================================================================== */
   
   /* Backgrounds */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #FAFAFA;
-  --bg-tertiary: #F4F4F5;
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #F1F5F9;
+  --bg-tertiary: #E2E8F0;
   
   /* Foreground / Text */
-  --text-primary: #1C1917;
-  --text-secondary: #44403C;
-  --text-muted: #78716C;
+  --text-primary: #334155;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
   
   /* Primary Brand (Vibrant Blue) */
-  --brand-primary: #2563EB;
-  --brand-primary-hover: #1D4ED8;
-  --brand-light: rgba(37, 99, 235, 0.1);
+  --brand-primary: #3B82F6;
+  --brand-primary-hover: #2563EB;
+  --brand-light: rgba(59, 130, 246, 0.1);
   
-  /* Accent Colors (Warm Palette) */
-  --accent-yellow: #FDE047;
-  --accent-orange: #FDBA74;
-  --accent-peach: #FCA5A5;
-  --accent-rose: #FDA4AF;
+  /* Accent Colors (Calm Palette) */
+  --accent-yellow: #E0E7FF;
+  --accent-orange: #DBEAFE;
+  --accent-peach: #D1FAE5;
+  --accent-rose: #FCE7F3;
   
   /* Semantic Colors */
-  --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
-  --info: #3B82F6;
+  --success: #34D399;
+  --warning: #FBBF24;
+  --error: #FB7185;
+  --info: #60A5FA;
 
   /* Borders & Neo-Brutalist Shadows */
   --border-color: #1C1917;
@@ -63,30 +63,30 @@
      ===================================================================== */
   
   /* Backgrounds */
-  --bg-primary: #18181B;
-  --bg-secondary: #27272A;
-  --bg-tertiary: #3F3F46;
+  --bg-primary: #0F172A;
+  --bg-secondary: #1E293B;
+  --bg-tertiary: #334155;
   
   /* Foreground / Text */
-  --text-primary: #F4F4F5;
-  --text-secondary: #D4D4D8;
-  --text-muted: #A1A1AA;
+  --text-primary: #F8FAFC;
+  --text-secondary: #E2E8F0;
+  --text-muted: #94A3B8;
   
   /* Primary Brand */
   --brand-primary: #3B82F6;
   --brand-primary-hover: #2563EB;
   --brand-light: rgba(59, 130, 246, 0.15);
   
-  /* Warm Accent Colors */
-  --accent-yellow: #CA8A04;
-  --accent-orange: #C2410C;
-  --accent-peach: #BE123C;
-  --accent-rose: #9F1239;
+  /* Accent Colors (Calm Palette) */
+  --accent-yellow: #1E3A8A;
+  --accent-orange: #1E40AF;
+  --accent-peach: #065F46;
+  --accent-rose: #831843;
   
   /* Semantic Colors */
   --success: #10B981;
-  --warning: #F59E0B;
-  --error: #EF4444;
+  --warning: #D97706;
+  --error: #E11D48;
   --info: #3B82F6;
 
   /* Borders & Shadows */
@@ -245,6 +245,11 @@ button {
 .nb-btn-secondary {
   background: var(--bg-secondary);
   color: var(--text-primary);
+}
+
+.nb-btn-lg {
+  padding: 0.85rem 1.75rem;
+  font-size: 1.05rem;
 }
 
 /* Badge */

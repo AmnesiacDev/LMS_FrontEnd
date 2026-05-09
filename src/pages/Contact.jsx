@@ -128,7 +128,7 @@ const Contact = () => {
                 <textarea required rows="5" style={{ padding: '0.85rem 1rem', borderRadius: 'var(--radius-md)', border: '1.5px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)', resize: 'vertical', fontSize: '0.95rem', outline: 'none', fontFamily: 'inherit', transition: 'border-color 0.2s ease' }} placeholder="Tell us how we can help..." />
               </div>
               
-              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: '0.5rem' }}>
+              <button type="submit" className="nb-btn nb-btn-primary nb-btn-lg" style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}>
                 Send Message
               </button>
             </form>
