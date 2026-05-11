@@ -43,7 +43,11 @@ const NotificationBell = () => {
       await request('/api/v1/notifications/read-all', 'PATCH');
       setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
       setUnreadCount(0);
-    } catch { /* silently handle */ }
+      // Re-fetch to reflect server state
+      await fetchNotifications();
+    } catch (err) {
+      console.error('Mark all read failed:', err);
+    }
   };
 
   const handleClick = (notif) => {
@@ -132,12 +136,13 @@ const NotificationBell = () => {
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}>
             <span style={{ fontFamily: 'var(--font-heading)', fontSize: '1rem', fontWeight: 400 }}>Notifications</span>
-            {unreadCount > 0 && (
+            {notifications.length > 0 && (
               <button
                 onClick={markAllRead}
                 style={{
                   background: 'none', border: 'none', color: 'var(--brand-primary)',
                   fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline',
+                  opacity: unreadCount > 0 ? 1 : 0.5,
                 }}
               >
                 Mark all read

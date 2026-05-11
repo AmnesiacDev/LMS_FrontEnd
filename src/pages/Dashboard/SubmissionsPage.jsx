@@ -189,18 +189,35 @@ const SubmissionsPage = () => {
               </div>
 
               {canUpload && (
-                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '2px solid var(--border-color)' }}>
                   <label className="modal-label">Upload files</label>
-                  <input
-                    className="modal-input"
-                    type="file"
-                    multiple
-                    accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
-                    disabled={uploadingId === sub._id}
-                    onChange={(event) => handleUpload(sub._id, event.target.files)}
-                  />
+                  <label style={{
+                    display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem',
+                    background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)', cursor: uploadingId === sub._id ? 'not-allowed' : 'pointer',
+                    boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease',
+                    opacity: uploadingId === sub._id ? 0.6 : 1,
+                  }}>
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem',
+                      background: 'var(--brand-primary)', color: '#fff', border: '2px solid var(--border-color)',
+                      borderRadius: 'var(--radius-sm)', fontWeight: 700, fontSize: '0.78rem',
+                      textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+                    }}>📎 Choose Files</span>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                      Drop or browse files
+                    </span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
+                      disabled={uploadingId === sub._id}
+                      onChange={(event) => handleUpload(sub._id, event.target.files)}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
                   <p className="modal-hint">Up to 5 files, 10MB each. Images, PDFs, and videos are supported.</p>
-                  {uploadingId === sub._id && <p style={{ color: 'var(--text-muted)' }}>Uploading...</p>}
+                  {uploadingId === sub._id && <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Uploading...</p>}
                 </div>
               )}
             </section>

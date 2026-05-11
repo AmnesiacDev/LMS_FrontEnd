@@ -279,18 +279,18 @@ const TasksPage = () => {
               )}
             </div>
             {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}>🔗 {l.title || 'Resource'}</a>)}</div>}
-            <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '1px solid var(--border-color)' }}>
-              <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.4rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>👁️ View</button>
-              
+            <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '2px solid var(--border-color)' }}>
+              <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>👁️ View</button>
+
               {isStudent && task.status === 'pending' && (
-                <button onClick={() => openSubmit(task)} style={{ flex: 1, padding: '0.4rem', background: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>📤 Submit</button>
+                <button onClick={() => openSubmit(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>📤 Submit</button>
               )}
-              
+
               {isAdmin && (
                 <>
-                  {task.status === 'pending' && <button onClick={() => handleStatusChange(task._id, 'completed')} style={{ flex: 1, padding: '0.4rem', background: 'rgba(16,185,129,0.08)', color: '#10b981', border: '1px solid rgba(16,185,129,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>✅ Done</button>}
-                  <button onClick={() => openEdit(task)} style={{ padding: '0.4rem 0.55rem', background: 'rgba(59,130,246,0.08)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>✏️</button>
-                  <button onClick={() => { setFormError(null); setDeleteTask(task); }} style={{ padding: '0.4rem 0.55rem', background: 'rgba(239,68,68,0.08)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>🗑️</button>
+                  {task.status === 'pending' && <button onClick={() => handleStatusChange(task._id, 'completed')} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>✅ Done</button>}
+                  <button onClick={() => openEdit(task)} style={{ padding: '0.45rem 0.55rem', background: 'var(--info)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>✏️</button>
+                  <button onClick={() => { setFormError(null); setDeleteTask(task); }} style={{ padding: '0.45rem 0.55rem', background: 'var(--error)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>🗑️</button>
                 </>
               )}
             </div>

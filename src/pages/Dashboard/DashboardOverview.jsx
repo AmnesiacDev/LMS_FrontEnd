@@ -1,11 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
 import './DashboardOverview.css';
 
 const DashboardOverview = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   
   // Profile
   const { data: profileData, loading: profileLoading } = useFetchData('/api/v1/StudentProfile/me');
@@ -255,22 +256,30 @@ const DashboardOverview = () => {
         <div className="tasks-section">
           <div className="section-header">
             <h2>Upcoming</h2>
+            <Link to="/dashboard/sessions" className="view-all-btn">Sessions →</Link>
           </div>
-          
+
           {/* Next Lesson Highlight */}
           {upcomingSessions.length > 0 && (
-            <div style={{
-              background: 'var(--brand-primary)',
-              color: '#FFFFFF',
-              padding: '1rem',
-              borderRadius: 'var(--radius-sm)',
-              border: '3px solid var(--border-color)',
-              boxShadow: 'var(--shadow-sm)',
-              marginBottom: '1rem'
-            }}>
-              <p style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.3rem', opacity: 0.9 }}>▶ Next Lesson</p>
-              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', margin: '0 0 0.2rem', color: '#FFFFFF' }}>{upcomingSessions[0].title}</h3>
-              <p style={{ fontSize: '0.82rem', margin: 0, opacity: 0.9 }}>
+            <div
+              onClick={() => navigate('/dashboard/sessions')}
+              style={{
+                background: 'var(--accent-yellow)',
+                color: 'var(--text-primary)',
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                border: '3px solid var(--border-color)',
+                boxShadow: 'var(--shadow-sm)',
+                marginBottom: '1rem',
+                cursor: 'pointer',
+                transition: 'all 0.12s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+            >
+              <p style={{ fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '0 0 0.3rem', color: 'var(--brand-primary)' }}>▶ Next Lesson</p>
+              <h3 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.15rem', margin: '0 0 0.2rem', color: 'var(--text-primary)' }}>{upcomingSessions[0].title}</h3>
+              <p style={{ fontSize: '0.82rem', margin: 0, color: 'var(--text-secondary)' }}>
                 {new Date(upcomingSessions[0].date).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
               </p>
             </div>
@@ -282,7 +291,7 @@ const DashboardOverview = () => {
               <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '0 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>Sessions</h4>
               <ul className="task-list">
                 {upcomingSessions.slice(1).map(s => (
-                  <li key={s._id} className="task-item upcoming">
+                  <li key={s._id} className="task-item upcoming" onClick={() => navigate('/dashboard/sessions')}>
                     <div className="task-meta">
                       <h4>{s.title}</h4>
                       <p>{new Date(s.date).toLocaleDateString()}</p>
@@ -297,12 +306,15 @@ const DashboardOverview = () => {
           {/* Pending Tasks */}
           {pendingTasks.length > 0 && (
             <>
-              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>Pending Tasks</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.5rem' }}>
+                <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>Pending Tasks</h4>
+                <Link to="/dashboard/tasks" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--brand-primary)', textDecoration: 'underline' }}>View All</Link>
+              </div>
               <ul className="task-list">
                 {pendingTasks.slice(0, 5).map(t => {
                   const isOverdue = t.dueDate && new Date(t.dueDate) < new Date();
                   return (
-                    <li key={t._id} className={`task-item ${isOverdue ? 'overdue' : 'pending'}`}>
+                    <li key={t._id} className={`task-item ${isOverdue ? 'overdue' : 'pending'}`} onClick={() => navigate('/dashboard/tasks')}>
                       <div className="task-meta">
                         <h4>{t.title}</h4>
                         <p>{t.sessionId?.title || 'Task'}</p>
@@ -318,12 +330,15 @@ const DashboardOverview = () => {
           {/* Pending External HW */}
           {pendingExtHws.length > 0 && (
             <>
-              <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: '1rem 0 0.5rem', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>External Homework</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '1rem 0 0.5rem' }}>
+                <h4 style={{ color: 'var(--text-muted)', fontSize: '0.72rem', margin: 0, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: '700', fontFamily: 'var(--font-body)' }}>External Homework</h4>
+                <Link to="/dashboard/external" style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--brand-primary)', textDecoration: 'underline' }}>View All</Link>
+              </div>
               <ul className="task-list">
                 {pendingExtHws.slice(0, 4).map(hw => {
                   const isOverdue = hw.dueDate && new Date(hw.dueDate) < new Date();
                   return (
-                    <li key={hw._id} className={`task-item ${isOverdue ? 'overdue' : 'pending'}`}>
+                    <li key={hw._id} className={`task-item ${isOverdue ? 'overdue' : 'pending'}`} onClick={() => navigate('/dashboard/external')}>
                       <div className="task-meta">
                         <h4>{hw.title || 'Untitled'}</h4>
                         <p>{hw.externalCourse?.subject || 'External'}</p>
@@ -368,16 +383,17 @@ const DashboardOverview = () => {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.85rem' }}>
             {extCourses.slice(0, 6).map(c => (
-              <div key={c._id} style={{ 
-                padding: '1rem', 
-                borderRadius: 'var(--radius-sm)', 
-                background: 'var(--bg-tertiary)', 
+              <div key={c._id} style={{
+                padding: '1rem',
+                borderRadius: 'var(--radius-sm)',
+                background: 'var(--bg-tertiary)',
                 border: '2px solid var(--border-color)',
-                borderTop: `4px solid ${c.color || 'var(--accent-yellow)'}`, 
+                borderTop: `4px solid ${c.color || 'var(--brand-primary)'}`,
                 boxShadow: '2px 2px 0px 0px var(--shadow-color)',
                 transition: 'all 0.12s ease',
                 cursor: 'pointer'
               }}
+              onClick={() => navigate('/dashboard/external')}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = '4px 4px 0px 0px var(--shadow-color)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; }}
               >
