@@ -143,6 +143,18 @@
   animation: shake 0.4s ease;
 }
 
+.auth-success-msg {
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+  border: 1.5px solid rgba(16, 185, 129, 0.28);
+  font-size: 0.9rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 @keyframes shake {
   0%, 100% { transform: translateX(0); }
   20%, 60% { transform: translateX(-6px); }
@@ -208,6 +220,18 @@
 .form-group input::placeholder {
   color: var(--text-muted);
   opacity: 0.7;
+}
+
+.auth-inline-link {
+  align-self: flex-end;
+  color: var(--brand-primary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-inline-link:hover {
+  text-decoration: underline;
 }
 
 /* Password strength indicator could go here */

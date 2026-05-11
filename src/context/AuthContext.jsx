@@ -230,24 +230,21 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
-
       const accessToken = data.data?.token || data.token;
+      const newUser = data.data?.user;
 
-      if (accessToken) {
-        // Token present → role that skips email verification, log them in
-        const newUser = data.data?.user;
-        setToken(accessToken);
-        localStorage.setItem('access-token', accessToken);
-        setUser(newUser);
-        if (newUser) localStorage.setItem('lms-user', JSON.stringify(newUser));
-        return { success: true, needsVerification: false };
+      if (!accessToken) {
+        throw new Error('No token received from server');
       }
 
-      // No token → email verification required (students)
-      return { success: true, needsVerification: true, message: data.message || 'Please check your email to verify your account.' };
+      setToken(accessToken);
+      localStorage.setItem('access-token', accessToken);
+      setUser(newUser);
+      if (newUser) localStorage.setItem('lms-user', JSON.stringify(newUser));
+      return true;
     } catch (err) {
       setError(err.message);
-      return { success: false };
+      return false;
     } finally {
       setLoading(false);
     }

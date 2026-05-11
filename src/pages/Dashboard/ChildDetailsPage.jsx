@@ -20,6 +20,7 @@ const ChildDetailsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin' || user?.role === 'instructor';
+  const canDownloadTranscript = ['admin', 'instructor', 'parent'].includes(user?.role);
   
   const [activeTab, setActiveTab] = useState('Overview');
 
@@ -34,8 +35,9 @@ const ChildDetailsPage = () => {
   const { data: extHwRaw, loading: extHwLoading } = useFetchData(isAdmin ? '/api/v1/external-hw' : '/api/v1/external-hw/my');
   const { data: sessionsRaw, loading: sessionsLoading } = useFetchData(isAdmin ? `/api/v1/session/student/${profileId}` : '/api/v1/session/me');
   const { data: reviewsRaw, loading: reviewsLoading } = useFetchData(isAdmin ? `/api/v1/sessionReview/student/${profileId}` : '/api/v1/sessionReview/me');
+  const { data: parentDashboardRaw, loading: parentDashboardLoading } = useFetchData(`/api/v1/progress/parent/${profileId}/dashboard`);
 
-  const isLoading = profileLoading || tasksLoading || extCoursesLoading || extHwLoading || sessionsLoading || reviewsLoading;
+  const isLoading = profileLoading || tasksLoading || extCoursesLoading || extHwLoading || sessionsLoading || reviewsLoading || parentDashboardLoading;
 
   if (isLoading) {
     return (
@@ -75,11 +77,39 @@ const ChildDetailsPage = () => {
   // 3. Sessions & Reviews
   const childSessions = sessionsAll.filter(s => getProfileId(s) === profileId);
   const childReviews = reviewsAll.filter(r => getProfileId(r) === profileId);
+  const parentDashboard = parentDashboardRaw?.data || parentDashboardRaw || {};
+  const dashboardStudent = parentDashboard.student || {};
+  const dashboardAttendance = parentDashboard.attendance || {};
+  const recentExams = parentDashboard.recentExams || [];
+  const upcomingDashboardTasks = parentDashboard.upcomingTasks || [];
+  const latestDashboardReview = parentDashboard.latestReview;
 
   // Deriving Stats locally to substitute aggregate APIs
   const completionRate = childTasks.length > 0 ? Math.round((completedTasks.length / childTasks.length) * 100) : 0;
   
   const initials = (childUser.FullName || 'Student').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+
+  const downloadTranscript = async () => {
+    const response = await fetch(`/api/v1/StudentProfile/${profileId}/transcript.pdf`, {
+      headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
+      credentials: 'include',
+    });
+
+    if (!response.ok) {
+      alert('Could not download transcript.');
+      return;
+    }
+
+    const blob = await response.blob();
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `${childUser.FullName || 'student'}-transcript.pdf`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="overview-container" style={{ padding: '2rem 0' }}>
@@ -100,6 +130,15 @@ const ChildDetailsPage = () => {
           </p>
         </div>
         <div style={{ marginLeft: 'auto' }}>
+          {canDownloadTranscript && (
+            <button
+              className="nb-btn nb-btn-secondary"
+              onClick={downloadTranscript}
+              style={{ marginRight: '0.75rem' }}
+            >
+              Download Transcript
+            </button>
+          )}
           <button 
             className="nb-btn nb-btn-primary" 
             onClick={() => navigate(`/dashboard/progress/${profileId}`)}
@@ -163,6 +202,20 @@ const ChildDetailsPage = () => {
                 <p>Overall Pending Work</p>
               </div>
             </div>
+            <div className="stat-card glass-panel">
+              <div className="stat-icon" style={{ background: 'rgba(245,158,11,0.1)', color: 'var(--warning)' }}>S</div>
+              <div className="stat-info">
+                <h3>{dashboardStudent.attendanceStreak ?? profile.attendanceStreak ?? 0}</h3>
+                <p>Attendance Streak</p>
+              </div>
+            </div>
+            <div className="stat-card glass-panel">
+              <div className="stat-icon" style={{ background: 'rgba(59,130,246,0.1)', color: 'var(--info)' }}>A</div>
+              <div className="stat-info">
+                <h3>{dashboardAttendance.attendanceRate ?? 0}%</h3>
+                <p>Attendance Rate</p>
+              </div>
+            </div>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
@@ -197,6 +250,56 @@ const ChildDetailsPage = () => {
             </div>
           </div>
         </>
+      )}
+
+      {activeTab === 'Overview' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+          <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Recent Exam Results</h3>
+            {recentExams.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No exam results yet.</p> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                {recentExams.map((exam, index) => (
+                  <div key={`${exam.title}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.5rem' }}>
+                    <div>
+                      <h4 style={{ margin: 0 }}>{exam.title}</h4>
+                      <p style={{ margin: '0.2rem 0 0', color: 'var(--text-muted)', fontSize: '0.8rem' }}>{exam.date ? new Date(exam.date).toLocaleDateString() : ''}</p>
+                    </div>
+                    <strong>{exam.percentage ?? 0}%</strong>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Latest Session Review</h3>
+            {!latestDashboardReview ? <p style={{ color: 'var(--text-muted)' }}>No session review yet.</p> : (
+              <div style={{ display: 'grid', gap: '0.6rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Overall</span><strong>{latestDashboardReview.overAllRating ?? 'N/A'}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Behavior</span><strong>{latestDashboardReview.behavior ?? 'N/A'}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Understanding</span><strong>{latestDashboardReview.understanding ?? 'N/A'}</strong></div>
+                <p style={{ color: 'var(--text-muted)', margin: 0 }}>{latestDashboardReview.date ? new Date(latestDashboardReview.date).toLocaleDateString() : ''}</p>
+              </div>
+            )}
+          </div>
+
+          <div className="glass-panel" style={{ padding: '1.5rem', borderRadius: '1rem' }}>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>Upcoming Tasks</h3>
+            {upcomingDashboardTasks.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No upcoming tasks.</p> : (
+              <ul className="task-list">
+                {upcomingDashboardTasks.map((task, index) => (
+                  <li key={`${task.title}-${index}`} className="task-item pending">
+                    <div className="task-meta">
+                      <h4>{task.title}</h4>
+                      <p>{task.dueDate ? new Date(task.dueDate).toLocaleDateString() : 'No due date'}</p>
+                    </div>
+                    <div className="task-status">{task.status}</div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       )}
 
       {activeTab === 'External Curriculum' && (

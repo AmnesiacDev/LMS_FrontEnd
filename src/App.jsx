@@ -8,6 +8,8 @@ import LandingLayout from './components/Layout/LandingLayout';
 import DashboardLayout from './components/Layout/DashboardLayout';
 
 import Auth from './components/Auth/Auth';
+import ForgotPassword from './components/Auth/ForgotPassword';
+import ResetPassword from './components/Auth/ResetPassword';
 import Home from './pages/Home';
 import About from './pages/About';
 import Contact from './pages/Contact';
@@ -25,6 +27,9 @@ import StudentProfilesPage from './pages/Dashboard/StudentProfilesPage';
 import ChildDetailsPage from './pages/Dashboard/ChildDetailsPage';
 import ProgressPage from './pages/Dashboard/ProgressPage';
 import MessagesPage from './pages/Dashboard/MessagesPage';
+import AnnouncementsPage from './pages/Dashboard/AnnouncementsPage';
+import AuditLogsPage from './pages/Dashboard/AuditLogsPage';
+import AccountProfilePage from './pages/Dashboard/AccountProfilePage';
 
 function App() {
   return (
@@ -40,6 +45,8 @@ function App() {
               </Route>
 
               <Route path="/login" element={<Auth />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password/:token" element={<ResetPassword />} />
 
               <Route path="/unauthorized" element={<Unauthorized />} />
               <Route path="/forbidden" element={<Error403 />} />
@@ -50,6 +57,12 @@ function App() {
                 </ProtectedRoute>
               }>
                 <Route index element={<DashboardIndex />} />
+
+                <Route path="account" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <AccountProfilePage />
+                  </ProtectedRoute>
+                } />
 
                 <Route path="sessions" element={
                   <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
@@ -78,6 +91,12 @@ function App() {
                 <Route path="external" element={
                   <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
                     <ExternalCoursesPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="announcements" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <AnnouncementsPage />
                   </ProtectedRoute>
                 } />
 
@@ -120,6 +139,12 @@ function App() {
                 <Route path="messages/:userId" element={
                   <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
                     <MessagesPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="audit-logs" element={
+                  <ProtectedRoute allowedRoles={['admin']}>
+                    <AuditLogsPage />
                   </ProtectedRoute>
                 } />
               </Route>

@@ -57,7 +57,43 @@ export const useApiRequest = () => {
     return data;
   };
 
-  return { request };
+  const requestFormData = async (url, method = 'POST', formData = null) => {
+    const isValid = await ensureValidToken();
+    if (!isValid) {
+      logout();
+      navigate('/login');
+      throw new Error('Please login to continue.');
+    }
+
+    const buildOptions = () => ({
+      method,
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access-token') || ''}`,
+      },
+      credentials: 'include',
+      body: formData,
+    });
+
+    let response = await fetch(url, buildOptions());
+
+    if (response.status === 401 || response.status === 419) {
+      const refreshed = await refreshToken();
+      if (!refreshed) {
+        logout();
+        navigate('/login');
+        throw new Error('Session expired. Please login again.');
+      }
+      response = await fetch(url, buildOptions());
+    }
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.message || `Request failed (${response.status})`);
+    }
+    return data;
+  };
+
+  return { request, requestFormData };
 };
 
 export default useApiRequest;

@@ -1,33 +1,85 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
+import { useApiRequest } from '../../hooks/useApiRequest';
+
+const normalizeSubmissions = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.docs)) return data.docs;
+  if (Array.isArray(data?.submissions)) return data.submissions;
+  return [];
+};
+
+const statusStyles = {
+  Completed: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
+  Pending: { bg: 'rgba(245,158,11,0.1)', color: 'var(--warning)' },
+  Reviewed: { bg: 'rgba(59,130,246,0.1)', color: 'var(--info)' },
+  Resubmitted: { bg: 'rgba(139,92,246,0.1)', color: '#8b5cf6' },
+  'Late submission': { bg: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
+};
 
 const SubmissionsPage = () => {
   const { user } = useAuth();
+  const { request, requestFormData } = useApiRequest();
   const role = user?.role || 'student';
+  const canUpload = role === 'student' || role === 'instructor' || role === 'admin';
+  const canDeleteFiles = role === 'instructor' || role === 'admin';
 
+  const [uploadingId, setUploadingId] = useState(null);
+  const [actionError, setActionError] = useState(null);
   const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
-  const { data, loading, error } = useFetchData(endpoint);
+  const { data, loading, error, refetch } = useFetchData(endpoint);
 
-  const submissions = Array.isArray(data) ? data : (data?.docs || data?.submissions || []);
+  const submissions = normalizeSubmissions(data);
 
-  const statusStyles = {
-    'Completed': { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
-    'Pending': { bg: 'rgba(245,158,11,0.1)', color: 'var(--warning)' },
-    'Reviewed': { bg: 'rgba(59,130,246,0.1)', color: 'var(--info)' },
-    'Resubmitted': { bg: 'rgba(139,92,246,0.1)', color: '#8b5cf6' },
-    'Late submission': { bg: 'rgba(239,68,68,0.1)', color: 'var(--error)' },
+  const handleUpload = async (submissionId, files) => {
+    if (!files || files.length === 0) return;
+    if (files.length > 5) {
+      setActionError('You can upload up to 5 files at once.');
+      return;
+    }
+
+    const formData = new FormData();
+    Array.from(files).forEach((file) => formData.append('files', file));
+
+    setUploadingId(submissionId);
+    setActionError(null);
+    try {
+      await requestFormData(`/api/v1/submission/${submissionId}/files`, 'POST', formData);
+      await refetch();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setUploadingId(null);
+    }
+  };
+
+  const handleDeleteFile = async (submissionId, publicId) => {
+    if (!publicId) return;
+    setUploadingId(submissionId);
+    setActionError(null);
+    try {
+      await request(`/api/v1/submission/${submissionId}/files?publicId=${encodeURIComponent(publicId)}`, 'DELETE');
+      await refetch();
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setUploadingId(null);
+    }
   };
 
   return (
     <div style={{ padding: '2rem 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem' }}>Submissions</h1>
-        <span style={{ color: 'var(--text-muted)' }}>{submissions.length} total</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', gap: '1rem', flexWrap: 'wrap' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', margin: 0 }}>Submissions</h1>
+          <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{submissions.length} total</p>
+        </div>
       </div>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading submissions...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
+      {actionError && <div className="modal-error" style={{ marginBottom: '1rem' }}>{actionError}</div>}
 
       {!loading && submissions.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -36,48 +88,96 @@ const SubmissionsPage = () => {
         </div>
       )}
 
-      <div style={{ overflowX: 'auto' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Task</th>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Status</th>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Submitted</th>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Score</th>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Rating</th>
-              <th style={{ padding: '0.75rem', color: 'var(--text-secondary)', fontWeight: '600' }}>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {submissions.map(sub => {
-              const st = statusStyles[sub.status] || statusStyles['Pending'];
-              return (
-                <tr key={sub._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  <td style={{ padding: '0.75rem', fontWeight: '500' }}>{sub.task?.title || '—'}</td>
-                  <td style={{ padding: '0.75rem' }}>
-                    <span style={{ padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-md)', background: st.bg, color: st.color, fontWeight: '600', fontSize: '0.8rem' }}>
-                      {sub.status}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem', color: 'var(--text-muted)' }}>
-                    {sub.SubmissionDate ? new Date(sub.SubmissionDate).toLocaleDateString() : '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem', fontWeight: '600' }}>
-                    {sub.review?.score !== undefined ? `${sub.review.score}/10` : '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem' }}>
-                    <span style={{ fontWeight: '500', color: 'var(--brand-primary)' }}>
-                      {sub.review?.rating || '—'}
-                    </span>
-                  </td>
-                  <td style={{ padding: '0.75rem', color: 'var(--text-secondary)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {sub.note || sub.review?.comment || '—'}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '1rem' }}>
+        {submissions.map((sub) => {
+          const st = statusStyles[sub.status] || statusStyles.Pending;
+          const attachments = sub.fileAttachments || [];
+          const links = sub.Task_links || [];
+
+          return (
+            <section key={sub._id} className="glass-panel" style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start' }}>
+                <div>
+                  <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.05rem' }}>{sub.task?.title || 'Untitled task'}</h3>
+                  <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                    Submitted: {sub.SubmissionDate ? new Date(sub.SubmissionDate).toLocaleDateString() : '-'}
+                  </p>
+                </div>
+                <span style={{ padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-md)', background: st.bg, color: st.color, fontWeight: 700, fontSize: '0.8rem' }}>
+                  {sub.status}
+                </span>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
+                <div style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700 }}>Score</div>
+                  <div style={{ fontWeight: 700 }}>{sub.review?.score !== undefined ? `${sub.review.score}/10` : '-'}</div>
+                </div>
+                <div style={{ padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)' }}>
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', fontWeight: 700 }}>Rating</div>
+                  <div style={{ fontWeight: 700 }}>{sub.review?.rating || '-'}</div>
+                </div>
+              </div>
+
+              {(sub.note || sub.review?.comment) && (
+                <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>{sub.note || sub.review?.comment}</p>
+              )}
+
+              <div style={{ marginTop: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Links</h4>
+                {links.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No links submitted.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                    {links.map((link, index) => (
+                      <a key={`${link.url}-${index}`} href={link.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
+                        {link.name || link.url}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginTop: '1rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.9rem' }}>Files</h4>
+                {attachments.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No files uploaded.</p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    {attachments.map((file) => (
+                      <div key={file.publicId || file.url} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', padding: '0.6rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)' }}>
+                        <a href={file.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {file.name || file.format || 'Attachment'}
+                        </a>
+                        {canDeleteFiles && file.publicId && (
+                          <button className="modal-btn modal-btn-danger" style={{ padding: '0.35rem 0.55rem', width: 'auto' }} disabled={uploadingId === sub._id} onClick={() => handleDeleteFile(sub._id, file.publicId)}>
+                            Delete
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {canUpload && (
+                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                  <label className="modal-label">Upload files</label>
+                  <input
+                    className="modal-input"
+                    type="file"
+                    multiple
+                    accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
+                    disabled={uploadingId === sub._id}
+                    onChange={(event) => handleUpload(sub._id, event.target.files)}
+                  />
+                  <p className="modal-hint">Up to 5 files, 10MB each. Images, PDFs, and videos are supported.</p>
+                  {uploadingId === sub._id && <p style={{ color: 'var(--text-muted)' }}>Uploading...</p>}
+                </div>
+              )}
+            </section>
+          );
+        })}
       </div>
     </div>
   );

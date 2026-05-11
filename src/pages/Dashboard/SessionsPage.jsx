@@ -31,6 +31,17 @@ const styles = {
     letterSpacing: '0.04em', boxShadow: 'var(--shadow-sm)',
     cursor: 'pointer', transition: 'all 0.12s ease', fontFamily: 'var(--font-body)',
   },
+  headerActions: {
+    display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap',
+  },
+  exportBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.45rem',
+    padding: '0.65rem 1.1rem', background: 'var(--card-bg)', color: 'var(--text-primary)',
+    border: '3px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontWeight: 700, fontSize: '0.85rem', textTransform: 'uppercase',
+    letterSpacing: '0.04em', boxShadow: 'var(--shadow-sm)',
+    cursor: 'pointer', transition: 'all 0.12s ease', fontFamily: 'var(--font-body)',
+  },
 
   /* ── Filters ── */
   filtersRow: {
@@ -147,6 +158,7 @@ const SessionsPage = () => {
   const { request } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
+  const canExportCalendar = ['student', 'parent', 'instructor'].includes(role);
 
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -248,6 +260,29 @@ const SessionsPage = () => {
     finally { setFormLoading(false); }
   };
 
+  const exportCalendar = async () => {
+    try {
+      const response = await fetch('/api/v1/session/me/calendar.ics', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
+        credentials: 'include',
+      });
+
+      if (!response.ok) throw new Error('Could not export calendar.');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = 'algogambit-sessions.ics';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   const openEdit = (s) => {
     setFormData({ title: s.title || '', description: s.description || '', studentProfileId: s.studentProfileId?._id || s.studentProfileId || '', instructorId: s.instructorId?._id || s.instructorId || '', date: s.date ? new Date(s.date).toISOString().slice(0, 16) : '', notes: s.notes || '', summary: s.summary || '', status: s.status || 'pending', StudentAttended: s.StudentAttended !== false });
     setFormError(null); setEditSession(s);
@@ -321,16 +356,28 @@ const SessionsPage = () => {
           <h1 style={styles.title}>Sessions</h1>
           <p style={styles.subtitle}>{filteredSessions.length} of {sessions.length} sessions</p>
         </div>
-        {isAdmin && (
-          <button
-            onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }}
-            style={styles.createBtn}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
-          >
-            ➕ Create Session
-          </button>
-        )}
+        <div style={styles.headerActions}>
+          {canExportCalendar && (
+            <button
+              onClick={exportCalendar}
+              style={styles.exportBtn}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+            >
+              Export Calendar
+            </button>
+          )}
+          {isAdmin && (
+            <button
+              onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }}
+              style={styles.createBtn}
+              onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
+            >
+              ➕ Create Session
+            </button>
+          )}
+        </div>
       </div>
 
       {/* ═══ Filters ═══ */}

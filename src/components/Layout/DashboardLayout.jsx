@@ -7,49 +7,54 @@ import './DashboardLayout.css';
 
 const navConfig = {
   student: [
-    { to: '/dashboard', icon: '📊', label: 'Overview', end: true },
-    { to: '/dashboard/sessions', icon: '📅', label: 'My Sessions' },
-    { to: '/dashboard/tasks', icon: '📝', label: 'My Tasks' },
-    { to: '/dashboard/submissions', icon: '📤', label: 'Submissions' },
-    { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
-    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
-    { to: '/dashboard/progress', icon: '📈', label: 'My Progress' },
+    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
+    { to: '/dashboard/sessions', icon: 'S', label: 'My Sessions' },
+    { to: '/dashboard/tasks', icon: 'T', label: 'My Tasks' },
+    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
+    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'P', label: 'My Progress' },
   ],
   parent: [
-    { to: '/dashboard', icon: '👪', label: 'Children', end: true },
-    { to: '/dashboard/sessions', icon: '📅', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: '📝', label: 'Tasks' },
-    { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
-    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
-    { to: '/dashboard/progress', icon: '📈', label: 'Children Progress' },
+    { to: '/dashboard', icon: 'C', label: 'Children', end: true },
+    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
+    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'P', label: 'Children Progress' },
   ],
   instructor: [
-    { to: '/dashboard', icon: '🎓', label: 'Overview', end: true },
-    { to: '/dashboard/sessions', icon: '📅', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: '📝', label: 'Tasks' },
-    { to: '/dashboard/submissions', icon: '📩', label: 'Submissions' },
-    { to: '/dashboard/reviews', icon: '⭐', label: 'Reviews' },
-    { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
-    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
-    { to: '/dashboard/progress', icon: '📈', label: 'Progress Reports' },
+    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
+    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
+    { to: '/dashboard/reviews', icon: 'R', label: 'Reviews' },
+    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'P', label: 'Progress Reports' },
   ],
   admin: [
-    { to: '/dashboard', icon: '🛡️', label: 'Overview', end: true },
-    { to: '/dashboard/users', icon: '👥', label: 'Users' },
-    { to: '/dashboard/profiles', icon: '📋', label: 'Student Profiles' },
-    { to: '/dashboard/sessions', icon: '📅', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: '📝', label: 'Tasks' },
-    { to: '/dashboard/submissions', icon: '📩', label: 'Submissions' },
-    { to: '/dashboard/reviews', icon: '⭐', label: 'Reviews' },
-    { to: '/dashboard/external', icon: '📚', label: 'External Courses' },
-    { to: '/dashboard/messages', icon: '💬', label: 'Messages' },
-    { to: '/dashboard/progress', icon: '📈', label: 'Progress Reports' },
+    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
+    { to: '/dashboard/users', icon: 'U', label: 'Users' },
+    { to: '/dashboard/profiles', icon: 'P', label: 'Student Profiles' },
+    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'B', label: 'Submissions' },
+    { to: '/dashboard/reviews', icon: 'R', label: 'Reviews' },
+    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
+    { to: '/dashboard/audit-logs', icon: 'L', label: 'Audit Logs' },
+    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'G', label: 'Progress Reports' },
   ],
 };
 
 const roleLabels = {
   student: 'Student Portal',
-  parent:  'Parent Portal',
+  parent: 'Parent Portal',
   instructor: 'Instructor Portal',
   admin: 'Admin Panel',
 };
@@ -64,7 +69,7 @@ const DashboardLayout = () => {
   const navItems = navConfig[role] || navConfig.student;
   const portalLabel = roleLabels[role] || 'Portal';
   const userName = user?.FullName || user?.UserName || 'User';
-  const initials = userName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+  const initials = userName.split(' ').map((name) => name[0]).join('').toUpperCase().slice(0, 2);
 
   const handleLogout = async () => {
     await logout();
@@ -75,9 +80,16 @@ const DashboardLayout = () => {
     <div className="dashboard-wrapper">
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <h2 className="brand-logo">Algo<span className="gradient-text">Gambit</span></h2>
-          <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6"/></svg>
+          <button className="brand-logo" onClick={() => navigate('/dashboard')} aria-label="Go to dashboard overview">
+            <span className="brand-mark">AG</span>
+            {sidebarOpen && (
+              <span className="brand-word">
+                Algo<span className="gradient-text">Gambit</span>
+              </span>
+            )}
+          </button>
+          <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle sidebar">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
           </button>
         </div>
 
@@ -88,7 +100,7 @@ const DashboardLayout = () => {
         )}
 
         <nav className="sidebar-nav">
-          {navItems.map(item => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -103,37 +115,39 @@ const DashboardLayout = () => {
 
         <div className="sidebar-footer">
           <button className="nav-item logout-btn" onClick={handleLogout}>
-             <span className="icon">🚪</span>
-             {sidebarOpen && <span className="label">Log Out</span>}
+            <span className="icon">X</span>
+            {sidebarOpen && <span className="label">Log Out</span>}
           </button>
         </div>
       </aside>
 
       <div className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
         <header className="dashboard-header glass-panel">
-           <div className="header-left">
-             {!sidebarOpen && (
-               <button className="toggle-sidebar-btn-mobile" onClick={() => setSidebarOpen(true)}>
-                  ☰
-               </button>
-             )}
-             <h3>{portalLabel}</h3>
-           </div>
-           
-           <div className="header-right">
-             <NotificationBell />
-             <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme">
-               {theme === 'light' ? '🌙' : '☀️'}
-             </button>
-             <div className="user-profile">
-               <div className="avatar">{initials}</div>
-               <span>{userName}</span>
-             </div>
-           </div>
+          <div className="header-left">
+            {!sidebarOpen && (
+              <button className="toggle-sidebar-btn-mobile" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">
+                Menu
+              </button>
+            )}
+            <h3>{portalLabel}</h3>
+          </div>
+
+          <div className="header-right">
+            <NotificationBell />
+            <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme" aria-label="Toggle theme">
+              {theme === 'light' ? 'Dark' : 'Light'}
+            </button>
+            <button className="user-profile" onClick={() => navigate('/dashboard/account')} title="Open account profile">
+              <div className="avatar">
+                {user?.avatar ? <img src={user.avatar} alt="" /> : initials}
+              </div>
+              <span>{userName}</span>
+            </button>
+          </div>
         </header>
 
         <div className="dashboard-content">
-           <Outlet />
+          <Outlet />
         </div>
       </div>
     </div>

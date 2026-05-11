@@ -7,6 +7,7 @@ const StudentProfilesPage = () => {
   const { user } = useAuth();
   const { request } = useApiRequest();
   const role = user?.role || 'student';
+  const canDownloadTranscript = ['admin', 'instructor', 'parent'].includes(role);
 
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -71,6 +72,29 @@ const StudentProfilesPage = () => {
     setFormError(null); setEditProfile(p);
   };
 
+  const downloadTranscript = async (profile) => {
+    try {
+      const response = await fetch(`/api/v1/StudentProfile/${profile._id}/transcript.pdf`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
+        credentials: 'include',
+      });
+
+      if (!response.ok) throw new Error('Could not download transcript.');
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${profile.user?.FullName || 'student'}-transcript.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   return (
     <div style={{ padding: '2rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -115,6 +139,7 @@ const StudentProfilesPage = () => {
               {profile.notes && <p style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>📝 {profile.notes}</p>}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <button onClick={() => setViewProfile(profile)} className="modal-btn modal-btn-ghost" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>👁️ View</button>
+                {canDownloadTranscript && <button onClick={() => downloadTranscript(profile)} className="modal-btn modal-btn-secondary" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>Transcript</button>}
                 {role === 'admin' && <button onClick={() => openEdit(profile)} className="modal-btn modal-btn-info" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>✏️ Edit</button>}
               </div>
             </div>
