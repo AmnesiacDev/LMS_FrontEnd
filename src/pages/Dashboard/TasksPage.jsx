@@ -22,6 +22,7 @@ const TasksPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
+  const [studentFilter, setStudentFilter] = useState('');
 
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState(null);
@@ -140,7 +141,14 @@ const TasksPage = () => {
   const addSubmissionLink = () => setSubmissionLinks([...submissionLinks, { name: '', url: '' }]);
   const removeSubmissionLink = (i) => { const u = submissionLinks.filter((_, idx) => idx !== i); setSubmissionLinks(u.length ? u : [{ name: '', url: '' }]); };
 
-  const filteredTasks = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
+  const filteredTasks = tasks.filter(t => {
+    if (filter !== 'all' && t.status !== filter) return false;
+    if (studentFilter) {
+      const name = t.studentProfileId?.user?.FullName || '';
+      if (!name.toLowerCase().includes(studentFilter.toLowerCase())) return false;
+    }
+    return true;
+  });
   const isOverdue = (d) => d && new Date(d) < new Date();
   const counts = { all: tasks.length, pending: tasks.filter(t => t.status === 'pending').length, completed: tasks.filter(t => t.status === 'completed').length, canceled: tasks.filter(t => t.status === 'canceled').length };
 
@@ -212,7 +220,7 @@ const TasksPage = () => {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         {['all', 'pending', 'completed', 'canceled'].map(f => (
           <button key={f} onClick={() => setFilter(f)} style={{
             padding: '0.5rem 1rem', background: filter === f ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
@@ -221,6 +229,27 @@ const TasksPage = () => {
             borderRadius: '100px', fontWeight: '600', cursor: 'pointer', fontSize: '0.82rem', textTransform: 'capitalize', transition: 'all 0.15s ease',
           }}>{f} ({counts[f]})</button>
         ))}
+        {isAdmin && (
+          <div style={{ marginLeft: 'auto', position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Filter by student name..."
+              value={studentFilter}
+              onChange={e => setStudentFilter(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem 0.5rem 2.2rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: '100px',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.82rem',
+                width: '220px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
+          </div>
+        )}
       </div>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading tasks...</p>}

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
@@ -9,10 +9,16 @@ const ReviewsPage = () => {
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
 
+  const [studentFilter, setStudentFilter] = useState('');
   const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/sessionReview/me' : '/api/v1/sessionReview';
   const { data, loading, error } = useFetchData(endpoint);
 
-  const reviews = Array.isArray(data) ? data : (data?.docs || data?.reviews || []);
+  const allReviews = Array.isArray(data) ? data : (data?.docs || data?.reviews || []);
+  const reviews = allReviews.filter(review => {
+    if (!studentFilter) return true;
+    const name = review.studentProfileId?.user?.FullName || '';
+    return name.toLowerCase().includes(studentFilter.toLowerCase());
+  });
 
   const ratingBar = (value, max = 5) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -25,9 +31,32 @@ const ReviewsPage = () => {
 
   return (
     <div style={{ padding: '2rem 0' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem' }}>Session Reviews</h1>
-        <span style={{ color: 'var(--text-muted)' }}>{reviews.length} reviews</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 style={{ fontSize: '2rem', margin: 0 }}>Session Reviews</h1>
+          <span style={{ color: 'var(--text-muted)' }}>{reviews.length} reviews</span>
+        </div>
+        {isAdmin && (
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Filter by student name..."
+              value={studentFilter}
+              onChange={e => setStudentFilter(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem 0.5rem 2.2rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: '100px',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.82rem',
+                width: '220px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
+          </div>
+        )}
       </div>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading reviews...</p>}

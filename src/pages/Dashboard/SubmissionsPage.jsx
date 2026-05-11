@@ -22,15 +22,22 @@ const SubmissionsPage = () => {
   const { user } = useAuth();
   const { request, requestFormData } = useApiRequest();
   const role = user?.role || 'student';
+  const isAdmin = role === 'admin' || role === 'instructor';
   const canUpload = role === 'student' || role === 'instructor' || role === 'admin';
   const canDeleteFiles = role === 'instructor' || role === 'admin';
 
   const [uploadingId, setUploadingId] = useState(null);
   const [actionError, setActionError] = useState(null);
+  const [studentFilter, setStudentFilter] = useState('');
   const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
   const { data, loading, error, refetch } = useFetchData(endpoint);
 
-  const submissions = normalizeSubmissions(data);
+  const allSubmissions = normalizeSubmissions(data);
+  const submissions = allSubmissions.filter(sub => {
+    if (!studentFilter) return true;
+    const name = sub.studentProfileId?.user?.FullName || sub.student?.FullName || '';
+    return name.toLowerCase().includes(studentFilter.toLowerCase());
+  });
 
   const handleUpload = async (submissionId, files) => {
     if (!files || files.length === 0) return;
@@ -75,6 +82,27 @@ const SubmissionsPage = () => {
           <h1 style={{ fontSize: '2rem', margin: 0 }}>Submissions</h1>
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{submissions.length} total</p>
         </div>
+        {isAdmin && (
+          <div style={{ position: 'relative' }}>
+            <input
+              type="text"
+              placeholder="Filter by student name..."
+              value={studentFilter}
+              onChange={e => setStudentFilter(e.target.value)}
+              style={{
+                padding: '0.5rem 1rem 0.5rem 2.2rem',
+                border: '1px solid var(--border-color)',
+                borderRadius: '100px',
+                background: 'var(--bg-tertiary)',
+                color: 'var(--text-primary)',
+                fontSize: '0.82rem',
+                width: '220px',
+                outline: 'none',
+              }}
+            />
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
+          </div>
+        )}
       </div>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading submissions...</p>}

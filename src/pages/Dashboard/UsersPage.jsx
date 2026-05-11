@@ -122,8 +122,15 @@ const UsersPage = () => {
                   <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{u.Email}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>{roleBadge(u.role)}</td>
                   <td style={{ padding: '0.75rem 1rem' }}>
-                    <span className="modal-badge" style={{ background: u.active !== false ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: u.active !== false ? 'var(--success)' : 'var(--error)' }}>
-                      {u.active !== false ? 'Active' : 'Inactive'}
+                    <span className="modal-badge" style={{
+                      background: u.isActive !== false ? '#10b981' : '#ef4444',
+                      color: '#fff',
+                      fontWeight: 700,
+                      padding: '0.3rem 0.7rem',
+                      borderRadius: '6px',
+                      fontSize: '0.78rem',
+                    }}>
+                      {u.isActive !== false ? 'Active' : 'Inactive'}
                     </span>
                   </td>
                   <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
