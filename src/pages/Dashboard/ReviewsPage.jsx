@@ -1,24 +1,102 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import useFetchData from '../../hooks/useFetchData';
+import { useApiRequest } from '../../hooks/useApiRequest';
+import Modal from '../../components/Modal/Modal';
+
+const emptyReviewForm = {
+  session: '',
+  studentProfileId: '',
+  Behavior: 3,
+  underStanding: 3,
+  participation: 3,
+  coding: 3,
+  notes: '',
+};
 
 const ReviewsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { request } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
 
   const [studentFilter, setStudentFilter] = useState('');
-  const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/sessionReview/me' : '/api/v1/sessionReview';
-  const { data, loading, error } = useFetchData(endpoint);
+  const [reviews, setReviews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  const allReviews = Array.isArray(data) ? data : (data?.docs || data?.reviews || []);
-  const reviews = allReviews.filter(review => {
+  const [sessions, setSessions] = useState([]);
+  const [studentProfiles, setStudentProfiles] = useState([]);
+
+  const [showCreate, setShowCreate] = useState(false);
+  const [formData, setFormData] = useState(emptyReviewForm);
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError, setFormError] = useState(null);
+
+  const fetchReviews = useCallback(async () => {
+    try {
+      setLoading(true);
+      const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/sessionReview/me' : '/api/v1/sessionReview';
+      const data = await request(endpoint);
+      const list = data.data?.docs || data.data?.reviews || data.data;
+      setReviews(Array.isArray(list) ? list : []);
+      setError(null);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [role, request]);
+
+  const fetchSessionsAndProfiles = useCallback(async () => {
+    if (!isAdmin) return;
+    try {
+      const [sessData, profData] = await Promise.all([
+        request('/api/v1/session'),
+        request('/api/v1/StudentProfile/all'),
+      ]);
+      const sessList = sessData.data?.docs || sessData.data?.sessions || sessData.data;
+      setSessions(Array.isArray(sessList) ? sessList : []);
+      const profList = profData.data?.profiles || profData.data?.docs || profData.data;
+      setStudentProfiles(Array.isArray(profList) ? profList : []);
+    } catch { /* ignore */ }
+  }, [isAdmin, request]);
+
+  useEffect(() => {
+    fetchReviews();
+    fetchSessionsAndProfiles();
+  }, [fetchReviews, fetchSessionsAndProfiles]);
+
+  const filteredReviews = reviews.filter(review => {
     if (!studentFilter) return true;
     const name = review.studentProfileId?.user?.FullName || '';
     return name.toLowerCase().includes(studentFilter.toLowerCase());
   });
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    setFormLoading(true);
+    setFormError(null);
+    try {
+      await request('/api/v1/sessionReview', 'POST', {
+        session: formData.session,
+        studentProfileId: formData.studentProfileId,
+        Behavior: Number(formData.Behavior),
+        underStanding: Number(formData.underStanding),
+        participation: Number(formData.participation),
+        coding: Number(formData.coding),
+        notes: formData.notes,
+      });
+      setShowCreate(false);
+      setFormData(emptyReviewForm);
+      await fetchReviews();
+    } catch (err) { setFormError(err.message); }
+    finally { setFormLoading(false); }
+  };
+
+  const openCreate = () => {
+    setFormData(emptyReviewForm);
+    setFormError(null);
+    setShowCreate(true);
+  };
 
   const ratingBar = (value, max = 5) => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -29,40 +107,68 @@ const ReviewsPage = () => {
     </div>
   );
 
+  const ratingInput = (label, field) => (
+    <div className="modal-form-group">
+      <label className="modal-label">{label}: {formData[field]}/5</label>
+      <input
+        type="range"
+        min="0"
+        max="5"
+        step="1"
+        value={formData[field]}
+        onChange={e => setFormData({ ...formData, [field]: Number(e.target.value) })}
+        style={{ width: '100%', accentColor: 'var(--brand-primary)' }}
+      />
+    </div>
+  );
+
   return (
     <div style={{ padding: '2rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h1 style={{ fontSize: '2rem', margin: 0 }}>Session Reviews</h1>
-          <span style={{ color: 'var(--text-muted)' }}>{reviews.length} reviews</span>
+          <span style={{ color: 'var(--text-muted)' }}>{filteredReviews.length} reviews</span>
         </div>
-        {isAdmin && (
-          <div style={{ position: 'relative' }}>
-            <input
-              type="text"
-              placeholder="Filter by student name..."
-              value={studentFilter}
-              onChange={e => setStudentFilter(e.target.value)}
-              style={{
-                padding: '0.5rem 1rem 0.5rem 2.2rem',
-                border: '1px solid var(--border-color)',
-                borderRadius: '100px',
-                background: 'var(--bg-tertiary)',
-                color: 'var(--text-primary)',
-                fontSize: '0.82rem',
-                width: '220px',
-                outline: 'none',
-              }}
-            />
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
-          </div>
-        )}
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          {isAdmin && (
+            <>
+              <button
+                onClick={openCreate}
+                className="modal-btn modal-btn-primary"
+                style={{ width: 'auto', padding: '0.65rem 1.4rem' }}
+              >
+                + Create Review
+              </button>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="text"
+                  placeholder="Filter by student name..."
+                  value={studentFilter}
+                  onChange={e => setStudentFilter(e.target.value)}
+                  style={{
+                    padding: '0.5rem 1rem 0.5rem 2.2rem',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '100px',
+                    background: 'var(--bg-tertiary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.82rem',
+                    width: '220px',
+                    outline: 'none',
+                  }}
+                />
+                <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>
+                  🔍
+                </span>
+              </div>
+            </>
+          )}
+        </div>
       </div>
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading reviews...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
-      {!loading && reviews.length === 0 && (
+      {!loading && filteredReviews.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
           <h3>No reviews yet</h3>
           <p style={{ color: 'var(--text-muted)' }}>Session reviews will be listed here.</p>
@@ -70,12 +176,12 @@ const ReviewsPage = () => {
       )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem' }}>
-        {reviews.map(review => (
-          <div 
-            key={review._id} 
-            className="glass-panel" 
-            style={{ 
-              padding: '1.5rem', 
+        {filteredReviews.map(review => (
+          <div
+            key={review._id}
+            className="glass-panel"
+            style={{
+              padding: '1.5rem',
               borderRadius: 'var(--radius-md)',
               border: '3px solid var(--border-color)',
               boxShadow: '4px 4px 0px 0px var(--shadow-color)',
@@ -96,17 +202,17 @@ const ReviewsPage = () => {
               <div>
                 <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.1rem' }}>Session Review</h3>
                 {review.session?.title && <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>📚 {review.session.title}</p>}
-                
+
                 {isAdmin && review.studentProfileId?.user?.FullName && (
-                  <span 
-                    style={{ 
+                  <span
+                    style={{
                       display: 'inline-block',
                       marginTop: '0.4rem',
                       fontSize: '0.85rem',
-                      color: 'var(--brand-primary)', 
-                      cursor: 'pointer', 
-                      textDecoration: 'underline' 
-                    }} 
+                      color: 'var(--brand-primary)',
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}
                     onClick={() => navigate(`/dashboard/child/${review.studentProfileId._id}`)}
                     title="View student profile"
                   >
@@ -158,6 +264,60 @@ const ReviewsPage = () => {
           </div>
         ))}
       </div>
+
+      {/* CREATE REVIEW MODAL */}
+      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create Session Review" size="lg">
+        <form onSubmit={handleCreate}>
+          {formError && <div className="modal-error">{formError}</div>}
+          <div className="modal-row modal-row-2">
+            <div className="modal-form-group">
+              <label className="modal-label">Session</label>
+              {sessions.length > 0 ? (
+                <select className="modal-select" required value={formData.session} onChange={e => setFormData({ ...formData, session: e.target.value })}>
+                  <option value="">Choose a session</option>
+                  {sessions.map(s => (
+                    <option key={s._id} value={s._id}>
+                      {s.title} - {s.date ? new Date(s.date).toLocaleDateString() : 'No date'}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input className="modal-input" required placeholder="Session ObjectId" value={formData.session} onChange={e => setFormData({ ...formData, session: e.target.value })} />
+              )}
+            </div>
+            <div className="modal-form-group">
+              <label className="modal-label">Student</label>
+              {studentProfiles.length > 0 ? (
+                <select className="modal-select" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })}>
+                  <option value="">Choose a student</option>
+                  {studentProfiles.map(p => (
+                    <option key={p._id} value={p._id}>
+                      {p.user?.FullName || p.user?.UserName || 'Student'}{p.grade ? ` - Grade ${p.grade}` : ''}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input className="modal-input" required placeholder="Student Profile ObjectId" value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
+              )}
+            </div>
+          </div>
+          <div className="modal-row modal-row-2">
+            {ratingInput('Behavior', 'Behavior')}
+            {ratingInput('Understanding', 'underStanding')}
+          </div>
+          <div className="modal-row modal-row-2">
+            {ratingInput('Participation', 'participation')}
+            {ratingInput('Coding', 'coding')}
+          </div>
+          <div className="modal-form-group">
+            <label className="modal-label">Notes</label>
+            <textarea className="modal-textarea" placeholder="Additional notes about the student's performance..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} style={{ minHeight: '80px' }} />
+          </div>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">
+            {formLoading ? 'Creating...' : 'Create Review'}
+          </button>
+        </form>
+      </Modal>
     </div>
   );
 };

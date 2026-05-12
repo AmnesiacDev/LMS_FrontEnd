@@ -161,6 +161,7 @@ const SessionsPage = () => {
   const canExportCalendar = ['student', 'parent', 'instructor'].includes(role);
 
   const [sessions, setSessions] = useState([]);
+  const [studentProfiles, setStudentProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -192,7 +193,16 @@ const SessionsPage = () => {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { fetchSessions(); }, []);
+  const fetchStudentProfiles = async () => {
+    if (!isAdmin) return;
+    try {
+      const data = await request('/api/v1/StudentProfile/all');
+      const list = data.data?.profiles || data.data?.docs || data.data;
+      setStudentProfiles(Array.isArray(list) ? list : []);
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchSessions(); fetchStudentProfiles(); }, []);
 
   /* ── Toggle expand ── */
   const toggleExpand = (id) => {
@@ -300,8 +310,21 @@ const SessionsPage = () => {
       </div>
       <div className="modal-row modal-row-2">
         <div className="modal-form-group">
-          <label className="modal-label">Student Profile ID</label>
-          <input className="modal-input" placeholder="ObjectId" required={!isEdit} disabled={isEdit} value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
+          <label className="modal-label">Student</label>
+          {isEdit ? (
+            <input className="modal-input" disabled value={formData.studentProfileId} />
+          ) : studentProfiles.length > 0 ? (
+            <select className="modal-select" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })}>
+              <option value="">Choose a student</option>
+              {studentProfiles.map(p => (
+                <option key={p._id} value={p._id}>
+                  {p.user?.FullName || p.user?.UserName || 'Student'}{p.grade ? ` - Grade ${p.grade}` : ''}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input className="modal-input" placeholder="ObjectId" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
+          )}
         </div>
         <div className="modal-form-group">
           <label className="modal-label">Instructor ID</label>
@@ -369,7 +392,7 @@ const SessionsPage = () => {
           )}
           {isAdmin && (
             <button
-              onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }}
+              onClick={() => { setFormData({ ...emptyForm, instructorId: user?._id || '' }); setFormError(null); setShowCreate(true); }}
               style={styles.createBtn}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
