@@ -31,7 +31,6 @@ const navConfig = {
     { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
     { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
     { to: '/dashboard/reviews', icon: 'R', label: 'Reviews' },
-    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
     { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
     { to: '/dashboard/progress', icon: 'P', label: 'Progress Reports' },
