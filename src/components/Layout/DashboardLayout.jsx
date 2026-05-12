@@ -3,6 +3,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
+import Pet from '../Pet/Pet';
 import './DashboardLayout.css';
 
 const navConfig = {
@@ -20,6 +21,7 @@ const navConfig = {
     { to: '/dashboard', icon: 'C', label: 'Children', end: true },
     { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
     { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
     { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
@@ -70,6 +72,10 @@ const DashboardLayout = () => {
   const portalLabel = roleLabels[role] || 'Portal';
   const userName = user?.FullName || user?.UserName || 'User';
   const initials = userName.split(' ').map((name) => name[0]).join('').toUpperCase().slice(0, 2);
+
+  /* Stable DiceBear avatar */
+  const avatarSeed = user?._id || user?.UserName || userName;
+  const avatarUrl = `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear&radius=50`;
 
   const handleLogout = async () => {
     await logout();
@@ -140,8 +146,11 @@ const DashboardLayout = () => {
               {theme === 'light' ? 'Dark' : 'Light'}
             </button>
             <button className="user-profile" onClick={() => navigate('/dashboard/account')} title="Open account profile">
-              <div className="avatar">
-                {user?.avatar ? <img src={user.avatar} alt="" /> : initials}
+              <div className="avatar" style={{ overflow: 'hidden', padding: 0 }}>
+                {user?.avatar
+                  ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  : <img src={avatarUrl} alt={userName} style={{ width: '100%', height: '100%' }} />
+                }
               </div>
               <span>{userName}</span>
             </button>
@@ -152,6 +161,9 @@ const DashboardLayout = () => {
           <Outlet />
         </div>
       </div>
+
+      {/* Pixel pet — students only */}
+      {role === 'student' && <Pet />}
     </div>
   );
 };

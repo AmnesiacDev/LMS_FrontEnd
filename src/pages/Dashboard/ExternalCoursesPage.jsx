@@ -8,7 +8,6 @@ import {
   Link as LinkIcon,
   Pencil,
   Plus,
-  Send,
   Trash2,
   UserRound,
 } from 'lucide-react';
@@ -124,7 +123,6 @@ const ExternalCoursesPage = () => {
 
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
-  const [completeLinks, setCompleteLinks] = useState([{ name: '', url: '' }]);
 
   const fetchProfiles = async () => {
     if (role === 'instructor') return;
@@ -370,38 +368,18 @@ const ExternalCoursesPage = () => {
     }
   };
 
-  const handleMarkComplete = async (e) => {
-    e.preventDefault();
+  const handleMarkComplete = async () => {
     setFormLoading(true);
     setFormError(null);
     try {
-      const valid = completeLinks.filter((link) => link.name.trim() && link.url.trim());
-      if (!valid.length) {
-        setFormError('At least one submission link is required');
-        setFormLoading(false);
-        return;
-      }
-      await request(`/api/v1/external-hw/${markCompleteHw._id}/complete`, 'PATCH', { submissionLinks: valid });
+      await request(`/api/v1/external-hw/${markCompleteHw._id}/complete`, 'PATCH', {});
       setMarkCompleteHw(null);
-      setCompleteLinks([{ name: '', url: '' }]);
       await fetchHomeworks();
     } catch (err) {
       setFormError(err.message);
     } finally {
       setFormLoading(false);
     }
-  };
-
-  const updateCompleteLink = (index, field, value) => {
-    const next = [...completeLinks];
-    next[index] = { ...next[index], [field]: value };
-    setCompleteLinks(next);
-  };
-
-  const addCompleteLink = () => setCompleteLinks([...completeLinks, { name: '', url: '' }]);
-  const removeCompleteLink = (index) => {
-    const next = completeLinks.filter((_, itemIndex) => itemIndex !== index);
-    setCompleteLinks(next.length ? next : [{ name: '', url: '' }]);
   };
 
   const openCreateCourse = () => {
@@ -575,14 +553,13 @@ const ExternalCoursesPage = () => {
           {canSubmitHomework && hw.status === 'Pending' && (
             <button
               onClick={() => {
-                setCompleteLinks([{ name: '', url: '' }]);
                 setFormError(null);
                 setMarkCompleteHw(hw);
               }}
               className="modal-btn modal-btn-success"
               style={{ width: 'auto', minWidth: '92px', padding: '0.48rem 0.75rem' }}
             >
-              <Send size={15} /> Submit
+              <CheckCircle2 size={15} /> Done
             </button>
           )}
           {canManageHw && (
@@ -1041,30 +1018,28 @@ const ExternalCoursesPage = () => {
         </div>
       </Modal>
 
-      <Modal isOpen={!!markCompleteHw} onClose={() => setMarkCompleteHw(null)} title={`Submit - ${markCompleteHw?.title || 'Homework'}`} size="md">
-        <form onSubmit={handleMarkComplete}>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.92rem' }}>Add your submission links.</p>
+      <Modal isOpen={!!markCompleteHw} onClose={() => setMarkCompleteHw(null)} title="Mark as Complete" size="sm">
+        <div style={{ textAlign: 'center', padding: '0.5rem 0 1rem' }}>
+          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.25rem' }}>
+            Mark <strong>{markCompleteHw?.title}</strong> as done?
+          </p>
           {formError && <div className="modal-error">{formError}</div>}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-            <label className="modal-label" style={{ margin: 0 }}>Submission Links</label>
-            <button type="button" onClick={addCompleteLink} className="modal-add-btn">+ Add</button>
+          <div className="modal-actions" style={{ justifyContent: 'center' }}>
+            <button onClick={() => setMarkCompleteHw(null)} className="modal-btn modal-btn-ghost">Cancel</button>
+            <button
+              onClick={handleMarkComplete}
+              disabled={formLoading}
+              className="modal-btn modal-btn-success"
+            >
+              {formLoading ? 'Saving...' : '✓ Mark Complete'}
+            </button>
           </div>
-          {completeLinks.map((link, index) => (
-            <div key={index} className="modal-link-row">
-              <input className="modal-input" placeholder="Name" required value={link.name} onChange={(e) => updateCompleteLink(index, 'name', e.target.value)} />
-              <input className="modal-input" style={{ flex: 2 }} placeholder="https://..." type="url" required value={link.url} onChange={(e) => updateCompleteLink(index, 'url', e.target.value)} />
-              {completeLinks.length > 1 && (
-                <button type="button" onClick={() => removeCompleteLink(index)} className="modal-link-remove">x</button>
-              )}
-            </div>
-          ))}
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-success" style={{ marginTop: '0.75rem' }}>
-            {formLoading ? 'Submitting...' : 'Mark as Submitted'}
-          </button>
-        </form>
+        </div>
       </Modal>
     </div>
   );
 };
 
 export default ExternalCoursesPage;
+

@@ -122,6 +122,95 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* ── Light-theme dot grid background ── */
+body:not([data-theme='dark']) {
+  background-image: radial-gradient(circle, #c8d3e0 1px, transparent 1px);
+  background-size: 22px 22px;
+}
+
+/* ── Pet jump animation ── */
+@keyframes petJump {
+  0%   { transform: translateY(0) scaleX(1); }
+  20%  { transform: translateY(-28px) scaleX(0.95); }
+  40%  { transform: translateY(-48px) scaleX(0.9); }
+  55%  { transform: translateY(-32px) scaleX(0.95); }
+  70%  { transform: translateY(-12px) scaleX(1); }
+  85%  { transform: translateY(-4px) scaleX(1.02); }
+  100% { transform: translateY(0) scaleX(1); }
+}
+
+@keyframes petShadowPulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.35; }
+  40%       { transform: scaleX(0.5); opacity: 0.15; }
+}
+
+@keyframes petIdle {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-3px); }
+}
+
+@keyframes petWiggle {
+  0%, 100% { transform: rotate(0deg) scale(1.08); }
+  25%       { transform: rotate(-8deg) scale(1.1); }
+  75%       { transform: rotate(8deg) scale(1.1); }
+}
+
+/* Per-pet unique idle animations */
+@keyframes petFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-6px) rotate(-3deg); }
+  66%       { transform: translateY(-3px) rotate(3deg); }
+}
+
+@keyframes petBob {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  40%       { transform: scaleY(0.92) scaleX(1.06); }
+  70%       { transform: scaleY(1.04) scaleX(0.97); }
+}
+
+@keyframes petSpin {
+  0%   { transform: rotate(0deg) translateY(0); }
+  25%  { transform: rotate(5deg) translateY(-4px); }
+  75%  { transform: rotate(-5deg) translateY(-4px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+@keyframes petPulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.08); }
+}
+
+@keyframes petShake {
+  0%, 100% { transform: translateX(0); }
+  20%       { transform: translateX(-4px) rotate(-4deg); }
+  40%       { transform: translateX(4px) rotate(4deg); }
+  60%       { transform: translateX(-3px) rotate(-2deg); }
+  80%       { transform: translateX(3px) rotate(2deg); }
+}
+
+@keyframes petDrip {
+  0%, 100% { transform: scaleY(1) translateY(0); }
+  50%       { transform: scaleY(1.06) translateY(2px); }
+}
+
+@keyframes petStomp {
+  0%, 100% { transform: translateY(0) scaleX(1); }
+  30%       { transform: translateY(-8px) scaleX(0.95); }
+  60%       { transform: translateY(2px) scaleX(1.05); }
+}
+
+@keyframes petSway {
+  0%, 100% { transform: rotate(0deg); transform-origin: bottom center; }
+  30%       { transform: rotate(6deg); transform-origin: bottom center; }
+  70%       { transform: rotate(-6deg); transform-origin: bottom center; }
+}
+
+/* Hover glow pulse */
+@keyframes petGlow {
+  0%, 100% { filter: drop-shadow(0 0 4px var(--pet-glow)); }
+  50%       { filter: drop-shadow(0 0 10px var(--pet-glow)); }
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   color: var(--text-primary);

@@ -23,6 +23,8 @@ const SubmissionsPage = () => {
   const { request, requestFormData } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
+  const isParent = role === 'parent';
+  const canFilterByStudent = isAdmin || isParent;
   const canUpload = role === 'student' || role === 'instructor' || role === 'admin';
   const canDeleteFiles = role === 'instructor' || role === 'admin';
 

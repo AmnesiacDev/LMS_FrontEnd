@@ -22,13 +22,14 @@ const ParentOverview = () => {
 
   const childrenList = Array.isArray(profiles) ? profiles : (profiles?.docs || profiles?.profiles || []);
 
-  // Normalize stats
-  const ts = taskStats?.data?.stats || taskStats?.data || taskStats || {};
-  const ss = subStats?.data?.stats || subStats?.data || subStats || {};
-  const rs = reviewStats?.data?.stats || reviewStats?.data || reviewStats || {};
+  // Normalize stats — useFetchData already strips outer { status, data } wrapper,
+  // so we receive { stats: {...} } and need to grab .stats.
+  const ts = taskStats?.stats || taskStats || {};
+  const ss = subStats?.stats || subStats || {};
+  const rs = reviewStats?.stats || reviewStats || {};
 
   // Recent pending tasks
-  const tasks = Array.isArray(tasksRaw) ? tasksRaw : (tasksRaw?.docs || tasksRaw?.tasks || []);
+  const tasks = Array.isArray(tasksRaw) ? tasksRaw : (tasksRaw?.tasks || tasksRaw?.docs || []);
   const pendingTasks = tasks.filter(t => t.status === 'pending').slice(0, 5);
 
   // Rating bar helper — Neo-Brutalist style

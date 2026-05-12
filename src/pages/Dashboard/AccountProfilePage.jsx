@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './DashboardOverview.css';
+
+/* ── Generate a stable DiceBear avatar URL from the user's id/name ── */
+const getAvatarUrl = (seed) =>
+  `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&backgroundType=gradientLinear&radius=50`;
 
 const quickLinksByRole = {
   student: [
@@ -35,6 +39,10 @@ const AccountProfilePage = () => {
   const role = user?.role || 'student';
   const quickLinks = quickLinksByRole[role] || quickLinksByRole.student;
 
+  /* Stable avatar seed — uses user id so it never changes between renders */
+  const avatarSeed = useMemo(() => user?._id || user?.UserName || userName, [user]);
+  const avatarUrl = getAvatarUrl(avatarSeed);
+
   const details = [
     ['Full name', user?.FullName || 'Not set'],
     ['Username', user?.UserName || 'Not set'],
@@ -46,13 +54,22 @@ const AccountProfilePage = () => {
   return (
     <div className="overview-container" style={{ padding: '2rem 0' }}>
       <div className="glass-panel" style={{ padding: '2rem', borderRadius: 'var(--radius-md)', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
-          <div
-            className="avatar"
-            style={{ width: '86px', height: '86px', fontSize: '1.35rem', background: 'var(--brand-primary)', color: '#fff' }}
-          >
-            {user?.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : initials}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem', flexWrap: 'wrap' }}>
+
+          {/* ── Avatar ── */}
+          <div style={{
+            width: '96px', height: '96px', borderRadius: '50%',
+            border: '3px solid var(--border-color)',
+            boxShadow: '4px 4px 0 var(--shadow-color)',
+            overflow: 'hidden', flexShrink: 0,
+            background: 'var(--bg-tertiary)',
+          }}>
+            {user?.avatar
+              ? <img src={user.avatar} alt={userName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <img src={avatarUrl} alt={userName} style={{ width: '100%', height: '100%' }} />
+            }
           </div>
+
           <div style={{ flex: 1, minWidth: '220px' }}>
             <h1 style={{ margin: 0, fontSize: '2rem' }}>{userName}</h1>
             <p style={{ margin: '0.4rem 0 0', color: 'var(--text-muted)', fontWeight: 600 }}>{role.toUpperCase()} ACCOUNT</p>
