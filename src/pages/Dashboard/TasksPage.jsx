@@ -110,7 +110,7 @@ const TasksPage = () => {
   };
 
   const handleStatusChange = async (taskId, newStatus) => {
-    try { await request(`/api/v1/task/${taskId}/status`, 'PATCH', { status: newStatus }); await fetchTasks(); }
+    try { await request(`/api/v1/task/${taskId}`, 'PATCH', { status: newStatus }); await fetchTasks(); }
     catch (err) { alert(err.message); }
   };
 
