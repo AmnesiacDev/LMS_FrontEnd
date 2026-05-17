@@ -281,60 +281,145 @@ const CREATURES = [
 const STORAGE_KEY = 'lms-pet-choice';
 
 /* ══════════════════════════════════════════════════════════════════
-   PET PICKER PANEL
+   PET PICKER PANEL — dark card style matching the screenshot
 ══════════════════════════════════════════════════════════════════ */
 const PetPicker = ({ current, onSelect, onClose }) => (
   <div style={{
     position: 'absolute',
-    bottom: '90px',
+    bottom: '88px',
     right: 0,
-    width: '260px',
-    background: 'var(--card-bg)',
-    border: '3px solid var(--border-color)',
-    borderRadius: '12px',
-    boxShadow: '6px 6px 0 var(--shadow-color)',
-    padding: '0.75rem',
+    width: '300px',
+    background: '#1a1a2e',
+    border: '3px solid #2d2d4e',
+    borderRadius: '16px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)',
+    padding: '1rem',
     zIndex: 10000,
-    animation: 'fadeIn 0.15s ease',
+    animation: 'fadeIn 0.18s ease',
   }}>
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.6rem' }}>
-      <span style={{ fontWeight: 800, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+    {/* Header */}
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: '0.85rem',
+    }}>
+      <span style={{
+        fontWeight: 900,
+        fontSize: '1rem',
+        textTransform: 'uppercase',
+        letterSpacing: '0.1em',
+        color: '#ffffff',
+        fontFamily: 'var(--font-body)',
+      }}>
         Choose your pet
       </span>
       <button
         onClick={onClose}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1rem', color: 'var(--text-muted)', lineHeight: 1 }}
+        style={{
+          background: 'rgba(255,255,255,0.1)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          borderRadius: '8px',
+          width: '28px',
+          height: '28px',
+          cursor: 'pointer',
+          color: '#aaa',
+          fontSize: '0.85rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.15s ease',
+        }}
+        onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.2)'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = '#aaa'; }}
       >✕</button>
     </div>
 
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
-      {CREATURES.map((c) => (
-        <button
-          key={c.id}
-          onClick={() => { onSelect(c.id); onClose(); }}
-          title={c.name}
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: '3px',
-            padding: '6px 4px',
-            border: current === c.id ? `2px solid ${c.glowColor}` : '2px solid var(--border-color)',
-            borderRadius: '8px',
-            background: current === c.id ? `${c.glowColor}22` : 'var(--bg-secondary)',
-            cursor: 'pointer',
-            transition: 'all 0.15s ease',
-            boxShadow: current === c.id ? `0 0 8px ${c.glowColor}66` : 'none',
-          }}
-        >
-          <div style={{ width: 32, height: 32, imageRendering: 'pixelated' }}>
-            <c.Svg />
-          </div>
-          <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text-muted)', textAlign: 'center', lineHeight: 1.2 }}>
-            {c.name}
-          </span>
-        </button>
-      ))}
+    {/* Grid */}
+    <div style={{
+      display: 'grid',
+      gridTemplateColumns: 'repeat(4, 1fr)',
+      gap: '8px',
+    }}>
+      {CREATURES.map((c) => {
+        const isSelected = current === c.id;
+        return (
+          <button
+            key={c.id}
+            onClick={() => { onSelect(c.id); onClose(); }}
+            title={c.name}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'flex-end',
+              gap: '4px',
+              padding: '8px 4px 6px',
+              border: isSelected ? `2px solid ${c.glowColor}` : '2px solid rgba(255,255,255,0.08)',
+              borderRadius: '12px',
+              background: isSelected
+                ? `linear-gradient(160deg, ${c.glowColor}33, ${c.glowColor}11)`
+                : 'rgba(255,255,255,0.05)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+              boxShadow: isSelected ? `0 0 12px ${c.glowColor}55, inset 0 0 8px ${c.glowColor}22` : 'none',
+              position: 'relative',
+              overflow: 'hidden',
+              minHeight: '72px',
+            }}
+            onMouseEnter={e => {
+              if (!isSelected) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.1)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.2)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!isSelected) {
+                e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
+                e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)';
+              }
+            }}
+          >
+            {/* Selected indicator dot */}
+            {isSelected && (
+              <div style={{
+                position: 'absolute',
+                top: '5px',
+                right: '5px',
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                background: c.glowColor,
+                boxShadow: `0 0 6px ${c.glowColor}`,
+              }} />
+            )}
+
+            {/* Sprite — bigger in picker */}
+            <div style={{
+              width: '48px',
+              height: '48px',
+              imageRendering: 'pixelated',
+              filter: isSelected ? `drop-shadow(0 0 6px ${c.glowColor})` : 'none',
+              transition: 'filter 0.2s ease',
+            }}>
+              <c.Svg />
+            </div>
+
+            {/* Name */}
+            <span style={{
+              fontSize: '0.62rem',
+              fontWeight: 700,
+              color: isSelected ? c.glowColor : 'rgba(255,255,255,0.55)',
+              textAlign: 'center',
+              lineHeight: 1.2,
+              letterSpacing: '0.02em',
+              fontFamily: 'var(--font-body)',
+            }}>
+              {c.name}
+            </span>
+          </button>
+        );
+      })}
     </div>
   </div>
 );
@@ -445,8 +530,8 @@ const Pet = () => {
         title="Click to interact · Right-click to change pet"
       >
         <div style={{
-          width: '64px',
-          height: '64px',
+          width: '80px',
+          height: '80px',
           imageRendering: 'pixelated',
           animation: spriteAnim,
           filter: glowFilter,
@@ -455,20 +540,20 @@ const Pet = () => {
           <creature.Svg />
         </div>
 
-        {/* Change-pet button (always visible on hover) */}
+        {/* Change-pet button (visible on hover) */}
         {isHovered && (
           <button
             onClick={(e) => { e.stopPropagation(); setShowPicker(p => !p); }}
             style={{
               position: 'absolute',
-              top: '-10px',
-              right: '-10px',
-              width: '20px',
-              height: '20px',
+              top: '-8px',
+              right: '-8px',
+              width: '22px',
+              height: '22px',
               borderRadius: '50%',
               border: '2px solid var(--border-color)',
               background: 'var(--card-bg)',
-              fontSize: '10px',
+              fontSize: '11px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
@@ -486,11 +571,11 @@ const Pet = () => {
 
       {/* Shadow */}
       <div style={{
-        width: '36px',
-        height: '5px',
+        width: '48px',
+        height: '6px',
         background: 'rgba(0,0,0,0.18)',
         borderRadius: '50%',
-        marginTop: '-6px',
+        marginTop: '-8px',
         animation: isAnimating ? 'petShadowPulse 0.55s forwards' : 'none',
         transform: isHovered ? 'scaleX(1.2)' : 'scaleX(1)',
         transition: 'transform 0.2s',

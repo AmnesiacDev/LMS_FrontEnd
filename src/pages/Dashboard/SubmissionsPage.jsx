@@ -25,12 +25,24 @@ const SubmissionsPage = () => {
   const isAdmin = role === 'admin' || role === 'instructor';
   const isParent = role === 'parent';
   const canFilterByStudent = isAdmin || isParent;
-  const canUpload = role === 'student' || role === 'instructor' || role === 'admin';
-  const canDeleteFiles = role === 'instructor' || role === 'admin';
+  const canUpload = role === 'student';
+  const canDeleteFiles = role === 'student' || role === 'instructor' || role === 'admin';
 
   const [uploadingId, setUploadingId] = useState(null);
   const [actionError, setActionError] = useState(null);
   const [studentFilter, setStudentFilter] = useState('');
+
+  const [reviewTarget, setReviewTarget] = useState(null);
+  const [reviewScore, setReviewScore] = useState(5);
+  const [reviewComment, setReviewComment] = useState('');
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState(null);
+
+  const [updateTarget, setUpdateTarget] = useState(null);
+  const [updateLinks, setUpdateLinks] = useState([{ name: '', url: '' }]);
+  const [updateNote, setUpdateNote] = useState('');
+  const [updateLoading, setUpdateLoading] = useState(false);
+  const [updateError, setUpdateError] = useState(null);
   const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
   const { data, loading, error, refetch } = useFetchData(endpoint);
 
@@ -60,6 +72,69 @@ const SubmissionsPage = () => {
       setActionError(err.message);
     } finally {
       setUploadingId(null);
+    }
+  };
+
+  const isBeforeDue = (sub) => {
+    const due = sub.task?.dueDate;
+    return due && new Date(due) > new Date();
+  };
+
+  const openUpdate = (sub) => {
+    const existing = sub.Task_links?.length > 0
+      ? sub.Task_links.map(l => ({ name: l.name || '', url: l.url || '' }))
+      : [{ name: '', url: '' }];
+    setUpdateLinks(existing);
+    setUpdateNote(sub.note || '');
+    setUpdateError(null);
+    setUpdateTarget(sub);
+  };
+
+  const handleUpdateSubmission = async (e) => {
+    e.preventDefault();
+    const validLinks = updateLinks.filter(l => l.name.trim() && l.url.trim());
+    if (validLinks.length === 0) {
+      setUpdateError('Please add at least one link with a name and URL.');
+      return;
+    }
+    setUpdateLoading(true);
+    setUpdateError(null);
+    try {
+      await request(`/api/v1/submission/${updateTarget._id}/submit`, 'PATCH', {
+        Task_links: validLinks,
+        note: updateNote,
+      });
+      setUpdateTarget(null);
+      await refetch();
+    } catch (err) {
+      setUpdateError(err.message);
+    } finally {
+      setUpdateLoading(false);
+    }
+  };
+
+  const openReview = (sub) => {
+    setReviewTarget(sub);
+    setReviewScore(sub.review?.score ?? 5);
+    setReviewComment(sub.review?.comment || '');
+    setReviewError(null);
+  };
+
+  const handleReview = async (e) => {
+    e.preventDefault();
+    setReviewLoading(true);
+    setReviewError(null);
+    try {
+      await request(`/api/v1/submission/${reviewTarget._id}/review`, 'PATCH', {
+        score: Number(reviewScore),
+        comment: reviewComment,
+      });
+      setReviewTarget(null);
+      await refetch();
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewLoading(false);
     }
   };
 
@@ -127,15 +202,69 @@ const SubmissionsPage = () => {
           return (
             <section key={sub._id} className="glass-panel" style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'flex-start' }}>
-                <div>
+                <div style={{ minWidth: 0 }}>
                   <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.05rem' }}>{sub.task?.title || 'Untitled task'}</h3>
+                  {isAdmin && (sub.studentProfileId?.user?.FullName || sub.student?.FullName) && (
+                    <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brand-primary)' }}>
+                      🎓 {sub.studentProfileId?.user?.FullName || sub.student?.FullName}
+                    </p>
+                  )}
                   <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
                     Submitted: {sub.SubmissionDate ? new Date(sub.SubmissionDate).toLocaleDateString() : '-'}
                   </p>
                 </div>
-                <span style={{ padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-md)', background: st.bg, color: st.color, fontWeight: 700, fontSize: '0.8rem' }}>
-                  {sub.status}
-                </span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.4rem', flexShrink: 0 }}>
+                  <span style={{ padding: '0.25rem 0.6rem', borderRadius: 'var(--radius-md)', background: st.bg, color: st.color, fontWeight: 700, fontSize: '0.8rem' }}>
+                    {sub.status}
+                  </span>
+                  {isAdmin && (
+                    <button
+                      onClick={() => openReview(sub)}
+                      style={{
+                        padding: '0.3rem 0.7rem',
+                        background: 'var(--brand-primary)',
+                        color: '#fff',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {sub.review?.score !== undefined ? '✏️ Edit Score' : '⭐ Give Score'}
+                    </button>
+                  )}
+                  {role === 'student' && isBeforeDue(sub) && (
+                    <button
+                      onClick={() => openUpdate(sub)}
+                      style={{
+                        padding: '0.3rem 0.7rem',
+                        background: 'var(--accent-yellow)',
+                        color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        cursor: 'pointer',
+                        fontSize: '0.78rem',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                        boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      ✏️ Update
+                    </button>
+                  )}
+                  {role === 'student' && sub.task?.dueDate && !isBeforeDue(sub) && (
+                    <span style={{ fontSize: '0.72rem', color: 'var(--error)', fontWeight: 700 }}>
+                      Deadline passed
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
@@ -226,6 +355,152 @@ const SubmissionsPage = () => {
           );
         })}
       </div>
+
+      {/* UPDATE SUBMISSION MODAL */}
+      {updateTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem',
+        }} onClick={() => setUpdateTarget(null)}>
+          <div style={{
+            background: 'var(--card-bg)', border: '3px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)', boxShadow: '6px 6px 0px 0px var(--shadow-color)',
+            padding: '1.75rem', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, margin: '0 0 0.25rem' }}>
+              Update Submission
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.82rem', margin: '0 0 0.5rem' }}>
+              {updateTarget.task?.title}
+            </p>
+            {updateTarget.task?.dueDate && (
+              <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--warning)', margin: '0 0 1.25rem' }}>
+                ⏰ Due: {new Date(updateTarget.task.dueDate).toLocaleString()}
+              </p>
+            )}
+
+            <form onSubmit={handleUpdateSubmission}>
+              {updateError && <div className="modal-error" style={{ marginBottom: '1rem' }}>{updateError}</div>}
+
+              <div className="modal-form-group">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label className="modal-label" style={{ margin: 0 }}>Submission Links</label>
+                  <button
+                    type="button"
+                    onClick={() => setUpdateLinks([...updateLinks, { name: '', url: '' }])}
+                    className="modal-add-btn"
+                  >+ Add Link</button>
+                </div>
+                {updateLinks.map((link, i) => (
+                  <div key={i} className="modal-link-row">
+                    <input
+                      className="modal-input"
+                      placeholder="Name (e.g., GitHub)"
+                      value={link.name}
+                      onChange={e => { const u = [...updateLinks]; u[i] = { ...u[i], name: e.target.value }; setUpdateLinks(u); }}
+                    />
+                    <input
+                      className="modal-input"
+                      style={{ flex: 2 }}
+                      placeholder="https://..."
+                      type="url"
+                      value={link.url}
+                      onChange={e => { const u = [...updateLinks]; u[i] = { ...u[i], url: e.target.value }; setUpdateLinks(u); }}
+                    />
+                    {updateLinks.length > 1 && (
+                      <button
+                        type="button"
+                        className="modal-link-remove"
+                        onClick={() => { const u = updateLinks.filter((_, idx) => idx !== i); setUpdateLinks(u.length ? u : [{ name: '', url: '' }]); }}
+                      >✕</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="modal-form-group" style={{ marginTop: '1rem' }}>
+                <label className="modal-label">Notes (Optional)</label>
+                <textarea
+                  className="modal-textarea"
+                  placeholder="Any additional notes..."
+                  value={updateNote}
+                  onChange={e => setUpdateNote(e.target.value)}
+                  style={{ minHeight: '70px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" className="modal-btn modal-btn-ghost" onClick={() => setUpdateTarget(null)}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={updateLoading} className="modal-btn modal-btn-primary" style={{ flex: 1 }}>
+                  {updateLoading ? 'Saving...' : '💾 Save Update'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* REVIEW MODAL */}
+      {reviewTarget && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: '1rem',
+        }} onClick={() => setReviewTarget(null)}>
+          <div style={{
+            background: 'var(--card-bg)', border: '3px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)', boxShadow: '6px 6px 0px 0px var(--shadow-color)',
+            padding: '1.75rem', width: '100%', maxWidth: '460px',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, margin: '0 0 0.3rem' }}>
+              Grade Submission
+            </h2>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0 0 1.5rem' }}>
+              {reviewTarget.task?.title}{reviewTarget.studentProfileId?.user?.FullName ? ` — ${reviewTarget.studentProfileId.user.FullName}` : ''}
+            </p>
+
+            <form onSubmit={handleReview}>
+              {reviewError && <div className="modal-error" style={{ marginBottom: '1rem' }}>{reviewError}</div>}
+
+              <div className="modal-form-group">
+                <label className="modal-label">Score: {reviewScore} / 10</label>
+                <input
+                  type="range" min="0" max="10" step="1"
+                  value={reviewScore}
+                  onChange={e => setReviewScore(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--brand-primary)', marginTop: '0.4rem' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  <span>0 — Fair</span><span>5 — Good</span><span>7 — Very Good</span><span>10 — Full Mark</span>
+                </div>
+              </div>
+
+              <div className="modal-form-group" style={{ marginTop: '1rem' }}>
+                <label className="modal-label">Comment (optional)</label>
+                <textarea
+                  className="modal-textarea"
+                  placeholder="Feedback for the student..."
+                  value={reviewComment}
+                  onChange={e => setReviewComment(e.target.value)}
+                  style={{ minHeight: '80px' }}
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
+                <button type="button" className="modal-btn modal-btn-ghost" onClick={() => setReviewTarget(null)}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={reviewLoading} className="modal-btn modal-btn-primary" style={{ flex: 1 }}>
+                  {reviewLoading ? 'Saving...' : '💾 Save Grade'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

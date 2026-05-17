@@ -62,7 +62,7 @@ const roleLabels = {
 
 const DashboardLayout = () => {
   const { theme, toggleTheme } = useTheme();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 900);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
 
@@ -70,19 +70,31 @@ const DashboardLayout = () => {
   const navItems = navConfig[role] || navConfig.student;
   const portalLabel = roleLabels[role] || 'Portal';
   const userName = user?.FullName || user?.UserName || 'User';
-  const initials = userName.split(' ').map((name) => name[0]).join('').toUpperCase().slice(0, 2);
 
   /* Stable DiceBear avatar */
   const avatarSeed = user?._id || user?.UserName || userName;
   const avatarUrl = `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear&radius=50`;
+
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
 
   const handleLogout = async () => {
     await logout();
     navigate('/login');
   };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <div className="dashboard-wrapper">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="sidebar-backdrop visible"
+          onClick={closeSidebar}
+          aria-hidden="true"
+        />
+      )}
+
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
           <button className="brand-logo" onClick={() => navigate('/dashboard')} aria-label="Go to dashboard overview">
@@ -93,7 +105,11 @@ const DashboardLayout = () => {
               </span>
             )}
           </button>
-          <button className="toggle-sidebar-btn" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}>
+          <button
+            className="toggle-sidebar-btn"
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}
+          >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               {sidebarOpen ? <path d="M15 18l-6-6 6-6" /> : <path d="M9 18l6-6-6-6" />}
             </svg>
@@ -113,6 +129,7 @@ const DashboardLayout = () => {
               to={item.to}
               end={item.end || false}
               className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
+              onClick={() => { if (window.innerWidth <= 900) closeSidebar(); }}
             >
               <span className="icon">{item.icon}</span>
               {sidebarOpen && <span className="label">{item.label}</span>}
@@ -131,11 +148,13 @@ const DashboardLayout = () => {
       <div className={`dashboard-main ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
         <header className="dashboard-header glass-panel">
           <div className="header-left">
-            {!sidebarOpen && (
-              <button className="toggle-sidebar-btn-mobile" onClick={() => setSidebarOpen(true)} aria-label="Open sidebar">
-                Menu
-              </button>
-            )}
+            <button
+              className="toggle-sidebar-btn-mobile"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open sidebar"
+            >
+              ☰
+            </button>
             <h3>{portalLabel}</h3>
           </div>
 

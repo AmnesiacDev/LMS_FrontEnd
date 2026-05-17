@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -5,7 +6,7 @@ export const useApiRequest = () => {
   const { ensureValidToken, refreshToken, logout } = useAuth();
   const navigate = useNavigate();
 
-  const request = async (url, method = 'GET', body = null) => {
+  const request = useCallback(async (url, method = 'GET', body = null) => {
     // Ensure we have a valid (non-expired) token before making the request
     const isValid = await ensureValidToken();
     if (!isValid) {
@@ -15,12 +16,16 @@ export const useApiRequest = () => {
     }
 
     const headers = {
-      'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('access-token') || ''}`,
     };
 
+    // Only set Content-Type for requests that actually send a body
+    if (body !== null) {
+      headers['Content-Type'] = 'application/json';
+    }
+
     const options = { method, headers, credentials: 'include' };
-    if (body) options.body = JSON.stringify(body);
+    if (body !== null) options.body = JSON.stringify(body);
 
     const response = await fetch(url, options);
 
@@ -55,9 +60,9 @@ export const useApiRequest = () => {
     }
     
     return data;
-  };
+  }, [ensureValidToken, refreshToken, logout, navigate]);
 
-  const requestFormData = async (url, method = 'POST', formData = null) => {
+  const requestFormData = useCallback(async (url, method = 'POST', formData = null) => {
     const isValid = await ensureValidToken();
     if (!isValid) {
       logout();
@@ -91,7 +96,7 @@ export const useApiRequest = () => {
       throw new Error(data.message || `Request failed (${response.status})`);
     }
     return data;
-  };
+  }, [ensureValidToken, refreshToken, logout, navigate]);
 
   return { request, requestFormData };
 };

@@ -7,8 +7,8 @@ const InstructorOverview = () => {
   const { user } = useAuth();
   const instructorName = user?.FullName?.split(' ')[0] || 'Instructor';
 
-  // Instructor endpoints
-  const { data: sessions, loading: sessionsLoading } = useFetchData('/api/v1/session');
+  // Instructor-scoped endpoints — each returns only data for this instructor's students
+  const { data: sessions, loading: sessionsLoading } = useFetchData('/api/v1/session/me');
   const { data: tasks, loading: tasksLoading } = useFetchData('/api/v1/task');
   const { data: submissions, loading: subsLoading } = useFetchData('/api/v1/submission');
   const { data: reviews, loading: reviewsLoading } = useFetchData('/api/v1/sessionReview');

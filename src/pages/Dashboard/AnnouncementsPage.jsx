@@ -6,7 +6,7 @@ import Modal from '../../components/Modal/Modal';
 const emptyForm = {
   title: '',
   body: '',
-  targetStudentProfiles: '',
+  targetStudentProfiles: [],
   isPinned: false,
   expiresAt: '',
 };
@@ -70,20 +70,13 @@ const AnnouncementsPage = () => {
     label: `${profile.user?.FullName || profile.user?.UserName || 'Student'}${profile.grade ? ` - Grade ${profile.grade}` : ''}`,
   })), [profiles]);
 
-  const buildPayload = () => {
-    const targets = formData.targetStudentProfiles
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
-
-    return {
-      title: formData.title.trim(),
-      body: formData.body.trim(),
-      targetStudentProfiles: targets,
-      isPinned: formData.isPinned,
-      expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
-    };
-  };
+  const buildPayload = () => ({
+    title: formData.title.trim(),
+    body: formData.body.trim(),
+    targetStudentProfiles: formData.targetStudentProfiles,
+    isPinned: formData.isPinned,
+    expiresAt: formData.expiresAt ? new Date(formData.expiresAt).toISOString() : null,
+  });
 
   const handleCreate = async (event) => {
     event.preventDefault();
@@ -134,7 +127,7 @@ const AnnouncementsPage = () => {
     setFormData({
       title: announcement.title || '',
       body: announcement.body || '',
-      targetStudentProfiles: (announcement.targetStudentProfiles || []).map((item) => item._id || item).join(', '),
+      targetStudentProfiles: (announcement.targetStudentProfiles || []).map((item) => item._id || item),
       isPinned: !!announcement.isPinned,
       expiresAt: announcement.expiresAt ? new Date(announcement.expiresAt).toISOString().slice(0, 16) : '',
     });
@@ -154,25 +147,54 @@ const AnnouncementsPage = () => {
         <textarea className="modal-textarea" required value={formData.body} onChange={(e) => setFormData({ ...formData, body: e.target.value })} />
       </div>
       <div className="modal-form-group">
-        <label className="modal-label">Target student profile IDs</label>
-        <input className="modal-input" placeholder="Leave empty for everyone, or comma-separated profile IDs" value={formData.targetStudentProfiles} onChange={(e) => setFormData({ ...formData, targetStudentProfiles: e.target.value })} />
-        {profileOptions.length > 0 && (
-          <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-            {profileOptions.slice(0, 8).map((profile) => (
-              <button
-                key={profile.id}
-                type="button"
-                className="modal-chip"
-                onClick={() => {
-                  const current = formData.targetStudentProfiles.split(',').map((item) => item.trim()).filter(Boolean);
-                  if (!current.includes(profile.id)) current.push(profile.id);
-                  setFormData({ ...formData, targetStudentProfiles: current.join(', ') });
-                }}
-              >
-                {profile.label}
-              </button>
-            ))}
+        <label className="modal-label">
+          Target Students{' '}
+          <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
+            ({formData.targetStudentProfiles.length === 0 ? 'everyone' : `${formData.targetStudentProfiles.length} selected`})
+          </span>
+        </label>
+        {profileOptions.length > 0 ? (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem', marginTop: '0.35rem' }}>
+            {profileOptions.map((profile) => {
+              const selected = formData.targetStudentProfiles.includes(profile.id);
+              return (
+                <button
+                  key={profile.id}
+                  type="button"
+                  onClick={() => {
+                    const next = selected
+                      ? formData.targetStudentProfiles.filter((id) => id !== profile.id)
+                      : [...formData.targetStudentProfiles, profile.id];
+                    setFormData({ ...formData, targetStudentProfiles: next });
+                  }}
+                  style={{
+                    padding: '0.3rem 0.75rem',
+                    borderRadius: 'var(--radius-sm)',
+                    border: '2px solid var(--border-color)',
+                    background: selected ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
+                    color: selected ? '#fff' : 'var(--text-primary)',
+                    fontWeight: 700,
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.1s ease',
+                  }}
+                >
+                  {selected ? '✓ ' : ''}{profile.label}
+                </button>
+              );
+            })}
           </div>
+        ) : (
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>Leave empty to target everyone.</p>
+        )}
+        {formData.targetStudentProfiles.length > 0 && (
+          <button
+            type="button"
+            onClick={() => setFormData({ ...formData, targetStudentProfiles: [] })}
+            style={{ marginTop: '0.5rem', background: 'none', border: 'none', color: 'var(--brand-primary)', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            Clear all (target everyone)
+          </button>
         )}
       </div>
       <div className="modal-row modal-row-2">

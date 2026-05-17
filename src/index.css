@@ -45,6 +45,9 @@
   --card-bg: #FFFFFF;
   --card-border: var(--border-width) solid var(--border-color);
   
+  /* Dot grid */
+  --dot-color: rgba(100, 116, 139, 0.25);
+
   /* Spacing & Radii — Neo-Brutalist uses minimal rounding */
   --radius-sm: 4px;
   --radius-md: 8px;
@@ -101,6 +104,9 @@
   /* Card Surfaces */
   --card-bg: #27272A;
   --card-border: var(--border-width) solid var(--border-color);
+
+  /* Dot grid */
+  --dot-color: rgba(148, 163, 184, 0.1);
 }
 
 /* =====================================================================
@@ -122,10 +128,10 @@ body {
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* ── Light-theme dot grid background ── */
-body:not([data-theme='dark']) {
-  background-image: radial-gradient(circle, #c8d3e0 1px, transparent 1px);
-  background-size: 22px 22px;
+/* ── Dot grid background ── */
+body {
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ── Pet jump animation ── */
@@ -155,7 +161,11 @@ body:not([data-theme='dark']) {
   75%       { transform: rotate(8deg) scale(1.1); }
 }
 
-/* Per-pet unique idle animations */
+/* ── Pet responsive ── */
+@media (max-width: 600px) {
+  /* Smaller pet on mobile */
+  .pet-sprite { width: 56px !important; height: 56px !important; }
+}
 @keyframes petFloat {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   33%       { transform: translateY(-6px) rotate(-3deg); }

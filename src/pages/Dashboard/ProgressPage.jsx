@@ -106,11 +106,14 @@ const ProgressPage = () => {
   const { data, loading, error } = useFetchData(endpoint || null);
 
   const { data: profilesData, loading: profilesLoading } = useFetchData(
-    isAdmin && !profileId ? '/api/v1/StudentProfile/all' : null
+    // Instructors only see their linked students; admins see all
+    isAdmin && !profileId
+      ? (user?.role === 'instructor' ? '/api/v1/session/me/students' : '/api/v1/StudentProfile/all')
+      : null
   );
   const profiles = Array.isArray(profilesData)
     ? profilesData
-    : (profilesData?.docs || profilesData?.profiles || []);
+    : (profilesData?.students || profilesData?.docs || profilesData?.profiles || []);
 
   /* ── Admin picker ── */
   if (isAdmin && !profileId) {

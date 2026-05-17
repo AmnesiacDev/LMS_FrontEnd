@@ -19,6 +19,8 @@ const TasksPage = () => {
   const isStudent = role === 'student';
 
   const [tasks, setTasks] = useState([]);
+  const [mySessions, setMySessions] = useState([]);   // for create-task dropdown
+  const [myStudents, setMyStudents] = useState([]);   // for create-task dropdown
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
@@ -49,8 +51,32 @@ const TasksPage = () => {
     finally { setLoading(false); }
   };
 
+  // Instructors: load their own sessions + derive unique students from them
+  const fetchInstructorMeta = async () => {
+    if (role !== 'instructor') return;
+    try {
+      const sessData = await request('/api/v1/session/me');
+      const sessions = sessData.data?.docs || sessData.data?.sessions || [];
+      const sessionList = Array.isArray(sessions) ? sessions : [];
+      setMySessions(sessionList);
+
+      // Derive unique students from the populated studentProfileId on each session
+      const seen = new Set();
+      const students = [];
+      sessionList.forEach(s => {
+        const p = s.studentProfileId;
+        if (p && typeof p === 'object' && p._id && !seen.has(p._id)) {
+          seen.add(p._id);
+          students.push(p);
+        }
+      });
+      setMyStudents(students);
+    } catch { /* non-critical */ }
+  };
+
   useEffect(() => {
     fetchTasks();
+    fetchInstructorMeta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -179,12 +205,32 @@ const TasksPage = () => {
       {!isEdit && (
         <div className="modal-row modal-row-3">
           <div className="modal-form-group">
-            <label className="modal-label">Session ID</label>
-            <input className="modal-input" required placeholder="ObjectId" value={formData.sessionId} onChange={e => setFormData({ ...formData, sessionId: e.target.value })} />
+            <label className="modal-label">Session</label>
+            {mySessions.length > 0 ? (
+              <select className="modal-select" required value={formData.sessionId} onChange={e => setFormData({ ...formData, sessionId: e.target.value })}>
+                <option value="">Choose a session</option>
+                {mySessions.map(s => (
+                  <option key={s._id} value={s._id}>{s.title || s._id}</option>
+                ))}
+              </select>
+            ) : (
+              <input className="modal-input" required placeholder="Session ObjectId" value={formData.sessionId} onChange={e => setFormData({ ...formData, sessionId: e.target.value })} />
+            )}
           </div>
           <div className="modal-form-group">
-            <label className="modal-label">Student ID</label>
-            <input className="modal-input" required placeholder="ObjectId" value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
+            <label className="modal-label">Student</label>
+            {myStudents.length > 0 ? (
+              <select className="modal-select" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })}>
+                <option value="">Choose a student</option>
+                {myStudents.map(p => (
+                  <option key={p._id} value={p._id}>
+                    {p.user?.FullName || p.user?.UserName || p._id}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <input className="modal-input" required placeholder="Student Profile ObjectId" value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
+            )}
           </div>
           <div className="modal-form-group">
             <label className="modal-label">Instructor ID</label>
@@ -216,7 +262,7 @@ const TasksPage = () => {
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{tasks.length} total tasks</p>
         </div>
         {isAdmin && (
-          <button onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}>➕ Create Task</button>
+          <button onClick={() => { setFormData({ ...emptyForm, instructorId: user?._id || '' }); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}>➕ Create Task</button>
         )}
       </div>
 

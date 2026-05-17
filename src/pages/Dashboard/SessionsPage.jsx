@@ -185,15 +185,34 @@ const SessionsPage = () => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const data = await request(isAdmin ? '/api/v1/session' : '/api/v1/session/me');
+      const endpoint = role === 'instructor' ? '/api/v1/session/me' : (isAdmin ? '/api/v1/session' : '/api/v1/session/me');
+      const data = await request(endpoint);
       const list = data.data?.docs || data.data?.sessions || [];
-      setSessions(Array.isArray(list) ? list : [list]);
+      const sessionList = Array.isArray(list) ? list : [list];
+      setSessions(sessionList);
+
+      // For instructors: derive unique students from their own sessions — no extra API call needed
+      if (role === 'instructor') {
+        const seen = new Set();
+        const students = [];
+        sessionList.forEach(s => {
+          const p = s.studentProfileId;
+          if (p && typeof p === 'object' && p._id && !seen.has(p._id)) {
+            seen.add(p._id);
+            students.push(p);
+          }
+        });
+        setStudentProfiles(students);
+      }
+
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
   };
 
   const fetchStudentProfiles = async () => {
+    // Instructors get their students from sessions (derived above), admins fetch all
+    if (role === 'instructor') return;
     if (!isAdmin) return;
     try {
       const data = await request('/api/v1/StudentProfile/all');

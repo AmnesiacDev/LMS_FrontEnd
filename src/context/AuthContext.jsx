@@ -250,7 +250,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       const currentToken = localStorage.getItem('access-token');
       await fetch('/api/v1/auth/logout', {
@@ -260,7 +260,7 @@ export const AuthProvider = ({ children }) => {
       });
     } catch (e) {}
     clearAuth();
-  };
+  }, [clearAuth]);
 
   return (
     <AuthContext.Provider value={{ 

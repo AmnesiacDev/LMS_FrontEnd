@@ -372,7 +372,7 @@ const ExternalCoursesPage = () => {
     setFormLoading(true);
     setFormError(null);
     try {
-      await request(`/api/v1/external-hw/${markCompleteHw._id}/complete`, 'PATCH', {});
+      await request(`/api/v1/external-hw/${markCompleteHw._id}/complete`, 'PATCH', null);
       setMarkCompleteHw(null);
       await fetchHomeworks();
     } catch (err) {
