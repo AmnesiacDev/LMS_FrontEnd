@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Modal from '../../components/Modal/Modal';
+import Pagination from '../../components/Pagination/Pagination';
 
 const emptyForm = {
   title: '',
@@ -36,11 +37,21 @@ const AnnouncementsPage = () => {
   const [formError, setFormError] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
 
+  /* Pagination */
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
-      const res = await request('/api/v1/announcements');
-      setAnnouncements(getList(res, 'announcements'));
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const res = await request(`/api/v1/announcements?${params.toString()}`);
+      const list = getList(res, 'announcements');
+      setAnnouncements(list);
+      setTotalDocs(res?.data?.total || res?.totalDocs || res?.results || list.length);
+      setTotalPages(res?.data?.totalPages || res?.totalPages || 1);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -61,6 +72,10 @@ const AnnouncementsPage = () => {
 
   useEffect(() => {
     fetchAnnouncements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit]);
+
+  useEffect(() => {
     fetchProfiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -179,7 +194,7 @@ const AnnouncementsPage = () => {
                     transition: 'all 0.1s ease',
                   }}
                 >
-                  {selected ? '✓ ' : ''}{profile.label}
+                  {selected ? <><i className="fa-solid fa-circle-check" /> </> : ''}{profile.label}
                 </button>
               );
             })}
@@ -222,7 +237,7 @@ const AnnouncementsPage = () => {
         </div>
         {canManage && (
           <button className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.2rem' }} onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }}>
-            Create Announcement
+            <i className="fa-solid fa-bullhorn" /> Create Announcement
           </button>
         )}
       </div>
@@ -242,7 +257,11 @@ const AnnouncementsPage = () => {
           <article key={announcement._id} className="glass-panel" style={{ padding: '1.25rem', borderRadius: 'var(--radius-md)', borderTop: announcement.isPinned ? '4px solid var(--brand-primary)' : undefined }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem' }}>
               <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{announcement.title}</h3>
-              {announcement.isPinned && <span className="modal-chip">Pinned</span>}
+              {announcement.isPinned && (
+                <span className="modal-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                  <i className="fa-solid fa-thumbtack" style={{ color: '#f59e0b' }} /> Pinned
+                </span>
+              )}
             </div>
             <p style={{ color: 'var(--text-secondary)', lineHeight: 1.5 }}>{announcement.body}</p>
             <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--text-muted)', fontSize: '0.82rem', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -254,13 +273,28 @@ const AnnouncementsPage = () => {
             )}
             {canManage && (
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button className="modal-btn modal-btn-info" style={{ padding: '0.45rem' }} onClick={() => openEdit(announcement)}>Edit</button>
-                <button className="modal-btn modal-btn-danger" style={{ padding: '0.45rem' }} onClick={() => { setFormError(null); setDeleteAnnouncement(announcement); }}>Delete</button>
+                <button className="modal-btn modal-btn-info" style={{ padding: '0.45rem 0.75rem' }} onClick={() => openEdit(announcement)}>
+                  <i className="fa-solid fa-pen-to-square" /> Edit
+                </button>
+                <button className="modal-btn modal-btn-danger" style={{ padding: '0.45rem 0.75rem' }} onClick={() => { setFormError(null); setDeleteAnnouncement(announcement); }}>
+                  <i className="fa-solid fa-trash" /> Delete
+                </button>
               </div>
             )}
           </article>
         ))}
       </div>
+
+      {!loading && announcements.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          total={totalDocs}
+        />
+      )}
 
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create Announcement" size="md">
         {renderForm(handleCreate, 'Create Announcement')}
@@ -275,7 +309,9 @@ const AnnouncementsPage = () => {
         {formError && <div className="modal-error">{formError}</div>}
         <div className="modal-actions">
           <button className="modal-btn modal-btn-ghost" onClick={() => setDeleteAnnouncement(null)}>Cancel</button>
-          <button className="modal-btn modal-btn-danger" disabled={formLoading} onClick={handleDelete}>{formLoading ? 'Deleting...' : 'Delete'}</button>
+          <button className="modal-btn modal-btn-danger" disabled={formLoading} onClick={handleDelete}>
+            {formLoading ? 'Deleting...' : <><i className="fa-solid fa-trash" /> Delete</>}
+          </button>
         </div>
       </Modal>
     </div>

@@ -656,14 +656,14 @@ const ExternalCoursesPage = () => {
                 padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
                 background: 'rgba(16,185,129,0.12)', color: '#10b981',
               }}>
-                ✓ {submittedCount}
+                <i className="fa-solid fa-circle-check" /> {submittedCount}
               </span>
               {pendingCount > 0 && (
                 <span style={{
                   padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
                   background: 'rgba(245,158,11,0.12)', color: '#f59e0b',
                 }}>
-                  ⏳ {pendingCount}
+                  <i className="fa-solid fa-hourglass-half" /> {pendingCount}
                 </span>
               )}
               {lateCount > 0 && (
@@ -671,7 +671,7 @@ const ExternalCoursesPage = () => {
                   padding: '0.25rem 0.6rem', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700,
                   background: 'rgba(239,68,68,0.12)', color: '#ef4444',
                 }}>
-                  ⚠ {lateCount}
+                  <i className="fa-solid fa-triangle-exclamation" /> {lateCount}
                 </span>
               )}
             </div>
@@ -1020,7 +1020,7 @@ const ExternalCoursesPage = () => {
 
       <Modal isOpen={!!markCompleteHw} onClose={() => setMarkCompleteHw(null)} title="Mark as Complete" size="sm">
         <div style={{ textAlign: 'center', padding: '0.5rem 0 1rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>✅</div>
+          <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}><i className="fa-solid fa-circle-check" /></div>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', marginBottom: '1.25rem' }}>
             Mark <strong>{markCompleteHw?.title}</strong> as done?
           </p>
@@ -1032,7 +1032,7 @@ const ExternalCoursesPage = () => {
               disabled={formLoading}
               className="modal-btn modal-btn-success"
             >
-              {formLoading ? 'Saving...' : '✓ Mark Complete'}
+              {formLoading ? 'Saving...' : <><i className="fa-solid fa-circle-check" /> Mark Complete</>}
             </button>
           </div>
         </div>

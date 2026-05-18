@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
+import Pagination from '../../components/Pagination/Pagination';
+import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 const statusColor = (s) => {
@@ -19,12 +21,17 @@ const TasksPage = () => {
   const isStudent = role === 'student';
 
   const [tasks, setTasks] = useState([]);
-  const [mySessions, setMySessions] = useState([]);   // for create-task dropdown
-  const [myStudents, setMyStudents] = useState([]);   // for create-task dropdown
+  const [mySessions, setMySessions] = useState([]);
+  const [myStudents, setMyStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('all');
   const [studentFilter, setStudentFilter] = useState('');
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState(null);
@@ -43,9 +50,14 @@ const TasksPage = () => {
   const fetchTasks = async () => {
     try {
       setLoading(true);
-      const data = await request(isAdmin ? '/api/v1/task' : '/api/v1/task/me');
+      const base = isAdmin ? '/api/v1/task' : '/api/v1/task/me';
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (filter !== 'all') params.set('status', filter);
+      const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.tasks || data.data?.docs || [];
       setTasks(Array.isArray(list) ? list : [list]);
+      setTotalDocs(data.data?.total || data.totalDocs || data.results || list.length);
+      setTotalPages(data.data?.totalPages || data.totalPages || 1);
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
@@ -76,6 +88,10 @@ const TasksPage = () => {
 
   useEffect(() => {
     fetchTasks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, filter]);
+
+  useEffect(() => {
     fetchInstructorMeta();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -111,18 +127,23 @@ const TasksPage = () => {
   const handleSubmitTask = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const validLinks = submissionLinks.filter(l => l.name.trim() && l.url.trim());
+      const validLinks = submissionLinks.filter(l => l.url.trim());
       if (validLinks.length === 0) {
-        setFormError('Please add at least one submission link');
+        setFormError('Please add at least one URL');
         setFormLoading(false);
         return;
       }
+      // Ensure name always has a value so backend validation passes
+      const normalizedLinks = validLinks.map(l => ({
+        name: l.name.trim() || 'Submission',
+        url: l.url.trim(),
+      }));
       
       // Backend expects studentProfileId when we already have the profile id on the task.
       const payload = {
         taskId: submitTask._id,
         studentProfileId: submitTask.studentProfileId?._id || submitTask.studentProfileId,
-        Task_links: validLinks,
+        Task_links: normalizedLinks,
         note: submissionNote,
       };
       
@@ -262,13 +283,13 @@ const TasksPage = () => {
           <p style={{ color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>{tasks.length} total tasks</p>
         </div>
         {isAdmin && (
-          <button onClick={() => { setFormData({ ...emptyForm, instructorId: user?._id || '' }); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}>➕ Create Task</button>
+          <button onClick={() => { setFormData({ ...emptyForm, instructorId: user?._id || '' }); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}><i className="fa-solid fa-plus" /> Create Task</button>
         )}
       </div>
 
       <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
         {['all', 'pending', 'completed', 'canceled'].map(f => (
-          <button key={f} onClick={() => setFilter(f)} style={{
+          <button key={f} onClick={() => { setFilter(f); setPage(1); }} style={{
             padding: '0.5rem 1rem', background: filter === f ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
             color: filter === f ? 'white' : 'var(--text-secondary)',
             border: filter === f ? 'none' : '1px solid var(--border-color)',
@@ -293,12 +314,12 @@ const TasksPage = () => {
                 outline: 'none',
               }}
             />
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}><i className="fa-solid fa-magnifying-glass" /></span>
           </div>
         )}
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading tasks...</p>}
+      {loading && <SkeletonCardGrid count={6} minWidth={370} />}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
       {!loading && filteredTasks.length === 0 && <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', borderRadius: '1rem' }}><h3>No {filter !== 'all' ? filter : ''} tasks found</h3></div>}
 
@@ -311,38 +332,49 @@ const TasksPage = () => {
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0 }}>{task.description}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
-              <span>📅 Due: <strong style={{ color: isOverdue(task.dueDate) && task.status !== 'completed' ? '#ef4444' : 'var(--text-primary)' }}>{task.dueDate ? new Date(task.dueDate).toLocaleString() : 'N/A'}</strong></span>
-              {task.sessionId?.title && <span>📚 {task.sessionId.title}</span>}
-              {task.instructorId?.FullName && <span>👨‍🏫 {task.instructorId.FullName}</span>}
+              <span><i className="fa-solid fa-calendar-days" style={{ color: '#6366f1', marginRight: '0.3rem' }} />Due: <strong style={{ color: isOverdue(task.dueDate) && task.status !== 'completed' ? '#ef4444' : 'var(--text-primary)' }}>{task.dueDate ? new Date(task.dueDate).toLocaleString() : 'N/A'}</strong></span>
+              {task.sessionId?.title && <span><i className="fa-solid fa-book-open" style={{ color: '#3b82f6', marginRight: '0.3rem' }} />{task.sessionId.title}</span>}
+              {task.instructorId?.FullName && <span><i className="fa-solid fa-chalkboard-user" style={{ color: '#f59e0b', marginRight: '0.3rem' }} />{task.instructorId.FullName}</span>}
               {isAdmin && task.studentProfileId?.user?.FullName && (
                 <span 
                   style={{ color: 'var(--brand-primary)', cursor: 'pointer', textDecoration: 'underline' }} 
                   onClick={() => navigate(`/dashboard/child/${task.studentProfileId._id}`)}
                   title="View student profile"
                 >
-                  🎓 {task.studentProfileId.user.FullName}
+                  <i className="fa-solid fa-graduation-cap" style={{ color: '#10b981', marginRight: '0.3rem' }} />{task.studentProfileId.user.FullName}
                 </span>
               )}
             </div>
-            {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}>🔗 {l.title || 'Resource'}</a>)}</div>}
+            {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}><i className="fa-solid fa-link" /> {l.title || 'Resource'}</a>)}</div>}
             <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '2px solid var(--border-color)' }}>
-              <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>👁️ View</button>
+              <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-eye" /> View</button>
 
               {isStudent && task.status === 'pending' && (
-                <button onClick={() => openSubmit(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>📤 Submit</button>
+                <button onClick={() => openSubmit(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-paper-plane" /> Submit</button>
               )}
 
               {isAdmin && (
                 <>
-                  {task.status === 'pending' && <button onClick={() => handleStatusChange(task._id, 'completed')} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>✅ Done</button>}
-                  <button onClick={() => openEdit(task)} style={{ padding: '0.45rem 0.55rem', background: 'var(--info)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>✏️</button>
-                  <button onClick={() => { setFormError(null); setDeleteTask(task); }} style={{ padding: '0.45rem 0.55rem', background: 'var(--error)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}>🗑️</button>
+                  {task.status === 'pending' && <button onClick={() => handleStatusChange(task._id, 'completed')} style={{ flex: 1, padding: '0.45rem', background: 'var(--success)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-circle-check" /> Done</button>}
+                  <button onClick={() => openEdit(task)} style={{ padding: '0.45rem 0.55rem', background: 'var(--info)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-pen-to-square" /></button>
+                  <button onClick={() => { setFormError(null); setDeleteTask(task); }} style={{ padding: '0.45rem 0.55rem', background: 'var(--error)', color: '#fff', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-trash" /></button>
                 </>
               )}
             </div>
           </div>
         ))}
       </div>
+
+      {!loading && filteredTasks.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          total={totalDocs}
+        />
+      )}
 
       {/* VIEW MODAL */}
       <Modal isOpen={!!viewTask} onClose={() => setViewTask(null)} title={viewTask?.title || 'Task Details'} size="lg">
@@ -356,7 +388,7 @@ const TasksPage = () => {
             </div>
             <div className="modal-section-label">Description</div>
             <p style={{ color: 'var(--text-secondary)' }}>{viewTask.description}</p>
-            {viewTask.taskLinks?.length > 0 && (<><div className="modal-section-label">Resources</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewTask.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)' }}>🔗 {l.title || 'Link'}</a>)}</div></>)}
+            {viewTask.taskLinks?.length > 0 && (<><div className="modal-section-label">Resources</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewTask.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)' }}><i className="fa-solid fa-link" /> {l.title || 'Link'}</a>)}</div></>)}
             <div className="modal-detail-grid" style={{ marginTop: '1rem' }}>
               <div className="modal-detail-item"><div className="detail-label">Task ID</div><div className="detail-value mono">{viewTask._id}</div></div>
               <div className="modal-detail-item"><div className="detail-label">Created</div><div className="detail-value">{viewTask.createdAt ? new Date(viewTask.createdAt).toLocaleString() : '—'}</div></div>
@@ -367,12 +399,12 @@ const TasksPage = () => {
 
       {/* CREATE MODAL */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create New Task" size="lg">
-        <form onSubmit={handleCreate}>{formError && <div className="modal-error">⚠️ {formError}</div>}{renderFormFields(false)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : '➕ Create Task'}</button></form>
+        <form onSubmit={handleCreate}>{formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}{renderFormFields(false)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : <><i className="fa-solid fa-plus" /> Create Task</>}</button></form>
       </Modal>
 
       {/* EDIT MODAL */}
       <Modal isOpen={!!editTask} onClose={() => setEditTask(null)} title={`Edit — ${editTask?.title}`} size="lg">
-        <form onSubmit={handleUpdate}>{formError && <div className="modal-error">⚠️ {formError}</div>}{renderFormFields(true)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : '💾 Save Changes'}</button></form>
+        <form onSubmit={handleUpdate}>{formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}{renderFormFields(true)}<button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Changes</>}</button></form>
       </Modal>
 
       {/* SUBMIT MODAL */}
@@ -382,7 +414,7 @@ const TasksPage = () => {
             Submit your completed work by adding links to your project, GitHub repo, or any other resource.
           </p>
           
-          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           
           <div className="modal-form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
@@ -404,20 +436,20 @@ const TasksPage = () => {
           </div>
           
           <button type="submit" disabled={formLoading} className="modal-btn modal-btn-success" style={{ marginTop: '0.5rem' }}>
-            {formLoading ? 'Submitting...' : '✅ Submit Task'}
+            {formLoading ? 'Submitting...' : <><i className="fa-solid fa-circle-check" /> Submit Task</>}
           </button>
         </form>
       </Modal>
 
       {/* DELETE MODAL */}
       <Modal isOpen={!!deleteTask} onClose={() => setDeleteTask(null)} title="Delete Task" size="sm">
-        <div className="modal-warning-icon">⚠️</div>
+        <div className="modal-warning-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
         <p className="modal-warning-text">Delete <strong>"{deleteTask?.title}"</strong>?</p>
         <p className="modal-warning-sub">This will also affect linked submissions. This action is permanent.</p>
-        {formError && <div className="modal-error">⚠️ {formError}</div>}
+        {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
         <div className="modal-actions">
           <button onClick={() => setDeleteTask(null)} className="modal-btn modal-btn-ghost">Cancel</button>
-          <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : '🗑️ Delete'}</button>
+          <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : <><i className="fa-solid fa-trash" /> Delete</>}</button>
         </div>
       </Modal>
     </div>

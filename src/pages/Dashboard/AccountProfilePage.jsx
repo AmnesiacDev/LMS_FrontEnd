@@ -1,11 +1,8 @@
 import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { getAvatarUrl } from '../../utils/avatar';
 import './DashboardOverview.css';
-
-/* ── Generate a stable DiceBear avatar URL from the user's id/name ── */
-const getAvatarUrl = (seed) =>
-  `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffd5dc,ffdfbf&backgroundType=gradientLinear&radius=50`;
 
 const quickLinksByRole = {
   student: [
@@ -41,7 +38,7 @@ const AccountProfilePage = () => {
 
   /* Stable avatar seed — uses user id so it never changes between renders */
   const avatarSeed = useMemo(() => user?._id || user?.UserName || userName, [user]);
-  const avatarUrl = getAvatarUrl(avatarSeed);
+  const avatarUrl = getAvatarUrl(avatarSeed, userName, 128);
 
   const details = [
     ['Full name', user?.FullName || 'Not set'],

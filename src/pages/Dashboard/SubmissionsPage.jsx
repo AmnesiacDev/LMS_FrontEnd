@@ -1,14 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import useFetchData from '../../hooks/useFetchData';
 import { useApiRequest } from '../../hooks/useApiRequest';
-
-const normalizeSubmissions = (data) => {
-  if (Array.isArray(data)) return data;
-  if (Array.isArray(data?.docs)) return data.docs;
-  if (Array.isArray(data?.submissions)) return data.submissions;
-  return [];
-};
+import Pagination from '../../components/Pagination/Pagination';
 
 const statusStyles = {
   Completed: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
@@ -43,10 +36,34 @@ const SubmissionsPage = () => {
   const [updateNote, setUpdateNote] = useState('');
   const [updateLoading, setUpdateLoading] = useState(false);
   const [updateError, setUpdateError] = useState(null);
-  const endpoint = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
-  const { data, loading, error, refetch } = useFetchData(endpoint);
 
-  const allSubmissions = normalizeSubmissions(data);
+  /* Data + pagination */
+  const [allSubmissions, setAllSubmissions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
+  const refetch = useCallback(async () => {
+    try {
+      setLoading(true);
+      const base = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const data = await request(`${base}?${params.toString()}`);
+      const list = data.data?.docs || data.data?.submissions || data.data || [];
+      const arr = Array.isArray(list) ? list : [];
+      setAllSubmissions(arr);
+      setTotalDocs(data.data?.total || data.totalDocs || data.results || arr.length);
+      setTotalPages(data.data?.totalPages || data.totalPages || 1);
+      setError(null);
+    } catch (err) { setError(err.message); }
+    finally { setLoading(false); }
+  }, [role, request, page, limit]);
+
+  useEffect(() => { refetch(); }, [refetch]);
+
   const submissions = allSubmissions.filter(sub => {
     if (!studentFilter) return true;
     const name = sub.studentProfileId?.user?.FullName || sub.student?.FullName || '';
@@ -177,7 +194,7 @@ const SubmissionsPage = () => {
                 outline: 'none',
               }}
             />
-            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>🔍</span>
+            <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}><i className="fa-solid fa-magnifying-glass" /></span>
           </div>
         )}
       </div>
@@ -206,7 +223,7 @@ const SubmissionsPage = () => {
                   <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.05rem' }}>{sub.task?.title || 'Untitled task'}</h3>
                   {isAdmin && (sub.studentProfileId?.user?.FullName || sub.student?.FullName) && (
                     <p style={{ margin: '0 0 0.2rem', fontSize: '0.82rem', fontWeight: 700, color: 'var(--brand-primary)' }}>
-                      🎓 {sub.studentProfileId?.user?.FullName || sub.student?.FullName}
+                      <i className="fa-solid fa-graduation-cap" style={{ color: '#10b981' }} /> {sub.studentProfileId?.user?.FullName || sub.student?.FullName}
                     </p>
                   )}
                   <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -235,7 +252,7 @@ const SubmissionsPage = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      {sub.review?.score !== undefined ? '✏️ Edit Score' : '⭐ Give Score'}
+                      {sub.review?.score !== undefined ? <><i className="fa-solid fa-pen-to-square" /> Edit Score</> : <><i className="fa-solid fa-star" /> Give Score</>}
                     </button>
                   )}
                   {role === 'student' && isBeforeDue(sub) && (
@@ -256,7 +273,7 @@ const SubmissionsPage = () => {
                         whiteSpace: 'nowrap',
                       }}
                     >
-                      ✏️ Update
+                      <><i className="fa-solid fa-pen-to-square" /> Update</>
                     </button>
                   )}
                   {role === 'student' && sub.task?.dueDate && !isBeforeDue(sub) && (
@@ -334,7 +351,7 @@ const SubmissionsPage = () => {
                       background: 'var(--brand-primary)', color: '#fff', border: '2px solid var(--border-color)',
                       borderRadius: 'var(--radius-sm)', fontWeight: 700, fontSize: '0.78rem',
                       textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
-                    }}>📎 Choose Files</span>
+                    }}><i className="fa-solid fa-paperclip" /> Choose Files</span>
                     <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
                       Drop or browse files
                     </span>
@@ -356,6 +373,17 @@ const SubmissionsPage = () => {
         })}
       </div>
 
+      {!loading && submissions.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          total={totalDocs}
+        />
+      )}
+
       {/* UPDATE SUBMISSION MODAL */}
       {updateTarget && (
         <div style={{
@@ -376,7 +404,7 @@ const SubmissionsPage = () => {
             </p>
             {updateTarget.task?.dueDate && (
               <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--warning)', margin: '0 0 1.25rem' }}>
-                ⏰ Due: {new Date(updateTarget.task.dueDate).toLocaleString()}
+                <i className="fa-solid fa-clock" /> Due: {new Date(updateTarget.task.dueDate).toLocaleString()}
               </p>
             )}
 
@@ -435,7 +463,7 @@ const SubmissionsPage = () => {
                   Cancel
                 </button>
                 <button type="submit" disabled={updateLoading} className="modal-btn modal-btn-primary" style={{ flex: 1 }}>
-                  {updateLoading ? 'Saving...' : '💾 Save Update'}
+                  {updateLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Update</>}
                 </button>
               </div>
             </form>
@@ -494,7 +522,7 @@ const SubmissionsPage = () => {
                   Cancel
                 </button>
                 <button type="submit" disabled={reviewLoading} className="modal-btn modal-btn-primary" style={{ flex: 1 }}>
-                  {reviewLoading ? 'Saving...' : '💾 Save Grade'}
+                  {reviewLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Grade</>}
                 </button>
               </div>
             </form>

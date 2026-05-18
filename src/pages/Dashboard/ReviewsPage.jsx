@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Modal from '../../components/Modal/Modal';
+import Pagination from '../../components/Pagination/Pagination';
 
 const emptyReviewForm = {
   session: '',
@@ -26,6 +27,12 @@ const ReviewsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  /* Pagination */
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   const [sessions, setSessions] = useState([]);
   const [studentProfiles, setStudentProfiles] = useState([]);
 
@@ -38,17 +45,20 @@ const ReviewsPage = () => {
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
-      // Instructors use /me to get only reviews they wrote (scoped by backend)
-      const endpoint = (role === 'student' || role === 'parent')
+      const base = (role === 'student' || role === 'parent')
         ? '/api/v1/sessionReview/me'
         : '/api/v1/sessionReview';
-      const data = await request(endpoint);
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.reviews || data.data;
-      setReviews(Array.isArray(list) ? list : []);
+      const arr = Array.isArray(list) ? list : [];
+      setReviews(arr);
+      setTotalDocs(data.data?.total || data.totalDocs || data.results || arr.length);
+      setTotalPages(data.data?.totalPages || data.totalPages || 1);
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, [role, request]);
+  }, [role, request, page, limit]);
 
   const fetchSessionsAndProfiles = useCallback(async () => {
     if (!isAdmin) return;
@@ -197,7 +207,7 @@ const ReviewsPage = () => {
                   }}
                 />
                 <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}>
-                  🔍
+                  <i className="fa-solid fa-magnifying-glass" />
                 </span>
               </div>
             </>
@@ -241,7 +251,7 @@ const ReviewsPage = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.1rem' }}>Session Review</h3>
-                {review.session?.title && <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--text-muted)' }}>📚 {review.session.title}</p>}
+                {review.session?.title && <p style={{ margin: '0', fontSize: '0.85rem', color: 'var(--text-muted)' }}><i className="fa-solid fa-book-open" style={{ color: '#3b82f6' }} /> {review.session.title}</p>}
 
                 {isAdmin && review.studentProfileId?.user?.FullName && (
                   <span
@@ -256,7 +266,7 @@ const ReviewsPage = () => {
                     onClick={() => navigate(`/dashboard/child/${review.studentProfileId._id}`)}
                     title="View student profile"
                   >
-                    🎓 {review.studentProfileId.user.FullName}
+                    <i className="fa-solid fa-graduation-cap" style={{ color: '#10b981' }} /> {review.studentProfileId.user.FullName}
                   </span>
                 )}
               </div>
@@ -274,7 +284,7 @@ const ReviewsPage = () => {
                       boxShadow: '1px 1px 0px 0px var(--shadow-color)',
                     }}
                     title="Edit review"
-                  >✏️</button>
+                  ><i className="fa-solid fa-pen-to-square" /></button>
                 )}
                 <div style={{
                   background: 'linear-gradient(135deg, var(--brand-primary), var(--info))',
@@ -311,7 +321,7 @@ const ReviewsPage = () => {
 
             {review.notes && (
               <p style={{ marginTop: '1rem', padding: '0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
-                📝 {review.notes}
+                <i className="fa-solid fa-note-sticky" style={{ color: '#a855f7', marginRight: '0.4rem' }} />{review.notes}
               </p>
             )}
 
@@ -321,6 +331,17 @@ const ReviewsPage = () => {
           </div>
         ))}
       </div>
+
+      {!loading && filteredReviews.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          total={totalDocs}
+        />
+      )}
 
       {/* EDIT REVIEW MODAL */}
       <Modal isOpen={!!editReview} onClose={() => { setEditReview(null); setFormData(emptyReviewForm); }} title="Edit Session Review" size="lg">
@@ -347,7 +368,7 @@ const ReviewsPage = () => {
             <textarea className="modal-textarea" placeholder="Additional notes about the student's performance..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} style={{ minHeight: '80px' }} />
           </div>
           <button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">
-            {formLoading ? 'Saving...' : '💾 Save Changes'}
+            {formLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Changes</>}
           </button>
         </form>
       </Modal>

@@ -10,19 +10,6 @@
 }
 
 /* ─── Page Header ─── */
-.page-title {
-  font-family: var(--font-heading);
-  font-size: 2.4rem;
-  font-weight: 400;
-  color: var(--text-primary);
-  /* Remove old gradient text styles */
-  background: none;
-  -webkit-background-clip: unset;
-  -webkit-text-fill-color: unset;
-  background-clip: unset;
-  line-height: 1.15;
-}
-
 .page-subtitle {
   font-family: var(--font-body);
   color: var(--text-secondary);
@@ -87,26 +74,6 @@
 .stat-info {
   flex: 1;
   min-width: 0;
-}
-
-.stat-info h3 {
-  font-family: var(--font-heading);
-  font-size: 1.8rem;
-  font-weight: 400;
-  margin: 0;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  color: var(--text-primary);
-}
-
-.stat-info p {
-  font-family: var(--font-body);
-  color: var(--text-muted);
-  font-size: 0.78rem;
-  font-weight: 700;
-  margin: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
 /* ─── Dashboard Main Row (Bento Grid) ─── */
@@ -385,6 +352,54 @@
   font-size: 0.9rem;
   flex-shrink: 0;
   font-family: var(--font-body);
+}
+
+/* ─── Stat icon — FA icon inside ─── */
+.stat-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-sm);
+  border: 2px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+  color: var(--text-primary);
+  box-shadow: 2px 2px 0 var(--shadow-color);
+}
+
+/* Outfit headings look best at weight 700+ */
+.page-title {
+  font-family: var(--font-heading);
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  background: none;
+  -webkit-background-clip: unset;
+  -webkit-text-fill-color: unset;
+  background-clip: unset;
+  line-height: 1.15;
+}
+
+.stat-info h3 {
+  font-family: var(--font-heading);
+  font-size: 1.75rem;
+  font-weight: 800;
+  margin: 0;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.stat-info p {
+  font-family: var(--font-body);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
 }
 
 /* ─── Animations ─── */

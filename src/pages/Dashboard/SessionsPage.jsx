@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
+import Pagination from '../../components/Pagination/Pagination';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 /* ─── Warm Status Colors ─── */
@@ -169,6 +170,12 @@ const SessionsPage = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   // Expanded cards
   const [expandedIds, setExpandedIds] = useState(new Set());
 
@@ -185,11 +192,15 @@ const SessionsPage = () => {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const endpoint = role === 'instructor' ? '/api/v1/session/me' : (isAdmin ? '/api/v1/session' : '/api/v1/session/me');
-      const data = await request(endpoint);
+      const base = role === 'instructor' ? '/api/v1/session/me' : (isAdmin ? '/api/v1/session' : '/api/v1/session/me');
+      const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (statusFilter !== 'all') params.set('status', statusFilter);
+      const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.sessions || [];
       const sessionList = Array.isArray(list) ? list : [list];
       setSessions(sessionList);
+      setTotalDocs(data.data?.total || data.totalDocs || data.results || sessionList.length);
+      setTotalPages(data.data?.totalPages || data.totalPages || 1);
 
       // For instructors: derive unique students from their own sessions — no extra API call needed
       if (role === 'instructor') {
@@ -221,7 +232,8 @@ const SessionsPage = () => {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { fetchSessions(); fetchStudentProfiles(); }, []);
+  useEffect(() => { fetchSessions(); }, [page, limit, statusFilter]);
+  useEffect(() => { fetchStudentProfiles(); }, []);
 
   /* ── Toggle expand ── */
   const toggleExpand = (id) => {
@@ -416,7 +428,7 @@ const SessionsPage = () => {
               onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
             >
-              ➕ Create Session
+              <i className="fa-solid fa-plus" /> Create Session
             </button>
           )}
         </div>
@@ -427,7 +439,7 @@ const SessionsPage = () => {
         {['all', 'pending', 'completed', 'canceled'].map(f => (
           <button
             key={f}
-            onClick={() => setStatusFilter(f)}
+            onClick={() => { setStatusFilter(f); setPage(1); }}
             style={styles.filterPill(statusFilter === f)}
             onMouseEnter={e => { if (statusFilter !== f) { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '3px 3px 0px 0px var(--shadow-color)'; } }}
             onMouseLeave={e => { if (statusFilter !== f) { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; } }}
@@ -437,7 +449,7 @@ const SessionsPage = () => {
         ))}
         <input
           type="text"
-          placeholder="🔍 Search sessions..."
+          placeholder="Search sessions..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={styles.searchInput}
@@ -446,10 +458,10 @@ const SessionsPage = () => {
 
       {/* ═══ Loading / Error / Empty ═══ */}
       {loading && <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading sessions...</p>}
-      {error && <p style={{ color: 'var(--error)', fontWeight: 600 }}>⚠️ {error}</p>}
+      {error && <p style={{ color: 'var(--error)', fontWeight: 600 }}><i className="fa-solid fa-triangle-exclamation" /> {error}</p>}
       {!loading && filteredSessions.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
-          <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}>📅</p>
+          <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}><i className="fa-solid fa-calendar-days" /></p>
           <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400 }}>No sessions found</h3>
           <p style={{ color: 'var(--text-muted)' }}>
             {searchQuery || statusFilter !== 'all' ? 'Try adjusting your filters.' : 'Sessions will appear here once created.'}
@@ -492,18 +504,23 @@ const SessionsPage = () => {
                   <h3 style={styles.cardTitle}>{session.title}</h3>
                   <p style={styles.cardDesc}>{session.description}</p>
                   <div style={styles.metaRow}>
-                    <span style={styles.metaItem}>📅 {session.date ? new Date(session.date).toLocaleString() : 'No date'}</span>
-                    {session.instructorId?.FullName && <span style={styles.metaItem}>👨‍🏫 {session.instructorId.FullName}</span>}
+                    <span style={styles.metaItem}><i className="fa-solid fa-calendar-days" style={{ color: '#6366f1' }} /> {session.date ? new Date(session.date).toLocaleString() : 'No date'}</span>
+                    {session.instructorId?.FullName && <span style={styles.metaItem}><i className="fa-solid fa-chalkboard-user" style={{ color: '#3b82f6' }} /> {session.instructorId.FullName}</span>}
                     {isAdmin && session.studentProfileId?.user?.FullName && (
                       <span 
                         style={{ ...styles.metaItem, color: 'var(--brand-primary)', cursor: 'pointer', textDecoration: 'underline' }} 
                         onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/child/${session.studentProfileId._id}`); }}
                         title="View student profile"
                       >
-                        🎓 {session.studentProfileId.user.FullName}
+                        <i className="fa-solid fa-graduation-cap" style={{ color: '#10b981' }} /> {session.studentProfileId.user.FullName}
                       </span>
                     )}
-                    <span style={styles.metaItem}>{session.StudentAttended ? '✅' : '❌'} Attended: {session.StudentAttended ? 'Yes' : 'No'}</span>
+                    <span style={styles.metaItem}>
+                      {session.StudentAttended
+                        ? <i className="fa-solid fa-circle-check" style={{ color: '#10b981' }} />
+                        : <i className="fa-solid fa-circle-xmark" style={{ color: '#ef4444' }} />
+                      } Attended: {session.StudentAttended ? 'Yes' : 'No'}
+                    </span>
                   </div>
                 </div>
                 <div style={styles.cardRight}>
@@ -515,12 +532,12 @@ const SessionsPage = () => {
                           onClick={(e) => { e.stopPropagation(); openEdit(session); }}
                           style={styles.actionBtn()}
                           title="Edit"
-                        >✏️</button>
+                        ><i className="fa-solid fa-pen-to-square" /></button>
                         <button
                           onClick={(e) => { e.stopPropagation(); setFormError(null); setDeleteSession(session); }}
                           style={styles.actionBtn()}
                           title="Delete"
-                        >🗑️</button>
+                        ><i className="fa-solid fa-trash" /></button>
                       </div>
                     )}
                     <div style={styles.chevron(isExpanded)}>▼</div>
@@ -538,7 +555,7 @@ const SessionsPage = () => {
                       {/* Recap Videos */}
                       {hasVideos && (
                         <div style={styles.contentSection}>
-                          <p style={styles.sectionTitle}>🎬 Recap Videos</p>
+                          <p style={styles.sectionTitle}><i className="fa-solid fa-play" style={{ color: '#ef4444' }} /> Recap Videos</p>
                           {session.recapVideoLinks.map((v, i) => (
                             <a
                               key={i}
@@ -549,7 +566,7 @@ const SessionsPage = () => {
                               onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-yellow)'; e.currentTarget.style.transform = 'translate(-1px, -1px)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.transform = 'none'; }}
                             >
-                              <span style={{ fontSize: '1.1rem' }}>▶️</span>
+                              <span style={{ fontSize: '1.1rem' }}><i className="fa-solid fa-play" /></span>
                               <span>{v.title || `Video ${i + 1}`}</span>
                             </a>
                           ))}
@@ -559,7 +576,7 @@ const SessionsPage = () => {
                       {/* Attachments / Files */}
                       {hasLinks && (
                         <div style={styles.contentSection}>
-                          <p style={styles.sectionTitle}>📎 Files & Attachments</p>
+                          <p style={styles.sectionTitle}><i className="fa-solid fa-paperclip" style={{ color: '#f59e0b' }} /> Files & Attachments</p>
                           {session.attachmentsLinks.map((a, i) => (
                             <a
                               key={i}
@@ -570,7 +587,7 @@ const SessionsPage = () => {
                               onMouseEnter={e => { e.currentTarget.style.background = 'var(--accent-peach)'; e.currentTarget.style.transform = 'translate(-1px, -1px)'; }}
                               onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; e.currentTarget.style.transform = 'none'; }}
                             >
-                              <span style={{ fontSize: '1.1rem' }}>📄</span>
+                              <span style={{ fontSize: '1.1rem' }}><i className="fa-solid fa-file" /></span>
                               <span>{a.title || `Attachment ${i + 1}`}</span>
                             </a>
                           ))}
@@ -580,7 +597,7 @@ const SessionsPage = () => {
                       {/* Summary */}
                       {hasSummary && (
                         <div style={styles.contentSection}>
-                          <p style={styles.sectionTitle}>📋 Session Summary</p>
+                          <p style={styles.sectionTitle}><i className="fa-solid fa-clipboard-list" style={{ color: '#3b82f6' }} /> Session Summary</p>
                           <div style={styles.summaryBox}>{session.summary}</div>
                         </div>
                       )}
@@ -588,7 +605,7 @@ const SessionsPage = () => {
                       {/* Notes */}
                       {hasNotes && (
                         <div style={styles.contentSection}>
-                          <p style={styles.sectionTitle}>📝 Notes</p>
+                          <p style={styles.sectionTitle}><i className="fa-solid fa-pen-to-square" style={{ color: '#a855f7' }} /> Notes</p>
                           <div style={styles.summaryBox}>{session.notes}</div>
                         </div>
                       )}
@@ -601,33 +618,44 @@ const SessionsPage = () => {
         })}
       </div>
 
+      {!loading && filteredSessions.length > 0 && (
+        <Pagination
+          page={page}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          limit={limit}
+          onLimitChange={(n) => { setLimit(n); setPage(1); }}
+          total={totalDocs}
+        />
+      )}
+
       {/* ═══ CREATE ═══ */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create New Session" size="lg">
         <form onSubmit={handleCreate}>
-          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           {renderFormFields(false)}
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : '➕ Create Session'}</button>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : <><i className="fa-solid fa-plus" /> Create Session</>}</button>
         </form>
       </Modal>
 
       {/* ═══ EDIT ═══ */}
       <Modal isOpen={!!editSession} onClose={() => setEditSession(null)} title={`Edit — ${editSession?.title}`} size="lg">
         <form onSubmit={handleUpdate}>
-          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           {renderFormFields(true)}
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : '💾 Save Changes'}</button>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Changes</>}</button>
         </form>
       </Modal>
 
       {/* ═══ DELETE ═══ */}
       <Modal isOpen={!!deleteSession} onClose={() => setDeleteSession(null)} title="Delete Session" size="sm">
-        <div className="modal-warning-icon">⚠️</div>
+        <div className="modal-warning-icon"><i className="fa-solid fa-triangle-exclamation" /></div>
         <p className="modal-warning-text">Delete <strong>"{deleteSession?.title}"</strong>?</p>
         <p className="modal-warning-sub">This action is permanent and cannot be undone.</p>
-        {formError && <div className="modal-error">⚠️ {formError}</div>}
+        {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
         <div className="modal-actions">
           <button onClick={() => setDeleteSession(null)} className="modal-btn modal-btn-ghost">Cancel</button>
-          <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : '🗑️ Delete'}</button>
+          <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : <><i className="fa-solid fa-trash" /> Delete</>}</button>
         </div>
       </Modal>
     </div>

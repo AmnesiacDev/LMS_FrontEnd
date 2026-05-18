@@ -26,6 +26,7 @@ import UsersPage from './pages/Dashboard/UsersPage';
 import StudentProfilesPage from './pages/Dashboard/StudentProfilesPage';
 import ChildDetailsPage from './pages/Dashboard/ChildDetailsPage';
 import ProgressPage from './pages/Dashboard/ProgressPage';
+import ExamsPage from './pages/Dashboard/ExamsPage';
 import MessagesPage from './pages/Dashboard/MessagesPage';
 import AnnouncementsPage from './pages/Dashboard/AnnouncementsPage';
 import AuditLogsPage from './pages/Dashboard/AuditLogsPage';
@@ -127,6 +128,12 @@ function App() {
                 <Route path="progress/:profileId" element={
                   <ProtectedRoute allowedRoles={['parent', 'admin', 'instructor']}>
                     <ProgressPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="exams" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <ExamsPage />
                   </ProtectedRoute>
                 } />
 

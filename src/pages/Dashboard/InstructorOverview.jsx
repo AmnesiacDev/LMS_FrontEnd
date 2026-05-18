@@ -1,6 +1,7 @@
 import React from 'react';
 import useFetchData from '../../hooks/useFetchData';
 import { useAuth } from '../../context/AuthContext';
+import NextSessionCountdown from '../../components/NextSessionCountdown/NextSessionCountdown';
 import './DashboardOverview.css';
 
 const InstructorOverview = () => {
@@ -19,7 +20,10 @@ const InstructorOverview = () => {
   const reviewList = Array.isArray(reviews) ? reviews : (reviews?.docs || reviews?.reviews || []);
 
   // Derived stats
-  const pendingSubs = submissionList.filter(s => s.status === 'Pending' || s.status === 'Completed');
+  // Submissions waiting for the instructor to grade: anything submitted but not yet reviewed.
+  // 'Pending' in this schema means "student hasn't submitted yet" — that's the student's queue, not the instructor's.
+  const awaitingReview = submissionList.filter(s => ['Completed', 'Resubmitted', 'Late submission'].includes(s.status));
+  const reviewedSubs = submissionList.filter(s => s.status === 'Reviewed');
   const upcomingSessions = sessionList.filter(s => s.status === 'pending' && new Date(s.date) > new Date()).sort((a, b) => new Date(a.date) - new Date(b.date));
   const pendingTasks = taskList.filter(t => t.status === 'pending');
   const completedTasks = taskList.filter(t => t.status === 'completed');
@@ -31,35 +35,40 @@ const InstructorOverview = () => {
   return (
     <div className="overview-container">
       <div>
-        <h1 className="page-title">Welcome, {instructorName}! 🎓</h1>
+        <h1 className="page-title">Welcome, {instructorName}! <i className="fa-solid fa-chalkboard-user" style={{ color: 'var(--brand-primary)' }} /></h1>
         <p className="page-subtitle">Here's an overview of your teaching activity.</p>
       </div>
+
+      {/* ══════ NEXT SESSION COUNTDOWN ══════ */}
+      {upcomingSessions.length > 0 && (
+        <NextSessionCountdown session={upcomingSessions[0]} role="instructor" />
+      )}
 
       {/* Stats Cards */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📅</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-calendar-days" /></div>
           <div className="stat-info">
             <h3>{sessionsLoading ? '...' : sessionList.length}</h3>
             <p>Total Sessions</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>📝</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}><i className="fa-solid fa-pen-to-square" /></div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : taskList.length}</h3>
             <p>Tasks Assigned</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>📩</div>
+          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}><i className="fa-solid fa-inbox" /></div>
           <div className="stat-info">
-            <h3>{subsLoading ? '...' : pendingSubs.length}</h3>
-            <p>Pending Reviews</p>
+            <h3>{subsLoading ? '...' : `${awaitingReview.length} / ${submissionList.length}`}</h3>
+            <p>Awaiting Review</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>🏆</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-chart-line" /></div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : `${completionRate}%`}</h3>
             <p>Task Completion</p>
@@ -70,28 +79,28 @@ const InstructorOverview = () => {
       {/* Second Stats Row */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}>⭐</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}><i className="fa-solid fa-star" /></div>
           <div className="stat-info">
             <h3>{reviewsLoading ? '...' : avgOverall}</h3>
             <p>Avg Rating</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>✅</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-circle-check" /></div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : completedTasks.length}</h3>
             <p>Completed Tasks</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>⏳</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-hourglass-half" /></div>
           <div className="stat-info">
             <h3>{tasksLoading ? '...' : pendingTasks.length}</h3>
             <p>Pending Tasks</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>📚</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}><i className="fa-solid fa-book-open" /></div>
           <div className="stat-info">
             <h3>{reviewsLoading ? '...' : reviewList.length}</h3>
             <p>Reviews Given</p>
@@ -181,14 +190,22 @@ const InstructorOverview = () => {
           </div>
         </div>
 
-        {/* Submissions Needing Review */}
+        {/* Submissions list — show awaiting-review first, fall back to most recent */}
         <div className="tasks-section">
           <div className="section-header">
-            <h2>Submissions to Review</h2>
+            <h2>Recent Submissions</h2>
+            <span style={{
+              fontSize: '0.72rem',
+              padding: '0.15rem 0.5rem',
+              background: awaitingReview.length > 0 ? 'var(--accent-orange)' : 'var(--accent-yellow)',
+              border: '2px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)',
+              fontWeight: '700'
+            }}>{awaitingReview.length} TO GRADE</span>
           </div>
           <ul className="task-list">
             {subsLoading ? <li className="task-item"><div className="task-meta"><h4>Loading...</h4></div></li> :
-             pendingSubs.length === 0 ? (
+             submissionList.length === 0 ? (
               <li style={{
                 padding: '1.5rem',
                 textAlign: 'center',
@@ -197,22 +214,30 @@ const InstructorOverview = () => {
                 borderRadius: 'var(--radius-sm)',
                 boxShadow: '2px 2px 0px 0px var(--shadow-color)'
               }}>
-                <p style={{ fontSize: '1.5rem', margin: '0 0 0.25rem' }}>✅</p>
-                <p style={{ color: 'var(--text-muted)', fontWeight: '600', margin: 0, fontSize: '0.85rem' }}>All caught up!</p>
+                <i className="fa-solid fa-envelope-open" style={{ fontSize: '1.5rem', color: 'var(--text-muted)', marginBottom: '0.25rem', display: 'block' }} />
+                <p style={{ color: 'var(--text-muted)', fontWeight: '600', margin: 0, fontSize: '0.85rem' }}>No submissions yet.</p>
               </li>
              ) :
-             pendingSubs.slice(0, 6).map(sub => (
-              <li key={sub._id} className="task-item upcoming">
-                <div className="task-meta">
-                  <h4>{sub.task?.title || 'Submission'}</h4>
-                  <p>Submitted: {sub.SubmissionDate ? new Date(sub.SubmissionDate).toLocaleDateString() : 'Pending'}</p>
-                </div>
-                <div className="task-status" style={{ 
-                  background: sub.status === 'Completed' ? 'var(--accent-yellow)' : 'var(--accent-orange)',
-                  color: sub.status === 'Completed' ? 'var(--text-primary)' : 'var(--text-primary)'
-                }}>{sub.status}</div>
-              </li>
-            ))}
+             // show awaiting-review first, then any others, so the panel is always populated when data exists
+             [...awaitingReview, ...reviewedSubs].slice(0, 6).map(sub => {
+              const studentName = sub.studentProfileId?.user?.FullName || sub.studentProfileId?.user?.UserName;
+              const badgeBg = sub.status === 'Reviewed' ? 'var(--accent-yellow)'
+                : sub.status === 'Late submission' ? 'var(--brand-primary)'
+                : 'var(--accent-orange)';
+              const badgeColor = sub.status === 'Late submission' ? '#FFFFFF' : 'var(--text-primary)';
+              return (
+                <li key={sub._id} className="task-item upcoming">
+                  <div className="task-meta">
+                    <h4>{sub.task?.title || 'Submission'}</h4>
+                    <p>
+                      {studentName ? `${studentName} · ` : ''}
+                      {sub.SubmissionDate ? `Submitted ${new Date(sub.SubmissionDate).toLocaleDateString()}` : 'Not yet submitted'}
+                    </p>
+                  </div>
+                  <div className="task-status" style={{ background: badgeBg, color: badgeColor }}>{sub.status}</div>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

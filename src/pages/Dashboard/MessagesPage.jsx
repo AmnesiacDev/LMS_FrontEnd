@@ -250,7 +250,7 @@ const MessagesPage = () => {
               /* Existing Conversations */
               filteredConversations.length === 0 ? (
                 <div style={{ padding: '2rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}>💬</p>
+                  <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}><i className="fa-solid fa-comment" /></p>
                   <p style={{ fontSize: '0.85rem' }}>No conversations yet</p>
                   <button style={{ ...s.newMsgBtn, marginTop: '0.75rem' }} onClick={() => setShowNewMsg(true)}>Start a conversation</button>
                 </div>
@@ -282,7 +282,7 @@ const MessagesPage = () => {
         <div style={s.chatPanel}>
           {!activeChat ? (
             <div style={s.emptyChat}>
-              <span style={{ fontSize: '3rem' }}>💬</span>
+              <span style={{ fontSize: '3rem' }}><i className="fa-solid fa-comment" /></span>
               <h3 style={{ fontFamily: 'var(--font-heading)', fontWeight: 400, margin: 0 }}>Select a conversation</h3>
               <p style={{ fontSize: '0.85rem' }}>Choose a conversation from the left or start a new one</p>
             </div>
@@ -339,7 +339,7 @@ const MessagesPage = () => {
                   onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
                   onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}
                 >
-                  {sending ? '...' : 'Send ➤'}
+                  {sending ? '...' : <>Send <i className="fa-solid fa-paper-plane" style={{ marginLeft: '0.3rem' }} /></>}
                 </button>
               </div>
             </>

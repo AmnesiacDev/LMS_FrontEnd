@@ -1,6 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import Logo from '../Logo/Logo';
 import './LandingLayout.css';
 
 const LandingLayout = () => {
@@ -13,8 +14,8 @@ const LandingLayout = () => {
     <div className="landing-wrapper">
       <nav className="landing-navbar glass-panel">
         <div className="nav-brand">
-          <Link to="/">
-            <span className="brand-logo">Algo<span className="gradient-text">Gambit</span></span>
+          <Link to="/" style={{ textDecoration: 'none' }}>
+            <Logo size="md" variant="full" />
           </Link>
         </div>
         
@@ -25,8 +26,8 @@ const LandingLayout = () => {
         </ul>
 
         <div className="nav-actions">
-          <button className="theme-icon-btn" onClick={toggleTheme}>
-            {theme === 'light' ? '🌙' : '☀️'}
+          <button className="theme-icon-btn" onClick={toggleTheme} aria-label="Toggle theme">
+            <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
           </button>
           <Link to="/login" className="btn-login">Login</Link>
           <Link to="/login" className="btn-signup">Get Started</Link>
@@ -38,7 +39,8 @@ const LandingLayout = () => {
       </main>
 
       <footer className="landing-footer glass-panel">
-        <p>&copy; {new Date().getFullYear()} AlgoGambit. All rights reserved.</p>
+        <Logo size="sm" variant="full" />
+        <p style={{ margin: 0 }}>&copy; {new Date().getFullYear()} AlgoGambit. All rights reserved.</p>
         <div className="footer-links">
           <Link to="/about">Privacy Policy</Link>
           <Link to="/contact">Terms of Service</Link>

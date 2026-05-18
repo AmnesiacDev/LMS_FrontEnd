@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import useFetchData from '../../hooks/useFetchData';
 import { useAuth } from '../../context/AuthContext';
+import TrendsChart from '../../components/TrendsChart/TrendsChart';
+import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
 import './DashboardOverview.css';
 
 // Styles for status badges
@@ -15,6 +17,124 @@ const statusStyles = {
   'Late submission': { bg: 'rgba(239,68,68,0.1)', color: '#ef4444' },
 };
 
+/* ── Pill-shaped numeric stat used in the Detailed Stats tab ── */
+const StatPill = ({ value, label, color = 'var(--brand-primary)' }) => (
+  <div style={{
+    flex: '1 1 140px',
+    background: 'var(--bg-tertiary)',
+    border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)',
+    boxShadow: '2px 2px 0 var(--shadow-color)',
+    padding: '0.85rem 1rem',
+  }}>
+    <div style={{ fontSize: '1.5rem', fontWeight: 800, color, fontFamily: 'var(--font-heading)', lineHeight: 1 }}>
+      {value ?? '—'}
+    </div>
+    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700, marginTop: '0.35rem' }}>
+      {label}
+    </div>
+  </div>
+);
+
+/* ── Admin/instructor-only stats panel for one student.
+      Each section maps 1-to-1 to a backend endpoint that the frontend wasn't
+      surfacing before: task/student/:id/stats, submission/student/:id/stats,
+      submission/student/:id/due-buckets, sessionReview/student/:id/stats,
+      progress/student/:id/summary. ── */
+const DetailedStatsPanel = ({ taskStats, subStats, dueBuckets, reviewStats, examSummary }) => {
+  const ts = taskStats || {};
+  const ss = subStats || {};
+  const rs = reviewStats || {};
+  const es = examSummary || {};
+
+  const bucketCount = (name) => dueBuckets.find(b => b._id === name)?.count ?? 0;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ margin: '0 0 0.85rem', fontFamily: 'var(--font-heading)' }}>
+          <i className="fa-solid fa-list-check" style={{ color: '#f76b1c', marginRight: '0.5rem' }} />
+          Internal Tasks
+        </h3>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <StatPill value={ts.totalTasks} label="Total" />
+          <StatPill value={ts.completedTasks} label="Completed" color="#10b981" />
+          <StatPill value={ts.pendingTasks} label="Pending" color="#f59e0b" />
+          <StatPill value={ts.canceledTasks} label="Canceled" color="#64748b" />
+          <StatPill
+            value={ts.completionRate != null ? `${Math.round(ts.completionRate)}%` : '—'}
+            label="Completion"
+            color="#3b82f6"
+          />
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ margin: '0 0 0.85rem', fontFamily: 'var(--font-heading)' }}>
+          <i className="fa-solid fa-paper-plane" style={{ color: '#a855f7', marginRight: '0.5rem' }} />
+          Submissions
+        </h3>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <StatPill value={ss.totalSubmissions} label="Total" />
+          <StatPill value={ss.reviewed} label="Reviewed" color="#10b981" />
+          <StatPill value={ss.pending} label="Pending" color="#f59e0b" />
+          <StatPill value={ss.completed} label="Completed" color="#3b82f6" />
+          <StatPill value={ss.resubmitted} label="Resubmitted" color="#a855f7" />
+          <StatPill value={ss.late} label="Late" color="#ef4444" />
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ margin: '0 0 0.85rem', fontFamily: 'var(--font-heading)' }}>
+          <i className="fa-solid fa-clock" style={{ color: '#ef4444', marginRight: '0.5rem' }} />
+          Task Due Date Buckets
+        </h3>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <StatPill value={bucketCount('overdue')} label="Overdue" color="#ef4444" />
+          <StatPill value={bucketCount('dueSoon')} label="Due in 3 days" color="#f59e0b" />
+          <StatPill value={bucketCount('future')} label="Future" color="#3b82f6" />
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ margin: '0 0 0.85rem', fontFamily: 'var(--font-heading)' }}>
+          <i className="fa-solid fa-star" style={{ color: '#f5a623', marginRight: '0.5rem' }} />
+          Session Reviews
+        </h3>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <StatPill value={rs.totalReviews ?? rs.count} label="Reviews" />
+          <StatPill value={rs.avgOverall != null ? rs.avgOverall.toFixed(1) : '—'} label="Avg Overall" color="#f5a623" />
+          <StatPill value={rs.avgBehavior != null ? rs.avgBehavior.toFixed(1) : '—'} label="Behavior" color="#3b82f6" />
+          <StatPill value={rs.avgUnderstanding != null ? rs.avgUnderstanding.toFixed(1) : '—'} label="Understanding" color="#22c55e" />
+          <StatPill value={rs.avgParticipation != null ? rs.avgParticipation.toFixed(1) : '—'} label="Participation" color="#a855f7" />
+          <StatPill value={rs.avgCoding != null ? rs.avgCoding.toFixed(1) : '—'} label="Coding" color="#ef4444" />
+        </div>
+      </div>
+
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
+        <h3 style={{ margin: '0 0 0.85rem', fontFamily: 'var(--font-heading)' }}>
+          <i className="fa-solid fa-pen-to-square" style={{ color: '#22c55e', marginRight: '0.5rem' }} />
+          Exam Summary
+        </h3>
+        {(!es || (es.totalExams == null && es.exams == null)) ? (
+          <p style={{ color: 'var(--text-muted)', margin: 0 }}>No exam analytics yet.</p>
+        ) : (
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <StatPill value={es.totalExams} label="Total Exams" />
+            <StatPill value={es.avgPercentage != null ? `${es.avgPercentage}%` : '—'} label="Avg %" color="#22c55e" />
+            <StatPill value={es.highestScore} label="Highest" color="#10b981" />
+            <StatPill value={es.lowestScore} label="Lowest" color="#ef4444" />
+            <StatPill value={es.passed} label="Passed" color="#3b82f6" />
+            <StatPill value={es.failed} label="Failed" color="#ef4444" />
+          </div>
+        )}
+      </div>
+
+    </div>
+  );
+};
+
 const ChildDetailsPage = () => {
   const { profileId } = useParams();
   const navigate = useNavigate();
@@ -23,6 +143,14 @@ const ChildDetailsPage = () => {
   const canDownloadTranscript = ['admin', 'instructor', 'parent'].includes(user?.role);
   
   const [activeTab, setActiveTab] = useState('Overview');
+  const [trendPeriod, setTrendPeriod] = useState('monthly');
+
+  // ─── Per-student stats (admin/instructor only — backend route is restricted) ──
+  const { data: taskStatsRaw } = useFetchData(isAdmin ? `/api/v1/task/student/${profileId}/stats` : null);
+  const { data: subStatsRaw } = useFetchData(isAdmin ? `/api/v1/submission/student/${profileId}/stats` : null);
+  const { data: dueBucketsRaw } = useFetchData(isAdmin ? `/api/v1/submission/student/${profileId}/due-buckets` : null);
+  const { data: reviewStatsRaw } = useFetchData(isAdmin ? `/api/v1/sessionReview/student/${profileId}/stats` : null);
+  const { data: examSummaryRaw } = useFetchData(isAdmin ? `/api/v1/progress/student/${profileId}/summary` : null);
 
   // Fetch Child Profile Data
   const { data: profileRes, loading: profileLoading } = useFetchData(`/api/v1/StudentProfile/${profileId}`);
@@ -33,7 +161,15 @@ const ChildDetailsPage = () => {
   const { data: tasksRaw, loading: tasksLoading } = useFetchData(isAdmin ? `/api/v1/task/student/${profileId}` : '/api/v1/task/me');
   const { data: extCoursesRaw, loading: extCoursesLoading } = useFetchData(isAdmin ? `/api/v1/external-course/${profileId}/student` : '/api/v1/external-course/my-course');
   const { data: extHwRaw, loading: extHwLoading } = useFetchData(isAdmin ? '/api/v1/external-hw' : '/api/v1/external-hw/my');
-  const { data: sessionsRaw, loading: sessionsLoading } = useFetchData(isAdmin ? `/api/v1/session/student/${profileId}` : '/api/v1/session/me');
+  // Sessions: admin/instructor use the per-student endpoint; parents use the
+  // dedicated /session/parent/:profileId endpoint (returns only sessions for
+  // that child instead of every session across all children).
+  const sessionsEndpoint = isAdmin
+    ? `/api/v1/session/student/${profileId}`
+    : user?.role === 'parent'
+      ? `/api/v1/session/parent/${profileId}`
+      : '/api/v1/session/me';
+  const { data: sessionsRaw, loading: sessionsLoading } = useFetchData(sessionsEndpoint);
   const { data: reviewsRaw, loading: reviewsLoading } = useFetchData(isAdmin ? `/api/v1/sessionReview/student/${profileId}` : '/api/v1/sessionReview/me');
   const { data: parentDashboardRaw, loading: parentDashboardLoading } = useFetchData(`/api/v1/progress/parent/${profileId}/dashboard`);
 
@@ -150,7 +286,14 @@ const ChildDetailsPage = () => {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '1rem', flexWrap: 'wrap' }}>
-        {['Overview', 'External Curriculum', 'Internal Sessions', 'Session Reviews'].map(tab => (
+        {[
+          'Overview',
+          'Trends',
+          ...(isAdmin ? ['Detailed Stats'] : []),
+          'External Curriculum',
+          'Internal Sessions',
+          'Session Reviews',
+        ].map(tab => (
           <button 
             key={tab} 
             onClick={() => setActiveTab(tab)}
@@ -300,6 +443,61 @@ const ChildDetailsPage = () => {
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === 'Trends' && (
+        <div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <div>
+              <h2 style={{ margin: '0 0 0.25rem', color: 'var(--text-primary)' }}>Performance Trends</h2>
+              <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                How {childUser.FullName?.split(' ')[0] || 'this student'} has tracked across reviews, tasks, submissions, exams, and attendance.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-muted)' }}>Period:</span>
+              <select
+                value={trendPeriod}
+                onChange={e => setTrendPeriod(e.target.value)}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  border: '2px solid var(--border-color)',
+                  borderRadius: 'var(--radius-sm)',
+                  background: 'var(--card-bg)',
+                  color: 'var(--text-primary)',
+                  fontWeight: 600,
+                  outline: 'none',
+                }}
+              >
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>
+              </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.25rem' }}>
+            {Object.entries(TREND_CONFIGS).map(([key, cfg]) => (
+              <TrendsChart
+                key={key}
+                endpoint={buildTrendEndpoint(`child/${profileId}`, cfg.suffix, trendPeriod)}
+                title={cfg.title}
+                icon={cfg.icon}
+                metrics={cfg.metrics}
+                yDomain={cfg.yDomain}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'Detailed Stats' && isAdmin && (
+        <DetailedStatsPanel
+          taskStats={taskStatsRaw?.stats || taskStatsRaw?.data?.stats}
+          subStats={subStatsRaw?.stats || subStatsRaw?.data?.stats || subStatsRaw}
+          dueBuckets={dueBucketsRaw?.buckets || dueBucketsRaw?.data?.buckets || []}
+          reviewStats={reviewStatsRaw?.stats || reviewStatsRaw?.data?.stats}
+          examSummary={examSummaryRaw?.data || examSummaryRaw}
+        />
       )}
 
       {activeTab === 'External Curriculum' && (

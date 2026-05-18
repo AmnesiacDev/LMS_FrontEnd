@@ -7,6 +7,8 @@
   min-height: 100vh;
   width: 100%;
   background-color: var(--bg-primary);
+  background-image: radial-gradient(circle, var(--dot-color) 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ─── Sidebar ─── */
@@ -37,51 +39,10 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.25rem 1rem;
+  padding: 1rem 1.25rem;
   border-bottom: var(--border-width) solid var(--border-color);
   flex-shrink: 0;
-}
-
-.brand-logo {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  min-width: 0;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.brand-mark {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--brand-primary);
-  color: #fff;
-  border: 2px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  box-shadow: 2px 2px 0 var(--shadow-color);
-  font-family: var(--font-body);
-  font-weight: 800;
-  font-size: 0.78rem;
-}
-
-.brand-word {
-  font-family: var(--font-heading);
-  font-size: 1.5rem;
-  font-weight: 400;
-  white-space: nowrap;
-  color: var(--text-primary);
-}
-
-.brand-word .gradient-text {
-  color: var(--brand-primary);
-  -webkit-text-fill-color: var(--brand-primary);
+  gap: 0.5rem;
 }
 
 .dashboard-sidebar.closed .sidebar-header {
@@ -112,7 +73,11 @@
   box-shadow: 2px 2px 0 var(--shadow-color);
 }
 
-/* ─── Toggle Button ─── */
+/* Collapsed sidebar: center the mark */
+.dashboard-sidebar.closed .sidebar-header {
+  justify-content: center;
+  padding: 1rem 0.5rem;
+}
 .toggle-sidebar-btn {
   background: var(--bg-tertiary);
   border: 2px solid var(--border-color);
@@ -301,22 +266,19 @@
 .theme-toggle-icon {
   background: var(--bg-tertiary);
   color: var(--text-primary);
-  font-size: 0.75rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.02em;
+  font-size: 1rem;
   border: 2px solid var(--border-color);
   border-radius: var(--radius-sm);
-  min-width: 58px;
+  width: 38px;
   height: 38px;
-  padding: 0 0.65rem;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.15s ease;
   cursor: pointer;
   box-shadow: 2px 2px 0 var(--shadow-color);
-  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .theme-toggle-icon:hover {
@@ -534,9 +496,5 @@
 @media (max-width: 400px) {
   .header-right {
     gap: 0.4rem;
-  }
-
-  .theme-toggle-icon {
-    display: none; /* hide on tiny screens — accessible via profile */
   }
 }

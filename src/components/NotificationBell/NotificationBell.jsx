@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { logger } from '../../utils/logger';
 
 const NotificationBell = () => {
   const { user } = useAuth();
@@ -46,7 +47,7 @@ const NotificationBell = () => {
       // Re-fetch to reflect server state
       await fetchNotifications();
     } catch (err) {
-      console.error('Mark all read failed:', err);
+      logger.error('Mark all read failed:', err);
     }
   };
 

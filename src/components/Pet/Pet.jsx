@@ -527,6 +527,15 @@ const Pet = () => {
         onContextMenu={(e) => { e.preventDefault(); setShowPicker(p => !p); }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={`Pet: ${creature.name}. Click to interact, right-click to change.`}
         title="Click to interact · Right-click to change pet"
       >
         <div style={{

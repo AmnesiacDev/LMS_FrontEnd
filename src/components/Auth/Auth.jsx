@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import './Auth.css';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import Logo from '../Logo/Logo';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -63,6 +64,7 @@ const Auth = () => {
     <div className="auth-container">
       <div className="auth-visual">
          <div className="auth-visual-content">
+            <Logo size="lg" variant="full" style={{ marginBottom: '1.5rem' }} />
             <h1>Welcome to AlgoGambit</h1>
             <p>Access your curriculum, track progress, and manage learning in one place.</p>
          </div>
@@ -70,7 +72,8 @@ const Auth = () => {
 
       <div className="auth-form-wrapper">
          <button className="theme-toggle-btn" onClick={toggleTheme}>
-            {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
+            {theme === 'light' ? ' Dark Mode' : ' Light Mode'}
          </button>
          
          <div className="auth-form-container glass-panel">

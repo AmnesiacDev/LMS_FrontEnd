@@ -70,35 +70,35 @@ const ParentOverview = () => {
   return (
     <div className="overview-container">
       <div>
-        <h1 className="page-title">Welcome, {parentName}! 👨‍👧‍👦</h1>
+        <h1 className="page-title">Welcome, {parentName}! <i className="fa-solid fa-people-roof" style={{ color: 'var(--brand-primary)' }} /></h1>
         <p className="page-subtitle">Track your children's educational progress below.</p>
       </div>
 
       {/* Aggregated Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>👶</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-children" /></div>
           <div className="stat-info">
             <h3>{childrenList.length}</h3>
             <p>Children</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>📋</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}><i className="fa-solid fa-list-check" /></div>
           <div className="stat-info">
             <h3>{ts.totalTasks ?? '—'}</h3>
             <p>Total Tasks</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>✅</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-chart-line" /></div>
           <div className="stat-info">
             <h3>{ts.completionRate !== undefined ? `${Math.round(ts.completionRate)}%` : '—'}</h3>
             <p>Completion Rate</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>⭐</div>
+          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}><i className="fa-solid fa-star" /></div>
           <div className="stat-info">
             <h3>{rs.avgOverall !== undefined ? rs.avgOverall.toFixed(1) : '—'}</h3>
             <p>Avg Rating</p>
@@ -109,28 +109,28 @@ const ParentOverview = () => {
       {/* Submission Stats */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}>📄</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}><i className="fa-solid fa-file-lines" /></div>
           <div className="stat-info">
             <h3>{ss.totalSubmissions ?? '—'}</h3>
             <p>Submissions</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📥</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-inbox" /></div>
           <div className="stat-info">
             <h3>{ss.reviewed ?? '—'}</h3>
             <p>Reviewed</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>⏳</div>
+          <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-hourglass-half" /></div>
           <div className="stat-info">
             <h3>{ts.pendingTasks ?? '—'}</h3>
             <p>Pending Tasks</p>
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>⏰</div>
+          <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}><i className="fa-solid fa-triangle-exclamation" /></div>
           <div className="stat-info">
             <h3>{ss.late ?? '—'}</h3>
             <p>Late Submissions</p>

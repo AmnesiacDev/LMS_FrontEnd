@@ -32,7 +32,7 @@ const Contact = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Company Info Card */}
             <div className="feature-card glass-panel">
-              <div className="feature-icon">🏢</div>
+              <div className="feature-icon"><i className="fa-solid fa-building" /></div>
               <h3>AlgoGambit</h3>
               <p>A modern learning management platform built for educational institutions worldwide.</p>
             </div>
@@ -61,13 +61,13 @@ const Contact = () => {
               <h3 style={{ fontSize: '1.15rem', marginBottom: '1rem', fontWeight: 700 }}>Quick Links</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                 <a href="mailto:support@algogambit.io" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
-                  📧 Email Support
+                  <i className="fa-solid fa-envelope" /> Email Support
                 </a>
                 <a href="#faq" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
-                  ❓ FAQ
+                  <i className="fa-solid fa-circle-question" /> FAQ
                 </a>
                 <a href="#docs" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', color: 'var(--text-secondary)', fontSize: '0.95rem', fontWeight: 500, transition: 'all 0.2s ease' }}>
-                  📖 Documentation
+                  <i className="fa-solid fa-book-open" /> Documentation
                 </a>
               </div>
             </div>
@@ -91,7 +91,7 @@ const Contact = () => {
                 marginBottom: '1.5rem',
                 animation: 'fadeIn 0.3s ease'
               }}>
-                ✅ Thank you! Your message has been sent successfully.
+                <i className="fa-solid fa-circle-check" /> Thank you! Your message has been sent successfully.
               </div>
             )}
 
@@ -141,12 +141,16 @@ const Contact = () => {
         <h2 className="section-title">Frequently Asked Questions</h2>
         <div className="features-grid">
           {[
-            { icon: '🆓', title: 'Is AlgoGambit free to use?', desc: 'Yes! AlgoGambit offers a free tier for individual learners and small teams. Premium plans are available for larger institutions.' },
-            { icon: '🔐', title: 'How secure is my data?', desc: 'We use JWT-based authentication with refresh token rotation, encrypted data storage, and follow industry-standard security practices.' },
-            { icon: '🔗', title: 'Can I integrate external courses?', desc: 'Absolutely. Track your progress on Coursera, Udemy, LinkedIn Learning, and more directly from your dashboard.' },
+            { icon: 'free', title: 'Is AlgoGambit free to use?', desc: 'Yes! AlgoGambit offers a free tier for individual learners and small teams. Premium plans are available for larger institutions.' },
+            { icon: 'secure', title: 'How secure is my data?', desc: 'We use JWT-based authentication with refresh token rotation, encrypted data storage, and follow industry-standard security practices.' },
+            { icon: 'integrate', title: 'Can I integrate external courses?', desc: 'Absolutely. Track your progress on Coursera, Udemy, LinkedIn Learning, and more directly from your dashboard.' },
           ].map(faq => (
             <div key={faq.title} className="feature-card glass-panel">
-              <div className="feature-icon">{faq.icon}</div>
+              <div className="feature-icon">
+                {faq.icon === 'free' && <i className="fa-solid fa-circle-check" />}
+                {faq.icon === 'secure' && <i className="fa-solid fa-shield-halved" />}
+                {faq.icon === 'integrate' && <i className="fa-solid fa-link" />}
+              </div>
               <h3>{faq.title}</h3>
               <p>{faq.desc}</p>
             </div>

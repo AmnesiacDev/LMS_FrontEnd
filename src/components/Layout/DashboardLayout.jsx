@@ -4,52 +4,58 @@ import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
 import Pet from '../Pet/Pet';
+import Logo from '../Logo/Logo';
+import { getAvatarUrl } from '../../utils/avatar';
 import './DashboardLayout.css';
 
 const navConfig = {
   student: [
-    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
-    { to: '/dashboard/sessions', icon: 'S', label: 'My Sessions' },
-    { to: '/dashboard/tasks', icon: 'T', label: 'My Tasks' },
-    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
-    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
-    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
-    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
-    { to: '/dashboard/progress', icon: 'P', label: 'My Progress' },
+    { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'My Sessions' },
+    { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'My Tasks' },
+    { to: '/dashboard/submissions', icon: 'fa-solid fa-paper-plane', label: 'Submissions' },
+    { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'My Exams' },
+    { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'fa-solid fa-chart-line', label: 'My Progress' },
   ],
   parent: [
-    { to: '/dashboard', icon: 'C', label: 'Children', end: true },
-    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
-    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
-    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
-    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
-    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
-    { to: '/dashboard/progress', icon: 'P', label: 'Children Progress' },
+    { to: '/dashboard', icon: 'fa-solid fa-children', label: 'Children', end: true },
+    { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'fa-solid fa-paper-plane', label: 'Submissions' },
+    { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'Exams' },
+    { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'fa-solid fa-chart-line', label: 'Children Progress' },
   ],
   instructor: [
-    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
-    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
-    { to: '/dashboard/submissions', icon: 'U', label: 'Submissions' },
-    { to: '/dashboard/reviews', icon: 'R', label: 'Reviews' },
-    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
-    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
-    { to: '/dashboard/progress', icon: 'P', label: 'Progress Reports' },
+    { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'fa-solid fa-inbox', label: 'Submissions' },
+    { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'Exams' },
+    { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'Reviews' },
+    { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'fa-solid fa-chart-bar', label: 'Progress Reports' },
   ],
   admin: [
-    { to: '/dashboard', icon: 'O', label: 'Overview', end: true },
-    { to: '/dashboard/users', icon: 'U', label: 'Users' },
-    { to: '/dashboard/profiles', icon: 'P', label: 'Student Profiles' },
-    { to: '/dashboard/sessions', icon: 'S', label: 'Sessions' },
-    { to: '/dashboard/tasks', icon: 'T', label: 'Tasks' },
-    { to: '/dashboard/submissions', icon: 'B', label: 'Submissions' },
-    { to: '/dashboard/reviews', icon: 'R', label: 'Reviews' },
-    { to: '/dashboard/external', icon: 'E', label: 'External Courses' },
-    { to: '/dashboard/announcements', icon: 'A', label: 'Announcements' },
-    { to: '/dashboard/audit-logs', icon: 'L', label: 'Audit Logs' },
-    { to: '/dashboard/messages', icon: 'M', label: 'Messages' },
-    { to: '/dashboard/progress', icon: 'G', label: 'Progress Reports' },
+    { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/users', icon: 'fa-solid fa-users', label: 'Users' },
+    { to: '/dashboard/profiles', icon: 'fa-solid fa-id-card', label: 'Student Profiles' },
+    { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
+    { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
+    { to: '/dashboard/submissions', icon: 'fa-solid fa-inbox', label: 'Submissions' },
+    { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'Exams' },
+    { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'Reviews' },
+    { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
+    { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/audit-logs', icon: 'fa-solid fa-shield-halved', label: 'Audit Logs' },
+    { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
+    { to: '/dashboard/progress', icon: 'fa-solid fa-chart-bar', label: 'Progress Reports' },
   ],
 };
 
@@ -71,9 +77,9 @@ const DashboardLayout = () => {
   const portalLabel = roleLabels[role] || 'Portal';
   const userName = user?.FullName || user?.UserName || 'User';
 
-  /* Stable DiceBear avatar */
+  /* Gender-aware avatar */
   const avatarSeed = user?._id || user?.UserName || userName;
-  const avatarUrl = `https://api.dicebear.com/9.x/adventurer/svg?seed=${encodeURIComponent(avatarSeed)}&backgroundColor=b6e3f4,c0aede,d1d4f9&backgroundType=gradientLinear&radius=50`;
+  const avatarUrl = getAvatarUrl(avatarSeed, userName, 80);
 
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
 
@@ -97,14 +103,12 @@ const DashboardLayout = () => {
 
       <aside className={`dashboard-sidebar glass-panel ${sidebarOpen ? 'open' : 'closed'}`}>
         <div className="sidebar-header">
-          <button className="brand-logo" onClick={() => navigate('/dashboard')} aria-label="Go to dashboard overview">
-            <span className="brand-mark">AG</span>
-            {sidebarOpen && (
-              <span className="brand-word">
-                Algo<span className="gradient-text">Gambit</span>
-              </span>
-            )}
-          </button>
+          <Logo
+            size="md"
+            variant={sidebarOpen ? 'full' : 'mark'}
+            onClick={() => navigate('/dashboard')}
+            style={{ padding: sidebarOpen ? '0' : '0' }}
+          />
           <button
             className="toggle-sidebar-btn"
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -131,7 +135,7 @@ const DashboardLayout = () => {
               className={({ isActive }) => isActive ? 'nav-item active' : 'nav-item'}
               onClick={() => { if (window.innerWidth <= 900) closeSidebar(); }}
             >
-              <span className="icon">{item.icon}</span>
+              <span className="icon"><i className={item.icon} /></span>
               {sidebarOpen && <span className="label">{item.label}</span>}
             </NavLink>
           ))}
@@ -139,7 +143,7 @@ const DashboardLayout = () => {
 
         <div className="sidebar-footer">
           <button className="nav-item logout-btn" onClick={handleLogout}>
-            <span className="icon">X</span>
+            <span className="icon"><i className="fa-solid fa-right-from-bracket" /></span>
             {sidebarOpen && <span className="label">Log Out</span>}
           </button>
         </div>
@@ -153,7 +157,7 @@ const DashboardLayout = () => {
               onClick={() => setSidebarOpen(true)}
               aria-label="Open sidebar"
             >
-              ☰
+              <i className="fa-solid fa-bars" />
             </button>
             <h3>{portalLabel}</h3>
           </div>
@@ -161,7 +165,7 @@ const DashboardLayout = () => {
           <div className="header-right">
             <NotificationBell />
             <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme" aria-label="Toggle theme">
-              {theme === 'light' ? 'Dark' : 'Light'}
+              <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
             </button>
             <button className="user-profile" onClick={() => navigate('/dashboard/account')} title="Open account profile">
               <div className="avatar" style={{ overflow: 'hidden', padding: 0 }}>

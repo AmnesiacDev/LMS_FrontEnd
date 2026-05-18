@@ -1,133 +1,237 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Home.css';
 
-const features = [
+const TRACKS = [
   {
-    icon: '📊',
-    title: 'Real-Time Dashboard',
-    desc: 'Monitor sessions, tasks, submissions, and reviews with intuitive data visualizations.',
+    fa: 'fa-solid fa-code',
+    title: 'Coding Basics',
+    level: 'Start Here',
+    color: '#6366f1',
+    desc: 'Learn what code is, how computers think, and write your very first program. No experience needed at all.',
   },
   {
-    icon: '👨‍🏫',
-    title: 'Role-Based Access',
-    desc: 'Tailored experiences for students, parents, instructors, and administrators.',
+    fa: 'fa-brands fa-python',
+    title: 'Python',
+    level: 'Beginner → Advanced',
+    color: '#3b82f6',
+    desc: 'The friendliest programming language. Build real programs, automate tasks, and solve fun challenges.',
   },
   {
-    icon: '📚',
-    title: 'External Courses',
-    desc: 'Track progress across Coursera, Udemy, and other external learning platforms.',
+    fa: 'fa-solid fa-brain',
+    title: 'Logical Thinking',
+    level: 'All Levels',
+    color: '#a855f7',
+    desc: 'Learn to break big problems into small steps. This skill makes everything else in coding click.',
   },
   {
-    icon: '⚡',
-    title: 'Lightning Performance',
-    desc: 'Built on a modern stack optimized for speed, reliability, and seamless user experience.',
+    fa: 'fa-solid fa-globe',
+    title: 'Web Development',
+    level: 'Beginner → Intermediate',
+    color: '#10b981',
+    desc: 'Build your own websites from scratch. HTML, CSS, and a little JavaScript to make things move.',
   },
   {
-    icon: '🎨',
-    title: 'Beautiful Interface',
-    desc: 'Glassmorphism design with smooth animations and dark/light theme support.',
+    fa: 'fa-solid fa-gamepad',
+    title: 'Game Development',
+    level: 'Intermediate',
+    color: '#f59e0b',
+    desc: 'Create your own 2D games with Python. Design levels, add characters, and share with friends.',
   },
   {
-    icon: '🔒',
-    title: 'Enterprise Security',
-    desc: 'JWT authentication, refresh token rotation, rate limiting, and CORS protection.',
+    fa: 'fa-solid fa-diagram-project',
+    title: 'Algorithms',
+    level: 'Intermediate',
+    color: '#ec4899',
+    desc: 'Discover clever ways to solve problems. Sorting, searching, and thinking like a computer scientist.',
   },
 ];
 
+const PATHS = [
+  {
+    icon: 'fa-solid fa-seedling',
+    title: 'Complete Beginner',
+    steps: ['Coding Basics', 'Logical Thinking', 'Python Intro', 'First Mini Project'],
+    color: '#10b981',
+  },
+  {
+    icon: 'fa-solid fa-rocket',
+    title: 'Aspiring Developer',
+    steps: ['Python Fundamentals', 'Web Dev Basics', 'Algorithms', 'Build a Portfolio'],
+    color: '#3b82f6',
+  },
+  {
+    icon: 'fa-solid fa-gamepad',
+    title: 'Game Creator',
+    steps: ['Python Basics', 'Game Logic', 'Pygame Projects', 'Publish Your Game'],
+    color: '#f59e0b',
+  },
+];
+
+const WHY = [
+  { fa: 'fa-solid fa-hands-holding-child', title: 'Made for Young Learners', desc: 'Every lesson is designed to be clear, fun, and encouraging — no confusing jargon.' },
+  { fa: 'fa-solid fa-person-chalkboard', title: 'Live Sessions', desc: 'Learn with a real instructor who guides you, answers questions, and keeps you on track.' },
+  { fa: 'fa-solid fa-chart-line', title: 'Track Your Progress', desc: 'See how far you have come with session history, task completion, and progress charts.' },
+  { fa: 'fa-solid fa-family', title: 'Parents Stay Informed', desc: 'Parents can see sessions, tasks, and progress reports — always in the loop.' },
+  { fa: 'fa-solid fa-shield-halved', title: 'Safe & Secure', desc: 'Your account and data are protected with modern security. Safe for kids to use.' },
+  { fa: 'fa-solid fa-infinity', title: 'Learn at Your Pace', desc: 'No pressure. Revisit sessions, catch up on tasks, and grow at the speed that works for you.' },
+];
+
 const Home = () => {
+  const [activePath, setActivePath] = useState(0);
+
   return (
     <div className="home-container">
-      {/* ─── Hero ─── */}
+
+      {/* ══════════ HERO ══════════ */}
       <section className="hero-section">
         <div className="hero-badge">
-          🚀 Trusted Learning Platform
+          <i className="fa-solid fa-star" /> Learn to Code the Fun Way
         </div>
         <h1 className="hero-title">
-          Empower Education with<br />
-          <span className="gradient-text">AlgoGambit</span>
+          Your Coding Journey<br />
+          <span className="hero-accent">Starts Right Here</span>
         </h1>
         <p className="hero-subtitle">
-          A comprehensive learning management system designed to connect students, 
-          parents, instructors, and administrators — all in one seamless platform. 
-          Track progress, manage sessions, and elevate learning outcomes.
+          AlgoGambit is a warm, friendly place where kids and teens learn real programming skills —
+          from their very first line of code all the way to building their own games and websites.
         </p>
-        
         <div className="hero-actions">
           <Link to="/login" className="nb-btn nb-btn-primary nb-btn-lg">
-            Get Started Free
+            <i className="fa-solid fa-play" /> Start Learning Free
           </Link>
           <Link to="/about" className="nb-btn nb-btn-secondary nb-btn-lg">
-            Learn More
+            <i className="fa-solid fa-circle-info" /> See What We Teach
           </Link>
         </div>
-
         <div className="hero-stats">
           {[
-            { value: '4', label: 'User Roles' },
-            { value: '50+', label: 'Platform Features' },
-            { value: '99.9%', label: 'Uptime SLA' },
-          ].map(stat => (
-            <div key={stat.label} className="hero-stat">
-              <span className="stat-value">{stat.value}</span>
-              <span className="stat-label">{stat.label}</span>
+            { value: '6+', label: 'Coding Tracks', icon: 'fa-solid fa-layer-group' },
+            { value: '100%', label: 'Hands-On', icon: 'fa-solid fa-hand' },
+            { value: '24/7', label: 'Platform Access', icon: 'fa-solid fa-clock' },
+          ].map(s => (
+            <div key={s.label} className="hero-stat">
+              <i className={s.icon} style={{ color: 'var(--brand-primary)', fontSize: '1.1rem' }} />
+              <span className="stat-value">{s.value}</span>
+              <span className="stat-label">{s.label}</span>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── Features ─── */}
+      {/* ══════════ TRACKS ══════════ */}
       <section className="features-section">
-        <h2 className="section-title">Why Choose AlgoGambit?</h2>
-        <div className="features-grid">
-          {features.map(f => (
-            <div key={f.title} className="feature-card glass-panel">
-              <div className="feature-icon">{f.icon}</div>
-              <h3>{f.title}</h3>
-              <p>{f.desc}</p>
+        <div className="section-eyebrow">
+          <i className="fa-solid fa-book-open" /> What You Will Learn
+        </div>
+        <h2 className="section-title">Six Tracks, Endless Possibilities</h2>
+        <p className="section-sub">Pick a track that excites you and follow it all the way to a real project.</p>
+        <div className="courses-grid">
+          {TRACKS.map(t => (
+            <div key={t.title} className="course-card glass-panel" style={{ '--accent': t.color }}>
+              <div className="course-icon" style={{ background: t.color + '18', color: t.color, border: `2px solid ${t.color}44` }}>
+                <i className={t.fa} />
+              </div>
+              <div className="course-level">{t.level}</div>
+              <h3>{t.title}</h3>
+              <p>{t.desc}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── How It Works ─── */}
+      {/* ══════════ LEARNING PATHS ══════════ */}
       <section className="features-section">
-        <h2 className="section-title">How It Works</h2>
-        <div className="features-grid">
-          {[
-            { icon: '1️⃣', title: 'Create Your Account', desc: 'Sign up as a student, parent, instructor, or administrator in under a minute.' },
-            { icon: '2️⃣', title: 'Access Your Dashboard', desc: 'Get a personalized dashboard with relevant sessions, tasks, and analytics.' },
-            { icon: '3️⃣', title: 'Track & Grow', desc: 'Submit assignments, track external courses, and monitor progress in real-time.' },
-          ].map(step => (
-            <div key={step.title} className="feature-card glass-panel">
-              <div className="feature-icon">{step.icon}</div>
-              <h3>{step.title}</h3>
-              <p>{step.desc}</p>
+        <div className="section-eyebrow">
+          <i className="fa-solid fa-map" /> Roadmaps
+        </div>
+        <h2 className="section-title">Pick Your Path</h2>
+        <p className="section-sub">Not sure where to start? Choose a goal and follow the steps.</p>
+
+        <div className="paths-tabs">
+          {PATHS.map((p, i) => (
+            <button
+              key={p.title}
+              className={`path-tab ${activePath === i ? 'active' : ''}`}
+              style={{ '--tab-color': p.color }}
+              onClick={() => setActivePath(i)}
+            >
+              <i className={p.icon} /> {p.title}
+            </button>
+          ))}
+        </div>
+
+        <div className="path-steps glass-panel">
+          {PATHS[activePath].steps.map((step, i) => (
+            <div key={step} className="path-step">
+              <div className="path-step-num" style={{ background: PATHS[activePath].color }}>{i + 1}</div>
+              <div className="path-step-label">{step}</div>
+              {i < PATHS[activePath].steps.length - 1 && (
+                <i className="fa-solid fa-arrow-right path-step-arrow" />
+              )}
             </div>
           ))}
         </div>
       </section>
 
-      {/* ─── Tech Stack ─── */}
+      {/* ══════════ WHY ══════════ */}
+      <section className="features-section">
+        <div className="section-eyebrow">
+          <i className="fa-solid fa-heart" /> Why AlgoGambit
+        </div>
+        <h2 className="section-title">A Place Where Learning Feels Good</h2>
+        <div className="features-grid">
+          {WHY.map(w => (
+            <div key={w.title} className="feature-card glass-panel">
+              <div className="feature-icon">
+                <i className={w.fa} />
+              </div>
+              <h3>{w.title}</h3>
+              <p>{w.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ══════════ LANGUAGES ══════════ */}
       <section className="stack-section">
-        <h2 className="section-title">Powered By</h2>
+        <div className="section-eyebrow">
+          <i className="fa-solid fa-toolbox" /> Tools & Languages
+        </div>
+        <h2 className="section-title">What You Will Work With</h2>
         <div className="stack-tags">
-          {['React', 'Vite', 'Node.js', 'Express', 'MongoDB', 'JWT', 'Mongoose', 'REST API', 'CSS3'].map(tech => (
-            <span key={tech} className="stack-tag">{tech}</span>
+          {[
+            { icon: 'fa-brands fa-python', label: 'Python' },
+            { icon: 'fa-brands fa-js', label: 'JavaScript' },
+            { icon: 'fa-brands fa-html5', label: 'HTML' },
+            { icon: 'fa-brands fa-css3-alt', label: 'CSS' },
+            { icon: 'fa-brands fa-git-alt', label: 'Git' },
+            { icon: 'fa-solid fa-terminal', label: 'Command Line' },
+            { icon: 'fa-solid fa-code', label: 'VS Code' },
+            { icon: 'fa-solid fa-gamepad', label: 'Pygame' },
+            { icon: 'fa-solid fa-database', label: 'SQL Basics' },
+          ].map(t => (
+            <span key={t.label} className="stack-tag">
+              <i className={t.icon} /> {t.label}
+            </span>
           ))}
         </div>
       </section>
 
-      {/* ─── CTA ─── */}
+      {/* ══════════ CTA ══════════ */}
       <section className="cta-section">
         <div className="cta-card glass-panel">
-          <h2>Ready to Transform Learning?</h2>
-          <p>Join AlgoGambit and experience a clearer way to manage learning.</p>
-          <Link to="/login" className="nb-btn nb-btn-primary">
-            Start Your Journey
+          <div className="cta-fa-icon">
+            <i className="fa-solid fa-laptop-code" />
+          </div>
+          <h2>Ready to Write Your First Line of Code?</h2>
+          <p>Join AlgoGambit and start building real things from day one. No experience needed.</p>
+          <Link to="/login" className="nb-btn nb-btn-primary nb-btn-lg">
+            <i className="fa-solid fa-arrow-right" /> Get Started — It is Free
           </Link>
         </div>
       </section>
+
     </div>
   );
 };

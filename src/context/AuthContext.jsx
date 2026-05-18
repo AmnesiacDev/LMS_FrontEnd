@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { logger } from '../utils/logger';
 
 const AuthContext = createContext();
 
@@ -89,7 +90,7 @@ export const AuthProvider = ({ children }) => {
         clearAuth();
         return false;
       } catch (err) {
-        console.error('Token refresh failed:', err);
+        logger.error('Token refresh failed:', err);
         clearAuth();
         return false;
       } finally {
@@ -119,13 +120,13 @@ export const AuthProvider = ({ children }) => {
     const timeSinceIssued = Date.now() - payload.iat * 1000;
     const timeUntilRefresh = Math.max(refreshAfterMs - timeSinceIssued, 10000); // At least 10s
 
-    console.log(`[Auth] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)}s`);
+    logger.debug(`[Auth] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)}s`);
 
     refreshIntervalRef.current = setTimeout(async () => {
-      console.log('[Auth] Proactive token refresh triggered');
+      logger.debug('[Auth] Proactive token refresh triggered');
       const success = await refreshAccessToken();
       if (!success) {
-        console.warn('[Auth] Proactive refresh failed, user session expired');
+        logger.warn('[Auth] Proactive refresh failed, user session expired');
       }
     }, timeUntilRefresh);
   }, [refreshAccessToken]);
@@ -140,7 +141,7 @@ export const AuthProvider = ({ children }) => {
 
     // If token is expired or about to expire (within 60s), try to refresh
     if (isTokenExpired(currentToken, 60000)) {
-      console.log('[Auth] Token expired or expiring soon, refreshing...');
+      logger.debug('[Auth] Token expired or expiring soon, refreshing...');
       return await refreshAccessToken();
     }
     

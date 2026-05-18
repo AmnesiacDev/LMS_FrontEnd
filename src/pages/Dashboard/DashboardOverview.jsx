@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
+import NextSessionCountdown from '../../components/NextSessionCountdown/NextSessionCountdown';
 import './DashboardOverview.css';
 
 const DashboardOverview = () => {
@@ -93,7 +94,7 @@ const DashboardOverview = () => {
     <div className="overview-container">
       {/* ══════ HEADER ══════ */}
       <div>
-        <h1 className="page-title">Welcome back, {isLoading ? "..." : studentName}! 👋</h1>
+        <h1 className="page-title">Welcome back, {isLoading ? "..." : studentName}! <i className="fa-solid fa-hand-wave" style={{ color: 'var(--brand-primary)' }} /></h1>
         <p className="page-subtitle">Here is what's happening with your learning. <span style={{
           display: 'inline-flex',
           padding: '0.15rem 0.5rem',
@@ -106,31 +107,36 @@ const DashboardOverview = () => {
         }}>Grade: {grade}</span></p>
       </div>
 
+      {/* ══════ NEXT SESSION COUNTDOWN ══════ */}
+      {upcomingSessions.length > 0 && (
+        <NextSessionCountdown session={upcomingSessions[0]} role="student" />
+      )}
+
       {/* ══════ BENTO STATS ROW 1 ══════ */}
       <div className="stats-grid">
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📋</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-list-check" /></div>
             <div className="stat-info">
                <h3>{ts.totalTasks ?? '—'}</h3>
                <p>Total Tasks</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}>✅</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-peach)' }}><i className="fa-solid fa-circle-check" /></div>
             <div className="stat-info">
                <h3>{ts.completedTasks ?? '—'}</h3>
                <p>Completed</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>⏳</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-hourglass-half" /></div>
             <div className="stat-info">
                <h3>{ts.pendingTasks ?? '—'}</h3>
                <p>Pending Tasks</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>🏆</div>
+            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}><i className="fa-solid fa-trophy" /></div>
             <div className="stat-info">
                <h3>{ts.completionRate !== undefined ? `${Math.round(ts.completionRate)}%` : '—'}</h3>
                <p>Completion Rate</p>
@@ -141,28 +147,28 @@ const DashboardOverview = () => {
       {/* ══════ BENTO STATS ROW 2 — Submissions ══════ */}
       <div className="stats-grid">
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}>📄</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-rose)' }}><i className="fa-solid fa-file-lines" /></div>
             <div className="stat-info">
                <h3>{ss.totalSubmissions ?? '—'}</h3>
                <p>Total Submissions</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}>📥</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-yellow)' }}><i className="fa-solid fa-inbox" /></div>
             <div className="stat-info">
                <h3>{ss.reviewed ?? '—'}</h3>
                <p>Reviewed</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}>📤</div>
+            <div className="stat-icon" style={{ background: 'var(--accent-orange)' }}><i className="fa-solid fa-paper-plane" /></div>
             <div className="stat-info">
                <h3>{ss.pending ?? '—'}</h3>
                <p>Awaiting Review</p>
             </div>
          </div>
          <div className="stat-card">
-            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}>⏰</div>
+            <div className="stat-icon" style={{ background: 'var(--brand-primary)', color: '#FFFFFF' }}><i className="fa-solid fa-triangle-exclamation" /></div>
             <div className="stat-info">
                <h3>{ss.late ?? '—'}</h3>
                <p>Late Submissions</p>
@@ -360,7 +366,7 @@ const DashboardOverview = () => {
               borderRadius: 'var(--radius-sm)',
               boxShadow: '2px 2px 0px 0px var(--shadow-color)'
             }}>
-              <p style={{ fontSize: '1.5rem', margin: '0 0 0.35rem' }}>🎉</p>
+              <i className="fa-solid fa-circle-check" style={{ fontSize: '1.5rem', color: 'var(--success)', marginBottom: '0.35rem', display: 'block' }} />
               <p style={{ color: 'var(--text-muted)', fontWeight: '600', margin: 0, fontSize: '0.85rem' }}>No upcoming items — you're all caught up!</p>
             </div>
           )}

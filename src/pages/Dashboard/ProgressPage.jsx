@@ -7,6 +7,8 @@ import {
 } from 'recharts';
 import useFetchData from '../../hooks/useFetchData';
 import { useAuth } from '../../context/AuthContext';
+import TrendsChart from '../../components/TrendsChart/TrendsChart';
+import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
 import './DashboardOverview.css';
 
 /* ─── colour tokens (match CSS vars as hex for Recharts) ─── */
@@ -34,7 +36,7 @@ const CustomBarTooltip = ({ active, payload, label }) => {
       <p style={{ margin: '0 0 0.4rem', fontWeight: 700 }}>{label}</p>
       {payload.map((p, i) => (
         <p key={i} style={{ margin: '0.15rem 0', color: p.fill }}>
-          {p.name}: <strong>{p.value}{p.name !== 'Avg Review' ? '%' : ' ⭐'}</strong>
+          {p.name}: <strong>{p.value}{p.name !== 'Avg Review' ? '%' : ' ★'}</strong>
         </p>
       ))}
     </div>
@@ -151,7 +153,7 @@ const ProgressPage = () => {
                     <h3 style={{ margin: '0 0 0.2rem', fontSize: '1rem', fontFamily: 'var(--font-heading)', fontWeight: 400 }}>{name}</h3>
                     <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--text-muted)' }}>Grade: {p.grade || 'N/A'}</p>
                   </div>
-                  <span style={{ marginLeft: 'auto', fontSize: '1.2rem' }}>📈</span>
+                  <span style={{ marginLeft: 'auto', fontSize: '1.2rem' }}><i className="fa-solid fa-chart-line" /></span>
                 </div>
               );
             })}
@@ -283,19 +285,19 @@ const ProgressPage = () => {
       ) : (
         <>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: '0.5rem 0 1.5rem', fontWeight: 600 }}>
-            📅 Current Period: {periodLabel}
+            <i className="fa-solid fa-calendar-days" /> Current Period: {periodLabel}
           </p>
 
           {/* ── Metric cards ── */}
           <div className="stats-grid" style={{ marginBottom: '2rem' }}>
             <MetricCard label="Average Review" value={reviewScore.toFixed(1)} unit=" ⭐" max={5} color={C.yellow}
-              trend={snapshot.reviews?.trend} delta={snapshot.reviews?.delta?.toFixed(1)} icon="⭐" />
+              trend={snapshot.reviews?.trend} delta={snapshot.reviews?.delta?.toFixed(1)} icon={<i className="fa-solid fa-star" />} />
             <MetricCard label="Task Completion" value={taskRate} unit="%" color={C.orange}
-              trend={snapshot.tasks?.trend} delta={snapshot.tasks?.delta} icon="✅" />
+              trend={snapshot.tasks?.trend} delta={snapshot.tasks?.delta} icon={<i className="fa-solid fa-circle-check" />} />
             <MetricCard label="Attendance Rate" value={attendRate} unit="%" color={C.blue}
-              trend={snapshot.attendance?.trend} delta={snapshot.attendance?.delta} icon="📅" />
+              trend={snapshot.attendance?.trend} delta={snapshot.attendance?.delta} icon={<i className="fa-solid fa-calendar-days" />} />
             <MetricCard label="Exam Average" value={examAvg} unit="%" color={C.green}
-              trend={snapshot.exams?.trend} delta={snapshot.exams?.delta} icon="📝" />
+              trend={snapshot.exams?.trend} delta={snapshot.exams?.delta} icon={<i className="fa-solid fa-pen-to-square" />} />
           </div>
 
           {/* ── Charts row ── */}
@@ -304,7 +306,7 @@ const ProgressPage = () => {
             {/* Bar chart */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <h3 style={{ margin: '0 0 1.25rem', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
-                📊 Metrics Overview
+                <i className="fa-solid fa-chart-bar" /> Metrics Overview
               </h3>
               <ResponsiveContainer width="100%" height={260}>
                 <BarChart data={barData} margin={{ top: 4, right: 8, left: -20, bottom: 0 }} barSize={32}>
@@ -327,7 +329,7 @@ const ProgressPage = () => {
             {/* Radar chart */}
             <div className="glass-panel" style={{ padding: '1.5rem' }}>
               <h3 style={{ margin: '0 0 1.25rem', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>
-                🕸️ Performance Radar
+                <i className="fa-solid fa-chart-line" /> Performance Radar
               </h3>
               <ResponsiveContainer width="100%" height={260}>
                 <RadarChart data={radarData} margin={{ top: 10, right: 20, bottom: 10, left: 20 }}>
@@ -341,9 +343,29 @@ const ProgressPage = () => {
             </div>
           </div>
 
+          {/* ── Trend charts (granular per-category) ── */}
+          <div style={{ marginBottom: '2rem' }}>
+            <h2 style={{ fontFamily: 'var(--font-heading)', fontSize: '1.25rem', margin: '0 0 1rem', fontWeight: 700 }}>
+              <i className="fa-solid fa-chart-line" style={{ color: 'var(--brand-primary)', marginRight: '0.5rem' }} />
+              Trends Over Time
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))', gap: '1.25rem' }}>
+              {Object.entries(TREND_CONFIGS).map(([key, cfg]) => (
+                <TrendsChart
+                  key={key}
+                  endpoint={buildTrendEndpoint(profileId ? `child/${profileId}` : 'me', cfg.suffix, period)}
+                  title={cfg.title}
+                  icon={cfg.icon}
+                  metrics={cfg.metrics}
+                  yDomain={cfg.yDomain}
+                />
+              ))}
+            </div>
+          </div>
+
           {/* ── Submissions panel ── */}
           <div className="glass-panel" style={{ padding: '1.5rem' }}>
-            <h3 style={{ margin: '0 0 1rem', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}>📋 Submissions Performance</h3>
+            <h3 style={{ margin: '0 0 1rem', fontFamily: 'var(--font-heading)', fontSize: '1.1rem' }}><i className="fa-solid fa-clipboard-list" /> Submissions Performance</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div style={{ padding: '1rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)', border: '2px solid var(--border-color)' }}>
                 <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Avg Score</span>

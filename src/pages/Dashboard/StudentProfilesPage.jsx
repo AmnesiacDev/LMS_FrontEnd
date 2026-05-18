@@ -25,9 +25,15 @@ const StudentProfilesPage = () => {
   const fetchProfiles = async () => {
     try {
       setLoading(true);
-      const data = await request(role === 'admin' ? '/api/v1/StudentProfile/all' : '/api/v1/StudentProfile/me');
+      let endpoint;
+      if (role === 'admin') endpoint = '/api/v1/StudentProfile/all';
+      else if (role === 'instructor') endpoint = '/api/v1/session/me/students';
+      else endpoint = '/api/v1/StudentProfile/me';
+
+      const data = await request(endpoint);
       let list = data.data;
-      if (list?.profiles) list = list.profiles;
+      if (list?.students) list = list.students;
+      else if (list?.profiles) list = list.profiles;
       else if (list?.docs) list = list.docs;
       else if (!Array.isArray(list)) list = [list];
       setProfiles(Array.isArray(list) ? list : [list]);
@@ -104,7 +110,7 @@ const StudentProfilesPage = () => {
         </div>
         {role === 'admin' && (
           <button onClick={() => { setFormData(emptyForm); setFormError(null); setShowCreate(true); }} className="modal-btn modal-btn-primary" style={{ width: 'auto', padding: '0.65rem 1.4rem' }}>
-            ➕ Create Profile
+            <i className="fa-solid fa-plus" /> Create Profile
           </button>
         )}
       </div>
@@ -136,11 +142,11 @@ const StudentProfilesPage = () => {
                   <span style={{ fontWeight: '500', color: 'var(--text-secondary)', maxWidth: '150px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{parentNames || 'None'}</span>
                 </div>
               </div>
-              {profile.notes && <p style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}>📝 {profile.notes}</p>}
+              {profile.notes && <p style={{ padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: '0.5rem', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1rem' }}><i className="fa-solid fa-pen-to-square" /> {profile.notes}</p>}
               <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button onClick={() => setViewProfile(profile)} className="modal-btn modal-btn-ghost" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>👁️ View</button>
+                <button onClick={() => setViewProfile(profile)} className="modal-btn modal-btn-ghost" style={{ padding: '0.45rem', fontSize: '0.82rem' }}><i className="fa-solid fa-eye" /> View</button>
                 {canDownloadTranscript && <button onClick={() => downloadTranscript(profile)} className="modal-btn modal-btn-secondary" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>Transcript</button>}
-                {role === 'admin' && <button onClick={() => openEdit(profile)} className="modal-btn modal-btn-info" style={{ padding: '0.45rem', fontSize: '0.82rem' }}>✏️ Edit</button>}
+                {role === 'admin' && <button onClick={() => openEdit(profile)} className="modal-btn modal-btn-info" style={{ padding: '0.45rem', fontSize: '0.82rem' }}><i className="fa-solid fa-pen-to-square" /> Edit</button>}
               </div>
             </div>
           );
@@ -179,7 +185,7 @@ const StudentProfilesPage = () => {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
                 {viewProfile.parents.map((par, i) => (
                   <span key={i} className="modal-chip">
-                    👤 {par.FullName || par.UserName || par._id || par}
+                    <i className="fa-solid fa-user" /> {par.FullName || par.UserName || par._id || par}
                     {par.Email && <span style={{ color: 'var(--text-muted)' }}>({par.Email})</span>}
                   </span>
                 ))}
@@ -201,7 +207,7 @@ const StudentProfilesPage = () => {
       {/* ═══ CREATE MODAL ═══ */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create Student Profile" size="md">
         <form onSubmit={handleCreate}>
-          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           <div className="modal-form-group">
             <label className="modal-label">User ID (Student)</label>
             <input className="modal-input" type="text" placeholder="MongoDB ObjectId of the student" required value={formData.userId} onChange={e => setFormData({ ...formData, userId: e.target.value })} />
@@ -219,14 +225,14 @@ const StudentProfilesPage = () => {
             <label className="modal-label">Notes</label>
             <textarea className="modal-textarea" placeholder="Any notes..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} />
           </div>
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : '➕ Create Profile'}</button>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : <><i className="fa-solid fa-plus" /> Create Profile</>}</button>
         </form>
       </Modal>
 
       {/* ═══ EDIT MODAL ═══ */}
       <Modal isOpen={!!editProfile} onClose={() => setEditProfile(null)} title={`Edit — ${editProfile?.user?.FullName || 'Profile'}`} size="md">
         <form onSubmit={handleUpdate}>
-          {formError && <div className="modal-error">⚠️ {formError}</div>}
+          {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           <div className="modal-form-group">
             <label className="modal-label">Parent IDs</label>
             <input className="modal-input" type="text" placeholder="parentId1, parentId2" value={formData.parents} onChange={e => setFormData({ ...formData, parents: e.target.value })} />
@@ -239,7 +245,7 @@ const StudentProfilesPage = () => {
             <label className="modal-label">Notes</label>
             <textarea className="modal-textarea" placeholder="Any notes..." value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} />
           </div>
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : '💾 Save Changes'}</button>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-info">{formLoading ? 'Saving...' : <><i className="fa-solid fa-floppy-disk" /> Save Changes</>}</button>
         </form>
       </Modal>
     </div>
