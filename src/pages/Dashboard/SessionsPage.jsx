@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
+import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
 /* ─── Warm Status Colors ─── */
@@ -176,6 +177,10 @@ const SessionsPage = () => {
   const [totalDocs, setTotalDocs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Date filter
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   // Expanded cards
   const [expandedIds, setExpandedIds] = useState(new Set());
 
@@ -195,6 +200,8 @@ const SessionsPage = () => {
       const base = role === 'instructor' ? '/api/v1/session/me' : (isAdmin ? '/api/v1/session' : '/api/v1/session/me');
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (statusFilter !== 'all') params.set('status', statusFilter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo)   params.set('dateTo',   dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.sessions || [];
       const sessionList = Array.isArray(list) ? list : [list];
@@ -232,7 +239,7 @@ const SessionsPage = () => {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { fetchSessions(); }, [page, limit, statusFilter]);
+  useEffect(() => { fetchSessions(); }, [page, limit, statusFilter, dateFrom, dateTo]);
   useEffect(() => { fetchStudentProfiles(); }, []);
 
   /* ── Toggle expand ── */
@@ -453,6 +460,15 @@ const SessionsPage = () => {
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           style={styles.searchInput}
+        />
+      </div>
+
+      {/* ═══ Date filter ═══ */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onChange={({ from, to }) => { setDateFrom(from); setDateTo(to); setPage(1); }}
         />
       </div>
 

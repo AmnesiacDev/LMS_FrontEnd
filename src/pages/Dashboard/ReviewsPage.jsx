@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
+import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 
 const emptyReviewForm = {
   session: '',
@@ -33,6 +34,10 @@ const ReviewsPage = () => {
   const [totalDocs, setTotalDocs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Date filter
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const [sessions, setSessions] = useState([]);
   const [studentProfiles, setStudentProfiles] = useState([]);
 
@@ -49,6 +54,8 @@ const ReviewsPage = () => {
         ? '/api/v1/sessionReview/me'
         : '/api/v1/sessionReview';
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo)   params.set('dateTo',   dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.reviews || data.data;
       const arr = Array.isArray(list) ? list : [];
@@ -58,7 +65,7 @@ const ReviewsPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, [role, request, page, limit]);
+  }, [role, request, page, limit, dateFrom, dateTo]);
 
   const fetchSessionsAndProfiles = useCallback(async () => {
     if (!isAdmin) return;
@@ -217,6 +224,15 @@ const ReviewsPage = () => {
 
       {loading && <p style={{ color: 'var(--text-muted)' }}>Loading reviews...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
+
+      {/* Date filter */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onChange={({ from, to }) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+        />
+      </div>
 
       {!loading && filteredReviews.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>

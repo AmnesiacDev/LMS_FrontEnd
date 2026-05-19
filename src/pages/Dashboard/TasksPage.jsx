@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
+import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
 
@@ -33,6 +34,10 @@ const TasksPage = () => {
   const [totalDocs, setTotalDocs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Date filter
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const [showCreate, setShowCreate] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [deleteTask, setDeleteTask] = useState(null);
@@ -53,6 +58,8 @@ const TasksPage = () => {
       const base = isAdmin ? '/api/v1/task' : '/api/v1/task/me';
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filter !== 'all') params.set('status', filter);
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo)   params.set('dateTo',   dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.tasks || data.data?.docs || [];
       setTasks(Array.isArray(list) ? list : [list]);
@@ -89,7 +96,7 @@ const TasksPage = () => {
   useEffect(() => {
     fetchTasks();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, filter]);
+  }, [page, limit, filter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchInstructorMeta();
@@ -287,7 +294,7 @@ const TasksPage = () => {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '0.4rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         {['all', 'pending', 'completed', 'canceled'].map(f => (
           <button key={f} onClick={() => { setFilter(f); setPage(1); }} style={{
             padding: '0.5rem 1rem', background: filter === f ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
@@ -317,6 +324,15 @@ const TasksPage = () => {
             <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontSize: '0.9rem', pointerEvents: 'none' }}><i className="fa-solid fa-magnifying-glass" /></span>
           </div>
         )}
+      </div>
+
+      {/* Date filter */}
+      <div style={{ marginBottom: '1.5rem' }}>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onChange={({ from, to }) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+        />
       </div>
 
       {loading && <SkeletonCardGrid count={6} minWidth={370} />}

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Pagination from '../../components/Pagination/Pagination';
+import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 
 const statusStyles = {
   Completed: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
@@ -46,11 +47,17 @@ const SubmissionsPage = () => {
   const [totalDocs, setTotalDocs] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
+  // Date filter
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
   const refetch = useCallback(async () => {
     try {
       setLoading(true);
       const base = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo)   params.set('dateTo',   dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.submissions || data.data || [];
       const arr = Array.isArray(list) ? list : [];
@@ -60,7 +67,7 @@ const SubmissionsPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  }, [role, request, page, limit]);
+  }, [role, request, page, limit, dateFrom, dateTo]);
 
   useEffect(() => { refetch(); }, [refetch]);
 
@@ -199,8 +206,16 @@ const SubmissionsPage = () => {
         )}
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading submissions...</p>}
-      {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
+      {/* Date filter */}
+      <div style={{ marginBottom: '1.25rem' }}>
+        <DateRangeFilter
+          from={dateFrom}
+          to={dateTo}
+          onChange={({ from, to }) => { setDateFrom(from); setDateTo(to); setPage(1); }}
+        />
+      </div>
+
+      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading submissions...</p>}      {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
       {actionError && <div className="modal-error" style={{ marginBottom: '1rem' }}>{actionError}</div>}
 
       {!loading && submissions.length === 0 && (
