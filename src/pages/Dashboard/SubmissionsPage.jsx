@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
+import { appendDateRange } from '../../utils/dateRangeParams';
 
 const statusStyles = {
   Completed: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
@@ -56,8 +57,7 @@ const SubmissionsPage = () => {
       setLoading(true);
       const base = (role === 'student' || role === 'parent') ? '/api/v1/submission/me' : '/api/v1/submission';
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-      if (dateFrom) params.set('dateFrom', dateFrom);
-      if (dateTo)   params.set('dateTo',   dateTo);
+      appendDateRange(params, 'createdAt', dateFrom, dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.submissions || data.data || [];
       const arr = Array.isArray(list) ? list : [];

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 
 const AuthContext = createContext();
@@ -45,7 +45,10 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(storedToken);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  // True while we're verifying/refreshing the stored token on first load.
+  // ProtectedRoute waits for this to be false before making auth decisions,
+  // which prevents a flash-redirect to /login on page refresh.
+  const [initializing, setInitializing] = useState(true);
   const refreshPromise = useRef(null);
   const refreshIntervalRef = useRef(null);
 
@@ -79,14 +82,14 @@ export const AuthProvider = ({ children }) => {
         }
 
         const data = await response.json();
-        
+
         if (data.status === 'success' && data.data?.token) {
           const newToken = data.data.token;
           setToken(newToken);
           localStorage.setItem('access-token', newToken);
           return true;
         }
-        
+
         clearAuth();
         return false;
       } catch (err) {
@@ -101,9 +104,8 @@ export const AuthProvider = ({ children }) => {
     return refreshPromise.current;
   }, [clearAuth]);
 
-  // Setup automatic refresh interval when we have a valid token
+  // Setup automatic refresh timer when we have a valid token
   const setupRefreshTimer = useCallback((currentToken) => {
-    // Clear any existing interval
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
@@ -114,11 +116,11 @@ export const AuthProvider = ({ children }) => {
     const payload = decodeJwtPayload(currentToken);
     if (!payload?.exp || !payload?.iat) return;
 
-    // Calculate when to refresh: at 80% of the token's lifetime
+    // Refresh at 80% of the token's lifetime
     const tokenLifetimeMs = (payload.exp - payload.iat) * 1000;
     const refreshAfterMs = tokenLifetimeMs * 0.8;
     const timeSinceIssued = Date.now() - payload.iat * 1000;
-    const timeUntilRefresh = Math.max(refreshAfterMs - timeSinceIssued, 10000); // At least 10s
+    const timeUntilRefresh = Math.max(refreshAfterMs - timeSinceIssued, 10000); // at least 10s
 
     logger.debug(`[Auth] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)}s`);
 
@@ -134,19 +136,58 @@ export const AuthProvider = ({ children }) => {
   // Ensure we have a valid token, refreshing if needed
   const ensureValidToken = useCallback(async () => {
     const currentToken = localStorage.getItem('access-token');
-    
+
     if (!currentToken) {
       return false;
     }
 
-    // If token is expired or about to expire (within 60s), try to refresh
     if (isTokenExpired(currentToken, 60000)) {
       logger.debug('[Auth] Token expired or expiring soon, refreshing...');
       return await refreshAccessToken();
     }
-    
+
     return true;
   }, [refreshAccessToken]);
+
+  // On mount: verify the stored token is still valid.
+  // If it's expired, attempt a silent refresh via the httpOnly cookie.
+  // This prevents a flash-redirect to /login when the user refreshes the page.
+  useEffect(() => {
+    let cancelled = false;
+
+    const checkAuth = async () => {
+      const currentToken = localStorage.getItem('access-token');
+
+      if (!currentToken) {
+        // No token at all — clear any stale user data and finish
+        setUser(null);
+        setInitializing(false);
+        return;
+      }
+
+      if (isTokenExpired(currentToken, 60000)) {
+        logger.debug('[Auth] Stored token expired on mount, attempting silent refresh...');
+        const refreshed = await refreshAccessToken();
+        if (!cancelled) {
+          if (!refreshed) {
+            // Refresh failed — clear stale user so ProtectedRoute redirects correctly
+            setUser(null);
+          }
+          setInitializing(false);
+        }
+      } else {
+        // Token is still valid — nothing to do
+        if (!cancelled) setInitializing(false);
+      }
+    };
+
+    checkAuth();
+
+    return () => {
+      cancelled = true;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // intentionally runs once on mount only
 
   // Sync token to localStorage and setup refresh timer
   useEffect(() => {
@@ -183,16 +224,16 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password }),
       });
-      
+
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
         throw new Error(data.message || 'Login failed');
       }
-      
+
       const data = await response.json();
-      
+
       // Backend returns: { status: "success", data: { user, token } }
       const loggedInUser = data.data?.user;
       const accessToken = data.data?.token || data.token;
@@ -222,7 +263,7 @@ export const AuthProvider = ({ children }) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify(formData)
+        body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
@@ -257,21 +298,24 @@ export const AuthProvider = ({ children }) => {
       await fetch('/api/v1/auth/logout', {
         method: 'GET',
         credentials: 'include',
-        headers: currentToken ? { 'Authorization': `Bearer ${currentToken}` } : {},
+        headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},
       });
-    } catch (e) {}
+    } catch {
+      // ignore — we always clear local state regardless
+    }
     clearAuth();
   }, [clearAuth]);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      token, 
-      loading, 
-      error, 
-      login, 
-      signup, 
-      logout, 
+    <AuthContext.Provider value={{
+      user,
+      token,
+      loading,
+      error,
+      initializing,
+      login,
+      signup,
+      logout,
       setError,
       refreshToken: refreshAccessToken,
       ensureValidToken,

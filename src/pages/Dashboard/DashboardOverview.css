@@ -276,7 +276,7 @@
 }
 
 .task-item.overdue {
-  border-left-color: var(--error);
+  border-left-color: #2563EB;
 }
 
 .task-item.upcoming {
@@ -324,7 +324,7 @@
 
 .overdue .task-status {
   color: #FFFFFF;
-  background: var(--error);
+  background: #2563EB;
 }
 
 .upcoming .task-status {

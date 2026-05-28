@@ -31,6 +31,7 @@ import MessagesPage from './pages/Dashboard/MessagesPage';
 import AnnouncementsPage from './pages/Dashboard/AnnouncementsPage';
 import AuditLogsPage from './pages/Dashboard/AuditLogsPage';
 import AccountProfilePage from './pages/Dashboard/AccountProfilePage';
+import WeeklySchedulePage from './pages/Dashboard/WeeklySchedulePage';
 
 function App() {
   return (
@@ -146,6 +147,12 @@ function App() {
                 <Route path="messages/:userId" element={
                   <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
                     <MessagesPage />
+                  </ProtectedRoute>
+                } />
+
+                <Route path="schedule" element={
+                  <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
+                    <WeeklySchedulePage />
                   </ProtectedRoute>
                 } />
 

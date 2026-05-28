@@ -1,10 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { appendDateRange } from '../../utils/dateRangeParams';
 
 /* ─── Warm Status Colors ─── */
 const statusColor = (s) => {
@@ -194,14 +195,13 @@ const SessionsPage = () => {
   const emptyForm = { title: '', description: '', studentProfileId: '', instructorId: '', date: '', notes: '', summary: '', status: 'pending', StudentAttended: true };
   const [formData, setFormData] = useState(emptyForm);
 
-  const fetchSessions = async () => {
+  const fetchSessions = useCallback(async () => {
     try {
       setLoading(true);
       const base = role === 'instructor' ? '/api/v1/session/me' : (isAdmin ? '/api/v1/session' : '/api/v1/session/me');
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (statusFilter !== 'all') params.set('status', statusFilter);
-      if (dateFrom) params.set('dateFrom', dateFrom);
-      if (dateTo)   params.set('dateTo',   dateTo);
+      appendDateRange(params, 'date', dateFrom, dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.docs || data.data?.sessions || [];
       const sessionList = Array.isArray(list) ? list : [list];
@@ -226,9 +226,9 @@ const SessionsPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  };
+  }, [role, isAdmin, page, limit, statusFilter, dateFrom, dateTo, request]);
 
-  const fetchStudentProfiles = async () => {
+  const fetchStudentProfiles = useCallback(async () => {
     // Instructors get their students from sessions (derived above), admins fetch all
     if (role === 'instructor') return;
     if (!isAdmin) return;
@@ -237,10 +237,10 @@ const SessionsPage = () => {
       const list = data.data?.profiles || data.data?.docs || data.data;
       setStudentProfiles(Array.isArray(list) ? list : []);
     } catch { /* ignore */ }
-  };
+  }, [role, isAdmin, request]);
 
-  useEffect(() => { fetchSessions(); }, [page, limit, statusFilter, dateFrom, dateTo]);
-  useEffect(() => { fetchStudentProfiles(); }, []);
+  useEffect(() => { fetchSessions(); }, [fetchSessions]);
+  useEffect(() => { fetchStudentProfiles(); }, [fetchStudentProfiles]);
 
   /* ── Toggle expand ── */
   const toggleExpand = (id) => {

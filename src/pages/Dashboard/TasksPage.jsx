@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
@@ -6,6 +6,7 @@ import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { appendDateRange } from '../../utils/dateRangeParams';
 
 const statusColor = (s) => {
   if (s === 'completed') return '#10b981';
@@ -52,14 +53,13 @@ const TasksPage = () => {
   const [submissionLinks, setSubmissionLinks] = useState([{ name: '', url: '' }]);
   const [submissionNote, setSubmissionNote] = useState('');
 
-  const fetchTasks = async () => {
+  const fetchTasks = useCallback(async () => {
     try {
       setLoading(true);
       const base = isAdmin ? '/api/v1/task' : '/api/v1/task/me';
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
       if (filter !== 'all') params.set('status', filter);
-      if (dateFrom) params.set('dateFrom', dateFrom);
-      if (dateTo)   params.set('dateTo',   dateTo);
+      appendDateRange(params, 'dueDate', dateFrom, dateTo);
       const data = await request(`${base}?${params.toString()}`);
       const list = data.data?.tasks || data.data?.docs || [];
       setTasks(Array.isArray(list) ? list : [list]);
@@ -68,10 +68,10 @@ const TasksPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  };
+  }, [isAdmin, page, limit, filter, dateFrom, dateTo, request]);
 
   // Instructors: load their own sessions + derive unique students from them
-  const fetchInstructorMeta = async () => {
+  const fetchInstructorMeta = useCallback(async () => {
     if (role !== 'instructor') return;
     try {
       const sessData = await request('/api/v1/session/me');
@@ -91,17 +91,11 @@ const TasksPage = () => {
       });
       setMyStudents(students);
     } catch { /* non-critical */ }
-  };
+  }, [role, request]);
 
-  useEffect(() => {
-    fetchTasks();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, filter, dateFrom, dateTo]);
+  useEffect(() => { fetchTasks(); }, [fetchTasks]);
 
-  useEffect(() => {
-    fetchInstructorMeta();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  useEffect(() => { fetchInstructorMeta(); }, [fetchInstructorMeta]);
 
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);

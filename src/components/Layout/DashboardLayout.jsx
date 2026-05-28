@@ -11,6 +11,7 @@ import './DashboardLayout.css';
 const navConfig = {
   student: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'My Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'My Tasks' },
     { to: '/dashboard/submissions', icon: 'fa-solid fa-paper-plane', label: 'Submissions' },
@@ -22,6 +23,7 @@ const navConfig = {
   ],
   parent: [
     { to: '/dashboard', icon: 'fa-solid fa-children', label: 'Children', end: true },
+    { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
     { to: '/dashboard/submissions', icon: 'fa-solid fa-paper-plane', label: 'Submissions' },
@@ -33,6 +35,7 @@ const navConfig = {
   ],
   instructor: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
     { to: '/dashboard/submissions', icon: 'fa-solid fa-inbox', label: 'Submissions' },
@@ -44,6 +47,7 @@ const navConfig = {
   ],
   admin: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/users', icon: 'fa-solid fa-users', label: 'Users' },
     { to: '/dashboard/profiles', icon: 'fa-solid fa-id-card', label: 'Student Profiles' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },

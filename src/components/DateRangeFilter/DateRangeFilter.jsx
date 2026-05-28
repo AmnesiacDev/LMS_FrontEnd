@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 /**
  * DateRangeFilter
@@ -35,11 +35,14 @@ const getPreset = (key) => {
       const day = now.getDay(); // 0=Sun
       const mon = new Date(now);
       mon.setDate(now.getDate() - ((day + 6) % 7));
-      return { from: toDateInput(mon), to: toDateInput(now) };
+      const sun = new Date(mon);
+      sun.setDate(mon.getDate() + 6);
+      return { from: toDateInput(mon), to: toDateInput(sun) };
     }
     case 'month': {
       const first = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { from: toDateInput(first), to: toDateInput(now) };
+      const last  = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      return { from: toDateInput(first), to: toDateInput(last) };
     }
     case 'lastMonth': {
       const first = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -67,24 +70,43 @@ const inputStyle = {
 
 const DateRangeFilter = ({ from = '', to = '', onChange, onClear }) => {
   const [activePreset, setActivePreset] = useState(null);
+  // Track whether the last change came from inside this component (preset/input)
+  // so we don't clear activePreset on our own onChange echo-back.
+  const internalChange = useRef(false);
+
+  // If the parent resets from/to to '' externally (e.g. a "clear all filters" button),
+  // clear the active preset highlight so the UI stays in sync.
+  useEffect(() => {
+    if (internalChange.current) {
+      internalChange.current = false;
+      return;
+    }
+    if (!from && !to) {
+      setActivePreset(null);
+    }
+  }, [from, to]);
 
   const handlePreset = (key) => {
     const range = getPreset(key);
+    internalChange.current = true;
     setActivePreset(key);
     onChange(range);
   };
 
   const handleFrom = (e) => {
+    internalChange.current = true;
     setActivePreset(null);
     onChange({ from: e.target.value, to });
   };
 
   const handleTo = (e) => {
+    internalChange.current = true;
     setActivePreset(null);
     onChange({ from, to: e.target.value });
   };
 
   const handleClear = () => {
+    internalChange.current = true;
     setActivePreset(null);
     onClear?.();
     onChange({ from: '', to: '' });
