@@ -17,7 +17,7 @@ const statusColor = (s) => {
 const TasksPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { request } = useApiRequest();
+  const { request, requestFormData } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
   const isStudent = role === 'student';
@@ -52,6 +52,7 @@ const TasksPage = () => {
   
   const [submissionLinks, setSubmissionLinks] = useState([{ name: '', url: '' }]);
   const [submissionNote, setSubmissionNote] = useState('');
+  const [submissionFiles, setSubmissionFiles] = useState([]);
 
   const fetchTasks = useCallback(async () => {
     try {
@@ -125,12 +126,19 @@ const TasksPage = () => {
     finally { setFormLoading(false); }
   };
 
+  const resetSubmitModal = () => {
+    setSubmitTask(null);
+    setSubmissionLinks([{ name: '', url: '' }]);
+    setSubmissionNote('');
+    setSubmissionFiles([]);
+  };
+
   const handleSubmitTask = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
       const validLinks = submissionLinks.filter(l => l.url.trim());
-      if (validLinks.length === 0) {
-        setFormError('Please add at least one URL');
+      if (validLinks.length === 0 && submissionFiles.length === 0) {
+        setFormError('Please add at least one link or file');
         setFormLoading(false);
         return;
       }
@@ -139,7 +147,7 @@ const TasksPage = () => {
         name: l.name.trim() || 'Submission',
         url: l.url.trim(),
       }));
-      
+
       // Backend expects studentProfileId when we already have the profile id on the task.
       const payload = {
         taskId: submitTask._id,
@@ -147,11 +155,27 @@ const TasksPage = () => {
         Task_links: normalizedLinks,
         note: submissionNote,
       };
-      
-      await request('/api/v1/submission', 'POST', payload);
-      setSubmitTask(null);
-      setSubmissionLinks([{ name: '', url: '' }]);
-      setSubmissionNote('');
+
+      const created = await request('/api/v1/submission', 'POST', payload);
+      const submissionId = created?.data?.submission?._id;
+
+      // Upload any attached files to the freshly created submission.
+      if (submissionId && submissionFiles.length > 0) {
+        const fd = new FormData();
+        submissionFiles.forEach(f => fd.append('files', f));
+        try {
+          await requestFormData(`/api/v1/submission/${submissionId}/files`, 'POST', fd);
+        } catch (fileErr) {
+          // The submission was created; only the file upload failed. Don't trap
+          // the student in the modal (re-submitting would 400 "already exists").
+          resetSubmitModal();
+          await fetchTasks();
+          alert(`Task submitted, but file upload failed: ${fileErr.message}\nYou can still add files from the Submissions page.`);
+          return;
+        }
+      }
+
+      resetSubmitModal();
       await fetchTasks();
     } catch (err) { setFormError(err.message); }
     finally { setFormLoading(false); }
@@ -177,6 +201,7 @@ const TasksPage = () => {
   const openSubmit = (t) => {
     setSubmissionLinks([{ name: '', url: '' }]);
     setSubmissionNote('');
+    setSubmissionFiles([]);
     setFormError(null);
     setSubmitTask(t);
   };
@@ -188,6 +213,19 @@ const TasksPage = () => {
   const updateSubmissionLink = (i, field, value) => { const u = [...submissionLinks]; u[i] = { ...u[i], [field]: value }; setSubmissionLinks(u); };
   const addSubmissionLink = () => setSubmissionLinks([...submissionLinks, { name: '', url: '' }]);
   const removeSubmissionLink = (i) => { const u = submissionLinks.filter((_, idx) => idx !== i); setSubmissionLinks(u.length ? u : [{ name: '', url: '' }]); };
+
+  const MAX_SUBMISSION_FILES = 5;
+  const addSubmissionFiles = (fileList) => {
+    const picked = Array.from(fileList || []);
+    if (picked.length === 0) return;
+    setSubmissionFiles(prev => {
+      const combined = [...prev, ...picked];
+      if (combined.length > MAX_SUBMISSION_FILES) setFormError(`You can attach up to ${MAX_SUBMISSION_FILES} files.`);
+      return combined.slice(0, MAX_SUBMISSION_FILES);
+    });
+  };
+  const removeSubmissionFile = (i) => setSubmissionFiles(prev => prev.filter((_, idx) => idx !== i));
+  const formatFileSize = (bytes) => bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 
   const filteredTasks = tasks.filter(t => {
     if (filter !== 'all' && t.status !== filter) return false;
@@ -340,7 +378,7 @@ const TasksPage = () => {
               <h3 style={{ fontSize: '1.1rem', margin: 0, flex: 1 }}>{task.title}</h3>
               <span className="modal-badge" style={{ background: statusColor(task.status) + '18', color: statusColor(task.status), textTransform: 'capitalize', marginLeft: '0.5rem' }}>{task.status}</span>
             </div>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0 }}>{task.description}</p>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', margin: 0, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden', wordBreak: 'break-word' }}>{task.description}</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.2rem', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
               <span><i className="fa-solid fa-calendar-days" style={{ color: '#6366f1', marginRight: '0.3rem' }} />Due: <strong style={{ color: isOverdue(task.dueDate) && task.status !== 'completed' ? '#ef4444' : 'var(--text-primary)' }}>{task.dueDate ? new Date(task.dueDate).toLocaleString() : 'N/A'}</strong></span>
               {task.sessionId?.title && <span><i className="fa-solid fa-book-open" style={{ color: '#3b82f6', marginRight: '0.3rem' }} />{task.sessionId.title}</span>}
@@ -418,14 +456,14 @@ const TasksPage = () => {
       </Modal>
 
       {/* SUBMIT MODAL */}
-      <Modal isOpen={!!submitTask} onClose={() => setSubmitTask(null)} title={`Submit — ${submitTask?.title}`} size="lg">
+      <Modal isOpen={!!submitTask} onClose={resetSubmitModal} title={`Submit — ${submitTask?.title}`} size="lg">
         <form onSubmit={handleSubmitTask}>
           <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.95rem' }}>
-            Submit your completed work by adding links to your project, GitHub repo, or any other resource.
+            Submit your completed work by adding links (project, GitHub repo, etc.) and/or attaching files.
           </p>
-          
+
           {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
-          
+
           <div className="modal-form-group">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
               <label className="modal-label" style={{ margin: 0 }}>Submission Links</label>
@@ -439,12 +477,55 @@ const TasksPage = () => {
               </div>
             ))}
           </div>
-          
+
+          <div className="modal-form-group">
+            <label className="modal-label">Attach Files (Optional)</label>
+            <label style={{
+              display: 'flex', alignItems: 'center', gap: '0.75rem', padding: '0.65rem 1rem',
+              background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+              borderRadius: 'var(--radius-sm)', cursor: submissionFiles.length >= MAX_SUBMISSION_FILES ? 'not-allowed' : 'pointer',
+              boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease',
+              opacity: submissionFiles.length >= MAX_SUBMISSION_FILES ? 0.6 : 1,
+            }}>
+              <span style={{
+                display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.35rem 0.75rem',
+                background: 'var(--brand-primary)', color: '#fff', border: '2px solid var(--border-color)',
+                borderRadius: 'var(--radius-sm)', fontWeight: 700, fontSize: '0.78rem',
+                textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap',
+              }}><i className="fa-solid fa-paperclip" /> Choose Files</span>
+              <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                {submissionFiles.length > 0 ? `${submissionFiles.length} of ${MAX_SUBMISSION_FILES} selected` : 'Select one or more files'}
+              </span>
+              <input
+                type="file"
+                multiple
+                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
+                disabled={submissionFiles.length >= MAX_SUBMISSION_FILES}
+                onChange={(e) => { addSubmissionFiles(e.target.files); e.target.value = ''; }}
+                style={{ display: 'none' }}
+              />
+            </label>
+            <p className="modal-hint">Up to {MAX_SUBMISSION_FILES} files, 10MB each. Images, PDFs, and videos are supported.</p>
+            {submissionFiles.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
+                {submissionFiles.map((file, i) => (
+                  <div key={`${file.name}-${i}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', padding: '0.5rem 0.75rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)' }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.85rem', fontWeight: 600, minWidth: 0 }}>
+                      <i className="fa-solid fa-file" style={{ color: 'var(--brand-primary)', marginRight: '0.4rem' }} />{file.name}
+                      <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}> · {formatFileSize(file.size)}</span>
+                    </span>
+                    <button type="button" onClick={() => removeSubmissionFile(i)} className="modal-link-remove">✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="modal-form-group">
             <label className="modal-label">Notes (Optional)</label>
             <textarea className="modal-textarea" placeholder="Any additional notes about your submission..." value={submissionNote} onChange={e => setSubmissionNote(e.target.value)} style={{ minHeight: '80px' }} />
           </div>
-          
+
           <button type="submit" disabled={formLoading} className="modal-btn modal-btn-success" style={{ marginTop: '0.5rem' }}>
             {formLoading ? 'Submitting...' : <><i className="fa-solid fa-circle-check" /> Submit Task</>}
           </button>

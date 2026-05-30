@@ -111,7 +111,7 @@ const styles = {
     cursor: 'pointer',
   }),
   actionBtns: { display: 'flex', gap: '0.35rem' },
-  actionBtn: (color) => ({
+  actionBtn: () => ({
     padding: '0.3rem 0.5rem', background: 'var(--bg-tertiary)',
     color: 'var(--text-primary)', border: '2px solid var(--border-color)',
     borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem',
@@ -153,6 +153,32 @@ const styles = {
     borderRadius: 'var(--radius-sm)', fontSize: '0.88rem', color: 'var(--text-secondary)',
     lineHeight: 1.5,
   },
+
+  /* ── AI Summary ── */
+  aiSection: {
+    marginBottom: '1rem', padding: '1rem', background: 'var(--card-bg)',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
+  aiHeader: {
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap',
+  },
+  aiText: {
+    whiteSpace: 'pre-wrap', fontSize: '0.88rem', color: 'var(--text-secondary)',
+    lineHeight: 1.55, margin: 0,
+  },
+  aiMeta: {
+    fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600, margin: '0.6rem 0 0',
+  },
+  aiBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.4rem',
+    padding: '0.4rem 0.85rem', background: 'var(--brand-primary)', color: '#fff',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontWeight: 700, fontSize: '0.75rem', textTransform: 'uppercase',
+    letterSpacing: '0.04em', boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+    whiteSpace: 'nowrap', fontFamily: 'var(--font-body)',
+  },
 };
 
 const SessionsPage = () => {
@@ -185,10 +211,13 @@ const SessionsPage = () => {
   // Expanded cards
   const [expandedIds, setExpandedIds] = useState(new Set());
 
+  // AI summary generation (instructor/admin)
+  const [aiLoadingId, setAiLoadingId] = useState(null);
+  const [aiErrors, setAiErrors] = useState({});
+
   const [showCreate, setShowCreate] = useState(false);
   const [editSession, setEditSession] = useState(null);
   const [deleteSession, setDeleteSession] = useState(null);
-  const [viewSession, setViewSession] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
@@ -250,6 +279,22 @@ const SessionsPage = () => {
       else next.add(id);
       return next;
     });
+  };
+
+  /* ── Generate / regenerate AI summary (instructor own + admin) ── */
+  const handleGenerateAiSummary = async (session) => {
+    setAiLoadingId(session._id);
+    setAiErrors(prev => ({ ...prev, [session._id]: null }));
+    try {
+      const data = await request(`/api/v1/session/${session._id}/ai-summary`, 'POST');
+      const aiSummary = data.data?.aiSummary;
+      // Patch the freshly generated summary into local state so it renders immediately.
+      setSessions(prev => prev.map(s => (s._id === session._id ? { ...s, aiSummary } : s)));
+    } catch (err) {
+      setAiErrors(prev => ({ ...prev, [session._id]: err.message }));
+    } finally {
+      setAiLoadingId(null);
+    }
   };
 
   /* ── Filtered sessions ── */
@@ -494,6 +539,10 @@ const SessionsPage = () => {
           const hasSummary = !!session.summary;
           const hasNotes = !!session.notes;
           const hasContent = hasLinks || hasVideos || hasSummary || hasNotes;
+          const aiSummary = session.aiSummary;
+          const hasAi = !!aiSummary?.text;
+          const aiBusy = aiLoadingId === session._id;
+          const aiErr = aiErrors[session._id];
 
           return (
             <div 
@@ -564,6 +613,51 @@ const SessionsPage = () => {
               {/* ── Expanded Dropdown Content ── */}
               {isExpanded && (
                 <div style={styles.expandedContent}>
+                  {/* ── AI Session Summary (read-only for all; instructor/admin can generate) ── */}
+                  <div style={styles.aiSection}>
+                    <div style={styles.aiHeader}>
+                      <p style={{ ...styles.sectionTitle, margin: 0 }}>
+                        <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#8b5cf6' }} /> AI Session Summary
+                      </p>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={aiBusy}
+                          onClick={(e) => { e.stopPropagation(); handleGenerateAiSummary(session); }}
+                          style={{ ...styles.aiBtn, opacity: aiBusy ? 0.6 : 1, cursor: aiBusy ? 'not-allowed' : 'pointer' }}
+                        >
+                          {aiBusy
+                            ? <><i className="fa-solid fa-spinner fa-spin" /> Generating…</>
+                            : hasAi
+                              ? <><i className="fa-solid fa-rotate" /> Regenerate</>
+                              : <><i className="fa-solid fa-wand-magic-sparkles" /> Generate Summary</>}
+                        </button>
+                      )}
+                    </div>
+
+                    {aiErr && (
+                      <div className="modal-error" style={{ marginBottom: hasAi ? '0.75rem' : 0 }}>
+                        <i className="fa-solid fa-triangle-exclamation" /> {aiErr}
+                      </div>
+                    )}
+
+                    {hasAi ? (
+                      <>
+                        <p style={styles.aiText}>{aiSummary.text}</p>
+                        <p style={styles.aiMeta}>
+                          <i className="fa-solid fa-robot" /> {aiSummary.model || 'AI'}
+                          {aiSummary.generatedAt ? ` · ${new Date(aiSummary.generatedAt).toLocaleString()}` : ''}
+                        </p>
+                      </>
+                    ) : (
+                      !aiErr && (
+                        <p style={styles.emptyState}>
+                          {isAdmin ? 'No summary yet — generate a parent-friendly recap from this session.' : 'No summary yet.'}
+                        </p>
+                      )
+                    )}
+                  </div>
+
                   {!hasContent ? (
                     <p style={styles.emptyState}>No additional resources attached to this session.</p>
                   ) : (

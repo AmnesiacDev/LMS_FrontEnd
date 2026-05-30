@@ -544,14 +544,24 @@ const ChildDetailsPage = () => {
           {childSessions.length === 0 ? <p style={{ color: 'var(--text-muted)' }}>No sessions loaded yet.</p> : (
             <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '1rem' }}>
               {childSessions.map(s => (
-                <div key={s._id} className="glass-panel" style={{ padding: '1.25rem', borderRadius: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.1rem' }}>{s.title || 'Untitled Session'}</h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>📅 {s.date ? new Date(s.date).toLocaleDateString() : 'No date'}</p>
+                <div key={s._id} className="glass-panel" style={{ padding: '1.25rem', borderRadius: '0.75rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '1rem' }}>
+                    <div>
+                      <h3 style={{ margin: '0 0 0.3rem', fontSize: '1.1rem' }}>{s.title || 'Untitled Session'}</h3>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>📅 {s.date ? new Date(s.date).toLocaleDateString() : 'No date'}</p>
+                    </div>
+                    <span style={{ padding: '0.3rem 0.75rem', background: s.StudentAttended ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: s.StudentAttended ? 'var(--success)' : 'var(--error)', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '600' }}>
+                      {s.StudentAttended ? '✅ Attended' : '❌ Missed'}
+                    </span>
                   </div>
-                  <span style={{ padding: '0.3rem 0.75rem', background: s.StudentAttended ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: s.StudentAttended ? 'var(--success)' : 'var(--error)', borderRadius: '100px', fontSize: '0.8rem', fontWeight: '600' }}>
-                    {s.StudentAttended ? '✅ Attended' : '❌ Missed'}
-                  </span>
+                  {s.aiSummary?.text && (
+                    <div style={{ marginTop: '0.85rem', paddingTop: '0.85rem', borderTop: '1px solid var(--border-color)' }}>
+                      <p style={{ margin: '0 0 0.4rem', fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>
+                        <i className="fa-solid fa-wand-magic-sparkles" style={{ color: '#8b5cf6', marginRight: '0.35rem' }} />AI Summary
+                      </p>
+                      <p style={{ margin: 0, whiteSpace: 'pre-wrap', fontSize: '0.85rem', lineHeight: 1.55, color: 'var(--text-secondary)' }}>{s.aiSummary.text}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -22,7 +22,12 @@ const PRESETS = [
   { label: 'Last Month', key: 'lastMonth' },
 ];
 
-const toDateInput = (d) => d.toISOString().slice(0, 10);
+const toDateInput = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const getPreset = (key) => {
   const now = new Date();

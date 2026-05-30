@@ -25,10 +25,12 @@ export default defineConfig({
     rollupOptions: {
       output: {
         // Split vendor code so users don't re-download React on every deploy
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-charts': ['recharts'],
-          'vendor-icons': ['lucide-react'],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('react') || id.includes('react-router-dom')) return 'vendor-react';
+          if (id.includes('recharts')) return 'vendor-charts';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          return undefined;
         },
       },
     },
