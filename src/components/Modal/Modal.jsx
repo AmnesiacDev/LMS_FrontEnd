@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useId, useRef } from 'react';
 import './Modal.css';
 
 /**
@@ -22,6 +22,14 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
   const panelRef = useRef(null);
   const previouslyFocused = useRef(null);
 
+  // Keep the latest onClose in a ref so the open/close effect below doesn't
+  // depend on its identity. Parents pass an inline `() => setX(false)`, which is
+  // a new function every render; if the effect depended on it, every keystroke
+  // (which re-renders the parent form) would re-run the effect and its cleanup
+  // would steal focus out of the input. See the focus restore in the cleanup.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -30,7 +38,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose?.();
+        onCloseRef.current?.();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -66,12 +74,13 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
       document.body.style.overflow = prevOverflow;
       previouslyFocused.current?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
+
+  const titleId = useId();
 
   if (!isOpen) return null;
 
   const sizeClass = `modal-${size}`;
-  const titleId = `modal-title-${Math.random().toString(36).slice(2, 8)}`;
 
   return (
     <div className="modal-overlay" onClick={onClose}>

@@ -14,6 +14,8 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { safeUrl } from '../../utils/safeUrl';
+import { SkeletonCardList } from '../../components/Skeleton/Skeleton';
 
 const hwStatusStyles = {
   Completed: { bg: 'rgba(16,185,129,0.1)', color: '#10b981', label: 'Submitted' },
@@ -521,7 +523,7 @@ const ExternalCoursesPage = () => {
               {hw.submissionLinks.map((link, index) => (
                 <a
                   key={`${link.url}-${index}`}
-                  href={link.url}
+                  href={safeUrl(link.url)}
                   target="_blank"
                   rel="noreferrer"
                   className="modal-chip"
@@ -837,7 +839,7 @@ const ExternalCoursesPage = () => {
       {renderProfileSelector()}
       {renderStatusFilters()}
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading courses and homework...</p>}
+      {loading && <SkeletonCardList count={3} height={180} />}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       {!loading && !visibleCourses.length && !uncategorizedHomeworks.length && (

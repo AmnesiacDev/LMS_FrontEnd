@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import useFetchData from '../../hooks/useFetchData';
+import { Skeleton } from '../../components/Skeleton/Skeleton';
 
 /* ─── Neo-Brutalist Inline Styles ─── */
 const s = {
@@ -300,7 +301,13 @@ const MessagesPage = () => {
               {/* Messages */}
               <div style={s.msgArea}>
                 {loadingMsgs ? (
-                  <p style={{ color: 'var(--text-muted)', textAlign: 'center' }}>Loading messages...</p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '0.5rem 0' }} aria-hidden="true">
+                    {[false, true, false, true, false].map((mine, i) => (
+                      <div key={i} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+                        <Skeleton width={`${45 + (i % 3) * 12}%`} height="2.2rem" style={{ borderRadius: '14px', maxWidth: '70%' }} />
+                      </div>
+                    ))}
+                  </div>
                 ) : messages.length === 0 ? (
                   <div style={{ ...s.emptyChat, flex: 'unset', padding: '3rem 0' }}>
                     <span style={{ fontSize: '2rem' }}>👋</span>

@@ -4,6 +4,8 @@ import { useApiRequest } from '../../hooks/useApiRequest';
 import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { appendDateRange } from '../../utils/dateRangeParams';
+import { safeUrl } from '../../utils/safeUrl';
+import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 
 const statusStyles = {
   Completed: { bg: 'rgba(16,185,129,0.1)', color: 'var(--success)' },
@@ -18,8 +20,6 @@ const SubmissionsPage = () => {
   const { request, requestFormData } = useApiRequest();
   const role = user?.role || 'student';
   const isAdmin = role === 'admin' || role === 'instructor';
-  const isParent = role === 'parent';
-  const canFilterByStudent = isAdmin || isParent;
   const canUpload = role === 'student';
   const canDeleteFiles = role === 'student' || role === 'instructor' || role === 'admin';
 
@@ -215,7 +215,8 @@ const SubmissionsPage = () => {
         />
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading submissions...</p>}      {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
+      {loading && <SkeletonCardGrid count={6} minWidth={360} />}
+      {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
       {actionError && <div className="modal-error" style={{ marginBottom: '1rem' }}>{actionError}</div>}
 
       {!loading && submissions.length === 0 && (
@@ -321,7 +322,7 @@ const SubmissionsPage = () => {
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                     {links.map((link, index) => (
-                      <a key={`${link.url}-${index}`} href={link.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
+                      <a key={`${link.url}-${index}`} href={safeUrl(link.url)} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
                         {link.name || link.url}
                       </a>
                     ))}
@@ -337,7 +338,7 @@ const SubmissionsPage = () => {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                     {attachments.map((file) => (
                       <div key={file.publicId || file.url} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', alignItems: 'center', padding: '0.6rem', background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-sm)' }}>
-                        <a href={file.url} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        <a href={safeUrl(file.url)} target="_blank" rel="noreferrer" style={{ color: 'var(--brand-primary)', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                           {file.name || file.format || 'Attachment'}
                         </a>
                         {canDeleteFiles && file.publicId && (
@@ -373,13 +374,13 @@ const SubmissionsPage = () => {
                     <input
                       type="file"
                       multiple
-                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
+                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*,.mblok,.sb3"
                       disabled={uploadingId === sub._id}
                       onChange={(event) => handleUpload(sub._id, event.target.files)}
                       style={{ display: 'none' }}
                     />
                   </label>
-                  <p className="modal-hint">Up to 5 files, 10MB each. Images, PDFs, and videos are supported.</p>
+                  <p className="modal-hint">Up to 5 files, 10MB each. Images, PDFs, videos, and Scratch/mBlock projects (.sb3, .mblok) are supported.</p>
                   {uploadingId === sub._id && <p style={{ color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.85rem' }}>Uploading...</p>}
                 </div>
               )}

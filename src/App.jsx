@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -85,7 +85,7 @@ function App() {
                 } />
 
                 <Route path="reviews" element={
-                  <ProtectedRoute allowedRoles={['instructor', 'admin']}>
+                  <ProtectedRoute allowedRoles={['student', 'instructor', 'admin']}>
                     <ReviewsPage />
                   </ProtectedRoute>
                 } />

@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { SkeletonTableRows } from '../../components/Skeleton/Skeleton';
 
 const roleBadge = (role) => {
   const colors = {
@@ -114,7 +115,6 @@ const UsersPage = () => {
         </button>
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading users...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       {/* Users Table */}
@@ -128,7 +128,8 @@ const UsersPage = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map(u => {
+            {loading && <SkeletonTableRows rows={8} cols={6} />}
+            {!loading && users.map(u => {
               const initials = (u.FullName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
               return (
                 <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={e => e.currentTarget.style.background = ''}>

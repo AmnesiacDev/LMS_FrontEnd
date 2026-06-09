@@ -6,6 +6,8 @@ import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { appendDateRange } from '../../utils/dateRangeParams';
+import { safeUrl } from '../../utils/safeUrl';
+import { SkeletonCardList } from '../../components/Skeleton/Skeleton';
 
 /* ─── Warm Status Colors ─── */
 const statusColor = (s) => {
@@ -90,8 +92,32 @@ const styles = {
     margin: '0 0 0.3rem', color: 'var(--text-primary)',
   },
   cardDesc: { color: 'var(--text-secondary)', fontSize: '0.88rem', margin: '0 0 0.5rem', lineHeight: 1.4 },
-  metaRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600 },
+  metaRow: { display: 'flex', gap: '1rem', flexWrap: 'wrap', fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 600, alignItems: 'center' },
   metaItem: { display: 'inline-flex', alignItems: 'center', gap: '0.3rem' },
+  joinBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    padding: '0.25rem 0.7rem', background: 'var(--success, #10b981)', color: '#FFFFFF',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.04em', textDecoration: 'none',
+    boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
+  joinBtnDisabled: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    padding: '0.25rem 0.7rem', background: 'var(--bg-tertiary)', color: 'var(--text-muted)',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.04em', textDecoration: 'none',
+    cursor: 'not-allowed', opacity: 0.7, font: 'inherit',
+  },
+  endBtn: {
+    display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+    padding: '0.25rem 0.7rem', background: 'var(--error, #ef4444)', color: '#FFFFFF',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    fontSize: '0.72rem', fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.04em', cursor: 'pointer', font: 'inherit',
+    boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
   cardRight: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem', flexShrink: 0 },
   statusBadge: (status) => {
     const c = statusColor(status);
@@ -218,10 +244,11 @@ const SessionsPage = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [editSession, setEditSession] = useState(null);
   const [deleteSession, setDeleteSession] = useState(null);
+  const [endSession, setEndSession] = useState(null);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  const emptyForm = { title: '', description: '', studentProfileId: '', instructorId: '', date: '', notes: '', summary: '', status: 'pending', StudentAttended: true };
+  const emptyForm = { title: '', description: '', studentProfileId: '', instructorId: '', date: '', meetingLink: '', notes: '', summary: '', status: 'pending', StudentAttended: true };
   const [formData, setFormData] = useState(emptyForm);
 
   const fetchSessions = useCallback(async () => {
@@ -322,6 +349,7 @@ const SessionsPage = () => {
       const payload = { title: formData.title, description: formData.description, studentProfileId: formData.studentProfileId, instructorId: formData.instructorId, date: formData.date, StudentAttended: formData.StudentAttended };
       if (formData.notes) payload.notes = formData.notes;
       if (formData.summary) payload.summary = formData.summary;
+      if (formData.meetingLink) payload.meetingLink = formData.meetingLink;
       await request('/api/v1/session', 'POST', payload);
       setShowCreate(false); setFormData(emptyForm); await fetchSessions();
     } catch (err) { setFormError(err.message); }
@@ -336,6 +364,7 @@ const SessionsPage = () => {
       if (formData.description) payload.description = formData.description;
       if (formData.summary !== undefined) payload.summary = formData.summary;
       if (formData.notes !== undefined) payload.notes = formData.notes;
+      if (formData.meetingLink !== undefined) payload.meetingLink = formData.meetingLink;
       if (formData.status) payload.status = formData.status;
       payload.StudentAttended = formData.StudentAttended;
       await request(`/api/v1/session/${editSession._id}`, 'PATCH', payload);
@@ -349,6 +378,16 @@ const SessionsPage = () => {
     try {
       await request(`/api/v1/session/${deleteSession._id}`, 'DELETE');
       setDeleteSession(null); await fetchSessions();
+    } catch (err) { setFormError(err.message); }
+    finally { setFormLoading(false); }
+  };
+
+  /* ── End session: clear the meeting link + mark completed so students can no longer join ── */
+  const handleEndSession = async () => {
+    setFormLoading(true); setFormError(null);
+    try {
+      await request(`/api/v1/session/${endSession._id}`, 'PATCH', { meetingLink: '', status: 'completed' });
+      setEndSession(null); await fetchSessions();
     } catch (err) { setFormError(err.message); }
     finally { setFormLoading(false); }
   };
@@ -377,7 +416,7 @@ const SessionsPage = () => {
   };
 
   const openEdit = (s) => {
-    setFormData({ title: s.title || '', description: s.description || '', studentProfileId: s.studentProfileId?._id || s.studentProfileId || '', instructorId: s.instructorId?._id || s.instructorId || '', date: s.date ? new Date(s.date).toISOString().slice(0, 16) : '', notes: s.notes || '', summary: s.summary || '', status: s.status || 'pending', StudentAttended: s.StudentAttended !== false });
+    setFormData({ title: s.title || '', description: s.description || '', studentProfileId: s.studentProfileId?._id || s.studentProfileId || '', instructorId: s.instructorId?._id || s.instructorId || '', date: s.date ? new Date(s.date).toISOString().slice(0, 16) : '', meetingLink: s.meetingLink || '', notes: s.notes || '', summary: s.summary || '', status: s.status || 'pending', StudentAttended: s.StudentAttended !== false });
     setFormError(null); setEditSession(s);
   };
 
@@ -428,6 +467,11 @@ const SessionsPage = () => {
             <option value="student canceled">Student Canceled</option>
           </select>
         </div>
+      </div>
+      <div className="modal-form-group">
+        <label className="modal-label">Meeting Link</label>
+        <input className="modal-input" type="url" placeholder="https://meet.google.com/... or Zoom link" value={formData.meetingLink} onChange={e => setFormData({ ...formData, meetingLink: e.target.value })} />
+        <p className="modal-hint">Shared with the student and parent so they can join the session.</p>
       </div>
       <div className="modal-form-group">
         <label className="modal-checkbox">
@@ -518,7 +562,7 @@ const SessionsPage = () => {
       </div>
 
       {/* ═══ Loading / Error / Empty ═══ */}
-      {loading && <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Loading sessions...</p>}
+      {loading && <SkeletonCardList count={4} height={150} />}
       {error && <p style={{ color: 'var(--error)', fontWeight: 600 }}><i className="fa-solid fa-triangle-exclamation" /> {error}</p>}
       {!loading && filteredSessions.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>
@@ -586,6 +630,38 @@ const SessionsPage = () => {
                         : <i className="fa-solid fa-circle-xmark" style={{ color: '#ef4444' }} />
                       } Attended: {session.StudentAttended ? 'Yes' : 'No'}
                     </span>
+                    {session.meetingLink ? (
+                      <a
+                        href={safeUrl(session.meetingLink)}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        style={styles.joinBtn}
+                        title="Join the session meeting"
+                      >
+                        <i className="fa-solid fa-video" /> Join Meeting
+                      </a>
+                    ) : (role === 'student' || role === 'parent') && (
+                      <button
+                        type="button"
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        style={styles.joinBtnDisabled}
+                        title="No meeting link yet"
+                      >
+                        <i className="fa-solid fa-video" /> Join Meeting
+                      </button>
+                    )}
+                    {isAdmin && session.meetingLink && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setFormError(null); setEndSession(session); }}
+                        style={styles.endBtn}
+                        title="End the session and remove the meeting link"
+                      >
+                        <i className="fa-solid fa-circle-stop" /> End Session
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div style={styles.cardRight}>
@@ -669,7 +745,7 @@ const SessionsPage = () => {
                           {session.recapVideoLinks.map((v, i) => (
                             <a
                               key={i}
-                              href={v.link}
+                              href={safeUrl(v.link)}
                               target="_blank"
                               rel="noreferrer"
                               style={styles.linkItem}
@@ -690,7 +766,7 @@ const SessionsPage = () => {
                           {session.attachmentsLinks.map((a, i) => (
                             <a
                               key={i}
-                              href={a.attachmentLink}
+                              href={safeUrl(a.attachmentLink)}
                               target="_blank"
                               rel="noreferrer"
                               style={styles.linkItem}
@@ -766,6 +842,18 @@ const SessionsPage = () => {
         <div className="modal-actions">
           <button onClick={() => setDeleteSession(null)} className="modal-btn modal-btn-ghost">Cancel</button>
           <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : <><i className="fa-solid fa-trash" /> Delete</>}</button>
+        </div>
+      </Modal>
+
+      {/* ═══ END SESSION ═══ */}
+      <Modal isOpen={!!endSession} onClose={() => setEndSession(null)} title="End Session" size="sm">
+        <div className="modal-warning-icon"><i className="fa-solid fa-circle-stop" /></div>
+        <p className="modal-warning-text">End <strong>"{endSession?.title}"</strong>?</p>
+        <p className="modal-warning-sub">The meeting link will be removed and students can no longer join. The session will be marked completed.</p>
+        {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
+        <div className="modal-actions">
+          <button onClick={() => setEndSession(null)} className="modal-btn modal-btn-ghost">Cancel</button>
+          <button onClick={handleEndSession} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Ending...' : <><i className="fa-solid fa-circle-stop" /> End Session</>}</button>
         </div>
       </Modal>
     </div>

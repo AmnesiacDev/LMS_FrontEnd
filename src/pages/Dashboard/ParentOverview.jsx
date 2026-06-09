@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
+import { SkeletonStatsGrid, SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import './DashboardOverview.css';
 
 const ParentOverview = () => {
@@ -17,7 +18,16 @@ const ParentOverview = () => {
   // Recent tasks
   const { data: tasksRaw } = useFetchData('/api/v1/task/me');
 
-  if (loading) return <div className="overview-container"><h2 style={{ fontFamily: 'var(--font-heading)' }}>Loading children profiles...</h2></div>;
+  if (loading) return (
+    <div className="overview-container">
+      <h1 className="page-title">Welcome, {parentName}! <i className="fa-solid fa-people-roof" style={{ color: 'var(--brand-primary)' }} /></h1>
+      <p className="page-subtitle">Loading your children's progress…</p>
+      <SkeletonStatsGrid count={4} />
+      <div style={{ marginTop: '1.5rem' }}>
+        <SkeletonCardGrid count={3} minWidth={300} gap="1.5rem" />
+      </div>
+    </div>
+  );
   if (error) return <div className="overview-container"><h2 style={{color: 'var(--error)', fontFamily: 'var(--font-heading)' }}>{error}</h2></div>;
 
   const childrenList = Array.isArray(profiles) ? profiles : (profiles?.docs || profiles?.profiles || []);

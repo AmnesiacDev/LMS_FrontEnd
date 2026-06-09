@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import useFetchData from '../../hooks/useFetchData';
+import { SkeletonTableRows } from '../../components/Skeleton/Skeleton';
 
 const getLogs = (data) => {
   if (Array.isArray(data)) return data;
@@ -45,7 +46,6 @@ const AuditLogsPage = () => {
         />
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading audit logs...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       {!loading && filteredLogs.length === 0 && (
@@ -68,7 +68,8 @@ const AuditLogsPage = () => {
             </tr>
           </thead>
           <tbody>
-            {filteredLogs.map((log) => (
+            {loading && <SkeletonTableRows rows={8} cols={6} />}
+            {!loading && filteredLogs.map((log) => (
               <tr key={log._id} style={{ borderBottom: '1px solid var(--border-color)', verticalAlign: 'top' }}>
                 <td style={{ padding: '0.8rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
                   {log.createdAt ? new Date(log.createdAt).toLocaleString() : '-'}

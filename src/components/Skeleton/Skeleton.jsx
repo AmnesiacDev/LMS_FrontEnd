@@ -104,14 +104,39 @@ export const SkeletonStatsGrid = ({ count = 4 }) => (
 );
 
 /** Grid of skeleton cards */
-export const SkeletonCardGrid = ({ count = 6, minWidth = 320 }) => (
+export const SkeletonCardGrid = ({ count = 6, minWidth = 320, gap = '1rem' }) => (
   <div style={{
     display: 'grid',
     gridTemplateColumns: `repeat(auto-fill, minmax(${minWidth}px, 1fr))`,
-    gap: '1rem',
+    gap,
   }}>
     {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} />)}
   </div>
+);
+
+/** Vertical stack of skeleton cards — for full-width list layouts (sessions, course panels) */
+export const SkeletonCardList = ({ count = 4, height = 140, gap = '1rem' }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', gap }}>
+    {Array.from({ length: count }).map((_, i) => <SkeletonCard key={i} height={height} />)}
+  </div>
+);
+
+/**
+ * Skeleton rows for an HTML <table>. Render inside <tbody> while loading so the
+ * table header and column widths stay put.
+ */
+export const SkeletonTableRows = ({ rows = 8, cols = 5 }) => (
+  <>
+    {Array.from({ length: rows }).map((_, r) => (
+      <tr key={r} aria-hidden="true">
+        {Array.from({ length: cols }).map((_, c) => (
+          <td key={c} style={{ padding: '0.8rem 1rem' }}>
+            <Skeleton height="0.9rem" width={c === 0 ? '70%' : `${50 + ((r + c) % 4) * 10}%`} />
+          </td>
+        ))}
+      </tr>
+    ))}
+  </>
 );
 
 export default Skeleton;

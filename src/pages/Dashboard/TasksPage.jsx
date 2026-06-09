@@ -7,6 +7,7 @@ import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { appendDateRange } from '../../utils/dateRangeParams';
+import { safeUrl } from '../../utils/safeUrl';
 
 const statusColor = (s) => {
   if (s === 'completed') return '#10b981';
@@ -393,7 +394,7 @@ const TasksPage = () => {
                 </span>
               )}
             </div>
-            {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}><i className="fa-solid fa-link" /> {l.title || 'Resource'}</a>)}</div>}
+            {task.taskLinks?.length > 0 && <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{task.taskLinks.map((l, i) => <a key={i} href={safeUrl(l.link)} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)', fontSize: '0.78rem' }}><i className="fa-solid fa-link" /> {l.title || 'Resource'}</a>)}</div>}
             <div style={{ display: 'flex', gap: '0.35rem', marginTop: 'auto', paddingTop: '0.5rem', borderTop: '2px solid var(--border-color)' }}>
               <button onClick={() => setViewTask(task)} style={{ flex: 1, padding: '0.45rem', background: 'var(--bg-tertiary)', color: 'var(--text-primary)', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.03em', boxShadow: '2px 2px 0px 0px var(--shadow-color)', transition: 'all 0.1s ease' }}><i className="fa-solid fa-eye" /> View</button>
 
@@ -436,11 +437,13 @@ const TasksPage = () => {
             </div>
             <div className="modal-section-label">Description</div>
             <p style={{ color: 'var(--text-secondary)' }}>{viewTask.description}</p>
-            {viewTask.taskLinks?.length > 0 && (<><div className="modal-section-label">Resources</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewTask.taskLinks.map((l, i) => <a key={i} href={l.link} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)' }}><i className="fa-solid fa-link" /> {l.title || 'Link'}</a>)}</div></>)}
-            <div className="modal-detail-grid" style={{ marginTop: '1rem' }}>
-              <div className="modal-detail-item"><div className="detail-label">Task ID</div><div className="detail-value mono">{viewTask._id}</div></div>
-              <div className="modal-detail-item"><div className="detail-label">Created</div><div className="detail-value">{viewTask.createdAt ? new Date(viewTask.createdAt).toLocaleString() : '—'}</div></div>
-            </div>
+            {viewTask.taskLinks?.length > 0 && (<><div className="modal-section-label">Resources</div><div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>{viewTask.taskLinks.map((l, i) => <a key={i} href={safeUrl(l.link)} target="_blank" rel="noreferrer" className="modal-chip" style={{ color: 'var(--brand-primary)' }}><i className="fa-solid fa-link" /> {l.title || 'Link'}</a>)}</div></>)}
+            {role === 'admin' && (
+              <div className="modal-detail-grid" style={{ marginTop: '1rem' }}>
+                <div className="modal-detail-item"><div className="detail-label">Task ID</div><div className="detail-value mono">{viewTask._id}</div></div>
+                <div className="modal-detail-item"><div className="detail-label">Created</div><div className="detail-value">{viewTask.createdAt ? new Date(viewTask.createdAt).toLocaleString() : '—'}</div></div>
+              </div>
+            )}
           </>
         )}
       </Modal>
@@ -499,13 +502,13 @@ const TasksPage = () => {
               <input
                 type="file"
                 multiple
-                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*"
+                accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/*,.mblok,.sb3"
                 disabled={submissionFiles.length >= MAX_SUBMISSION_FILES}
                 onChange={(e) => { addSubmissionFiles(e.target.files); e.target.value = ''; }}
                 style={{ display: 'none' }}
               />
             </label>
-            <p className="modal-hint">Up to {MAX_SUBMISSION_FILES} files, 10MB each. Images, PDFs, and videos are supported.</p>
+            <p className="modal-hint">Up to {MAX_SUBMISSION_FILES} files, 10MB each. Images, PDFs, videos, and Scratch/mBlock projects (.sb3, .mblok) are supported.</p>
             {submissionFiles.length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', marginTop: '0.5rem' }}>
                 {submissionFiles.map((file, i) => (

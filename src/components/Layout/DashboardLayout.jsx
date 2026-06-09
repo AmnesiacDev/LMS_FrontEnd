@@ -16,6 +16,7 @@ const navConfig = {
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'My Tasks' },
     { to: '/dashboard/submissions', icon: 'fa-solid fa-paper-plane', label: 'Submissions' },
     { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'My Exams' },
+    { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'My Reviews' },
     { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
     { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
@@ -75,6 +76,7 @@ const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 900);
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [avatarFailed, setAvatarFailed] = useState(false);
 
   const role = user?.role || 'student';
   const navItems = navConfig[role] || navConfig.student;
@@ -84,8 +86,8 @@ const DashboardLayout = () => {
   /* Gender-aware avatar */
   const avatarSeed = user?._id || user?.UserName || userName;
   const avatarUrl = getAvatarUrl(avatarSeed, userName, 80);
-
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 900;
+  const avatarSrc = user?.avatar || avatarUrl;
+  const userInitials = userName.split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U';
 
   const handleLogout = async () => {
     await logout();
@@ -172,10 +174,10 @@ const DashboardLayout = () => {
               <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />
             </button>
             <button className="user-profile" onClick={() => navigate('/dashboard/account')} title="Open account profile">
-              <div className="avatar" style={{ overflow: 'hidden', padding: 0 }}>
-                {user?.avatar
-                  ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  : <img src={avatarUrl} alt={userName} style={{ width: '100%', height: '100%' }} />
+              <div className="avatar" style={{ overflow: 'hidden', padding: avatarFailed ? undefined : 0 }}>
+                {avatarFailed
+                  ? userInitials
+                  : <img src={avatarSrc} alt={userName} onError={() => setAvatarFailed(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 }
               </div>
               <span>{userName}</span>

@@ -6,6 +6,7 @@ import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
 import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { appendDateRange } from '../../utils/dateRangeParams';
+import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 
 const emptyReviewForm = {
   session: '',
@@ -222,7 +223,6 @@ const ReviewsPage = () => {
         </div>
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading reviews...</p>}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       {/* Date filter */}
@@ -233,6 +233,8 @@ const ReviewsPage = () => {
           onChange={({ from, to }) => { setDateFrom(from); setDateTo(to); setPage(1); }}
         />
       </div>
+
+      {loading && <SkeletonCardGrid count={6} minWidth={350} gap="1.5rem" />}
 
       {!loading && filteredReviews.length === 0 && (
         <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center' }}>

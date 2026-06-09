@@ -8,7 +8,9 @@ import {
 import useFetchData from '../../hooks/useFetchData';
 import { useAuth } from '../../context/AuthContext';
 import TrendsChart from '../../components/TrendsChart/TrendsChart';
+import ReviewRadarChart from '../../components/TrendsChart/ReviewRadarChart';
 import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
+import { SkeletonStatsGrid, SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import './DashboardOverview.css';
 
 /* ─── colour tokens (match CSS vars as hex for Recharts) ─── */
@@ -177,7 +179,16 @@ const ProgressPage = () => {
     );
   }
 
-  if (loading) return <div style={{ padding: '2rem', color: 'var(--text-muted)' }}>Loading progress data...</div>;
+  if (loading) return (
+    <div className="overview-container">
+      <h1 className="page-title">Progress</h1>
+      <p className="page-subtitle">Loading progress data…</p>
+      <SkeletonStatsGrid count={4} />
+      <div style={{ marginTop: '1.5rem' }}>
+        <SkeletonCardGrid count={2} minWidth={340} gap="1.5rem" />
+      </div>
+    </div>
+  );
   if (error) return <div style={{ padding: '2rem', color: 'var(--error)' }}>Error: {error}</div>;
 
   /* ── Parent comparison view ── */
@@ -341,6 +352,15 @@ const ProgressPage = () => {
                 </RadarChart>
               </ResponsiveContainer>
             </div>
+          </div>
+
+          {/* ── Session-review radar (per-metric averages from the dedicated endpoint) ── */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+            <ReviewRadarChart
+              endpoint={`/api/v1/progress/${profileId ? `child/${profileId}` : 'me'}/reviews/radar`}
+              title="Session Review Breakdown"
+              icon="fa-solid fa-star-half-stroke"
+            />
           </div>
 
           {/* ── Trend charts (granular per-category) ── */}

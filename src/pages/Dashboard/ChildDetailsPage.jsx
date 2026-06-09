@@ -4,6 +4,7 @@ import useFetchData from '../../hooks/useFetchData';
 import { useAuth } from '../../context/AuthContext';
 import TrendsChart from '../../components/TrendsChart/TrendsChart';
 import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
+import { SkeletonStatsGrid, SkeletonCardList } from '../../components/Skeleton/Skeleton';
 import './DashboardOverview.css';
 
 // Styles for status badges
@@ -177,8 +178,13 @@ const ChildDetailsPage = () => {
 
   if (isLoading) {
     return (
-      <div className="overview-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
-        <h2 style={{ color: 'var(--text-muted)' }}>Loading child details...</h2>
+      <div className="overview-container">
+        <h1 className="page-title">Child Details</h1>
+        <p className="page-subtitle">Loading profile, tasks, sessions and progress…</p>
+        <SkeletonStatsGrid count={4} />
+        <div style={{ marginTop: '1.5rem' }}>
+          <SkeletonCardList count={3} height={160} />
+        </div>
       </div>
     );
   }
@@ -226,25 +232,32 @@ const ChildDetailsPage = () => {
   const initials = (childUser.FullName || 'Student').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
 
   const downloadTranscript = async () => {
-    const response = await fetch(`/api/v1/StudentProfile/${profileId}/transcript.pdf`, {
-      headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
-      credentials: 'include',
-    });
+    try {
+      const response = await fetch(`/api/v1/StudentProfile/${profileId}/transcript.pdf`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
+        credentials: 'include',
+      });
 
-    if (!response.ok) {
+      if (!response.ok) {
+        // Error responses are JSON envelopes; a 404 here means "not your student"
+        // rather than "missing" — surface the server's own message.
+        const data = await response.json().catch(() => ({}));
+        alert(data.message || 'Could not download transcript.');
+        return;
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${childUser.FullName || 'student'}-transcript.pdf`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
       alert('Could not download transcript.');
-      return;
     }
-
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `${childUser.FullName || 'student'}-transcript.pdf`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    URL.revokeObjectURL(url);
   };
 
   return (

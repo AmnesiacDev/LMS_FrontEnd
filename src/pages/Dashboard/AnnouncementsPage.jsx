@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
+import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 
 const emptyForm = {
   title: '',
@@ -242,7 +243,7 @@ const AnnouncementsPage = () => {
         )}
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading announcements...</p>}
+      {loading && <SkeletonCardGrid count={6} minWidth={320} />}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       {!loading && announcements.length === 0 && (

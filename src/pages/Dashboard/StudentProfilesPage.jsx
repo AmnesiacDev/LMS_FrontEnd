@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 
 const StudentProfilesPage = () => {
   const { user } = useAuth();
@@ -50,7 +51,7 @@ const StudentProfilesPage = () => {
       const payload = {};
       if (formData.grade) payload.grade = formData.grade;
       if (formData.notes) payload.notes = formData.notes;
-      if (formData.parents.trim()) payload.parents = formData.parents.split(',').map(p => p.trim());
+      if (role === 'admin' && formData.parents.trim()) payload.parents = formData.parents.split(',').map(p => p.trim());
       await request(`/api/v1/StudentProfile/${formData.userId}`, 'POST', payload);
       setShowCreate(false); setFormData(emptyForm); await fetchProfiles();
     } catch (err) { setFormError(err.message); }
@@ -63,7 +64,7 @@ const StudentProfilesPage = () => {
       const payload = {};
       if (formData.grade) payload.grade = formData.grade;
       if (formData.notes) payload.notes = formData.notes;
-      if (formData.parents.trim()) payload.parents = formData.parents.split(',').map(p => p.trim());
+      if (role === 'admin' && formData.parents.trim()) payload.parents = formData.parents.split(',').map(p => p.trim());
       await request(`/api/v1/StudentProfile/${editProfile._id}`, 'PATCH', payload);
       setEditProfile(null); await fetchProfiles();
     } catch (err) { setFormError(err.message); }
@@ -85,7 +86,10 @@ const StudentProfilesPage = () => {
         credentials: 'include',
       });
 
-      if (!response.ok) throw new Error('Could not download transcript.');
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || 'Could not download transcript.');
+      }
 
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
@@ -115,7 +119,7 @@ const StudentProfilesPage = () => {
         )}
       </div>
 
-      {loading && <p style={{ color: 'var(--text-muted)' }}>Loading profiles...</p>}
+      {loading && <SkeletonCardGrid count={6} minWidth={320} gap="1.5rem" />}
       {error && <p style={{ color: 'var(--error)' }}>{error}</p>}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
@@ -168,10 +172,12 @@ const StudentProfilesPage = () => {
             </div>
 
             <div className="modal-detail-grid">
-              <div className="modal-detail-item">
-                <div className="detail-label">Profile ID</div>
-                <div className="detail-value mono">{viewProfile._id}</div>
-              </div>
+              {role === 'admin' && (
+                <div className="modal-detail-item">
+                  <div className="detail-label">Profile ID</div>
+                  <div className="detail-value mono">{viewProfile._id}</div>
+                </div>
+              )}
               <div className="modal-detail-item">
                 <div className="detail-label">Grade</div>
                 <div className="detail-value">{viewProfile.grade || 'N/A'}</div>
@@ -213,10 +219,12 @@ const StudentProfilesPage = () => {
             <input className="modal-input" type="text" placeholder="MongoDB ObjectId of the student" required value={formData.userId} onChange={e => setFormData({ ...formData, userId: e.target.value })} />
             <p className="modal-hint">The user must have role "student"</p>
           </div>
-          <div className="modal-form-group">
-            <label className="modal-label">Parent IDs</label>
-            <input className="modal-input" type="text" placeholder="parentId1, parentId2" value={formData.parents} onChange={e => setFormData({ ...formData, parents: e.target.value })} />
-          </div>
+          {role === 'admin' && (
+            <div className="modal-form-group">
+              <label className="modal-label">Parent IDs</label>
+              <input className="modal-input" type="text" placeholder="parentId1, parentId2" value={formData.parents} onChange={e => setFormData({ ...formData, parents: e.target.value })} />
+            </div>
+          )}
           <div className="modal-form-group">
             <label className="modal-label">Grade</label>
             <input className="modal-input" type="text" placeholder="e.g. 10" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
@@ -233,10 +241,12 @@ const StudentProfilesPage = () => {
       <Modal isOpen={!!editProfile} onClose={() => setEditProfile(null)} title={`Edit — ${editProfile?.user?.FullName || 'Profile'}`} size="md">
         <form onSubmit={handleUpdate}>
           {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
-          <div className="modal-form-group">
-            <label className="modal-label">Parent IDs</label>
-            <input className="modal-input" type="text" placeholder="parentId1, parentId2" value={formData.parents} onChange={e => setFormData({ ...formData, parents: e.target.value })} />
-          </div>
+          {role === 'admin' && (
+            <div className="modal-form-group">
+              <label className="modal-label">Parent IDs</label>
+              <input className="modal-input" type="text" placeholder="parentId1, parentId2" value={formData.parents} onChange={e => setFormData({ ...formData, parents: e.target.value })} />
+            </div>
+          )}
           <div className="modal-form-group">
             <label className="modal-label">Grade</label>
             <input className="modal-input" type="text" placeholder="e.g. 10" value={formData.grade} onChange={e => setFormData({ ...formData, grade: e.target.value })} />
