@@ -2,11 +2,15 @@ import React from 'react';
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import Logo from '../Logo/Logo';
+import useScrollReveal from '../../hooks/useScrollReveal';
 import './LandingLayout.css';
 
 const LandingLayout = () => {
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
+  
+  // Initialize scroll reveal animations for all landing pages
+  useScrollReveal();
 
   const isActive = (path) => location.pathname === path ? 'active' : '';
 
@@ -35,7 +39,9 @@ const LandingLayout = () => {
       </nav>
 
       <main className="landing-main">
-        <Outlet />
+        <div key={location.pathname} className="page-animate">
+          <Outlet />
+        </div>
       </main>
 
       <footer className="landing-footer glass-panel">

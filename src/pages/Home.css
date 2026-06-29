@@ -11,6 +11,16 @@
   overflow-x: hidden;
 }
 
+.home-container:not(.is-home-page) {
+  padding-top: 8rem; /* push down pages so floating navbar doesn't cover content */
+}
+
+.home-container.is-home-page {
+  padding-top: 0;
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* Landing pages use Nunito for a warmer, friendlier feel */
 .home-container,
 .home-container h1,
@@ -45,13 +55,70 @@
 /* ══════════════════════════════════════════════════════════════
    HERO
 ══════════════════════════════════════════════════════════════ */
+.hero-section-wrapper {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  height: 100vh;
+  min-height: 680px; /* safety min height */
+  padding: 8rem 2rem 4rem; /* top padding to position text under floating absolute navbar */
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 5rem;
+  background-color: #120F17; /* solid dark background like reactbits */
+  border-bottom: 3px solid var(--border-color);
+}
+
+@media (max-width: 768px) {
+  .hero-section-wrapper {
+    height: auto;
+    min-height: 100vh;
+    padding: 8rem 1rem 4rem;
+  }
+}
+
+.hero-pixel-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 .hero-section {
   max-width: 860px;
-  margin: 0 auto 5rem;
+  position: relative;
+  z-index: 1;
   text-align: center;
   display: flex;
   flex-direction: column;
   align-items: center;
+}
+
+/* Force light text inside the dark hero section */
+.hero-section-wrapper .hero-title {
+  color: #ffffff;
+}
+
+.hero-section-wrapper .hero-subtitle {
+  color: #cbd5e1;
+}
+
+.hero-section-wrapper .hero-stat .stat-value {
+  color: #60a5fa; /* light blue */
+}
+
+.hero-section-wrapper .hero-stat .stat-label {
+  color: #94a3b8;
+}
+
+.hero-section-wrapper .hero-badge {
+  background: rgba(255, 255, 255, 0.08);
+  color: #e0e7ff;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
 }
 
 .hero-badge {
@@ -508,6 +575,39 @@
 /* ══════════════════════════════════════════════════════════════
    STACK TAGS
 ══════════════════════════════════════════════════════════════ */
+.stack-section-wrapper {
+  position: relative;
+  width: 100vw;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
+  padding: 4rem 2rem 5rem;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 5rem;
+  background-color: #120F17; /* solid dark background like reactbits */
+  border-top: 3px solid var(--border-color);
+  border-bottom: 3px solid var(--border-color);
+}
+
+.stack-prism-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.stack-section {
+  max-width: 1100px;
+  width: 100%;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .stack-tags {
   display: flex;
   flex-wrap: wrap;
@@ -537,6 +637,24 @@
   color: var(--brand-primary);
   transform: translate(-1px, -1px);
   box-shadow: 3px 3px 0 var(--shadow-color);
+}
+
+/* Force light colors inside the dark stack section wrapper */
+.stack-section-wrapper .section-title {
+  color: #ffffff;
+}
+
+.stack-section-wrapper .stack-tag {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cbd5e1;
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
+}
+
+.stack-section-wrapper .stack-tag:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: var(--brand-primary);
+  color: #ffffff;
 }
 
 /* ══════════════════════════════════════════════════════════════

@@ -435,3 +435,50 @@ button {
   border: 2px solid var(--bg-primary);
   border-radius: 0;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   PAGE TRANSITIONS & SCROLL REVEAL ANIMATIONS
+══════════════════════════════════════════════════════════════ */
+@keyframes slideUpFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-animate {
+  animation: slideUpFadeIn 0.45s cubic-bezier(0.215, 0.61, 0.355, 1) forwards;
+  width: 100%;
+}
+
+.reveal {
+  opacity: 0;
+  transition: opacity 0.8s cubic-bezier(0.215, 0.61, 0.355, 1),
+              transform 0.8s cubic-bezier(0.215, 0.61, 0.355, 1);
+  will-change: transform, opacity;
+}
+
+.reveal.fade-in {
+  transform: scale(0.96);
+}
+
+.reveal.slide-up {
+  transform: translateY(32px);
+}
+
+.reveal.slide-left {
+  transform: translateX(32px);
+}
+
+.reveal.slide-right {
+  transform: translateX(-32px);
+}
+
+.reveal.reveal-visible {
+  opacity: 1;
+  transform: translate(0) scale(1);
+}

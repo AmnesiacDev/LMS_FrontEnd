@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
@@ -50,14 +50,15 @@ export const SocketProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const fetchUnreadCount = async () => {
+  const fetchUnreadCount = useCallback(async () => {
     if (!token) return;
     try {
       const res = await request('/api/v1/notifications/unread-count');
       setUnreadCount(res.data?.unreadCount ?? 0);
     } catch { /* silently handle */ }
-  };
-  const fetchNotifications = async (query = {}) => {
+  }, [token, request]);
+
+  const fetchNotifications = useCallback(async (query = {}) => {
     if (!token) return { data: [], total: 0, totalPages: 1 };
     setLoading(true);
     try {
@@ -83,9 +84,9 @@ export const SocketProvider = ({ children }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, request]);
 
-  const markAsRead = async (id) => {
+  const markAsRead = useCallback(async (id) => {
     try {
       await request(`/api/v1/notifications/${id}/read`, 'PATCH');
       setNotifications((prev) =>
@@ -95,9 +96,9 @@ export const SocketProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to mark notification as read:', err);
     }
-  };
+  }, [request]);
 
-  const markAllRead = async () => {
+  const markAllRead = useCallback(async () => {
     try {
       await request('/api/v1/notifications/read-all', 'PATCH');
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
@@ -105,7 +106,7 @@ export const SocketProvider = ({ children }) => {
     } catch (err) {
       console.error('Failed to mark all notifications as read:', err);
     }
-  };
+  }, [request]);
 
   // Fetch initial unread count on login
   useEffect(() => {

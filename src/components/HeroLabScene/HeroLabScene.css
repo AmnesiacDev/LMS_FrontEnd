@@ -1,0 +1,24 @@
+.hero-lab-scene {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: auto;
+}
+
+.hero-lab-scene canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.hero-lab-scene__glow {
+  position: absolute;
+  inset: auto 5% 0 auto;
+  width: min(48rem, 70vw);
+  height: min(48rem, 70vw);
+  background:
+    radial-gradient(circle at 50% 50%, oklch(78% 0.16 181 / 0.26), transparent 62%),
+    radial-gradient(circle at 60% 30%, oklch(72% 0.18 29 / 0.18), transparent 58%);
+  filter: blur(10px);
+  transform: translateY(26%);
+}

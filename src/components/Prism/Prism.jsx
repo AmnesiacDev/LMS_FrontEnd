@@ -1,0 +1,469 @@
+import { useEffect, useRef } from 'react';
+import './Prism.css';
+
+/* ── shaders ────────────────────────────────────────────────── */
+const vertexShader = `
+attribute vec2 position;
+void main() {
+  gl_Position = vec4(position, 0.0, 1.0);
+}
+`;
+
+const fragmentShader = `
+precision highp float;
+
+uniform vec2  iResolution;
+uniform float iTime;
+uniform float uHeight;
+uniform float uBaseHalf;
+uniform mat3  uRot;
+uniform int   uUseBaseWobble;
+uniform float uGlow;
+uniform vec2  uOffsetPx;
+uniform float uNoise;
+uniform float uSaturation;
+uniform float uScale;
+uniform float uHueShift;
+uniform float uColorFreq;
+uniform float uBloom;
+uniform float uCenterShift;
+uniform float uInvBaseHalf;
+uniform float uInvHeight;
+uniform float uMinAxis;
+uniform float uPxScale;
+uniform float uTimeScale;
+
+vec4 tanh4(vec4 x){
+  vec4 e2x = exp(2.0*x);
+  return (e2x - 1.0) / (e2x + 1.0);
+}
+
+float rand(vec2 co){
+  return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453123);
+}
+
+float sdOctaAnisoInv(vec3 p){
+  vec3 q = vec3(abs(p.x) * uInvBaseHalf, abs(p.y) * uInvHeight, abs(p.z) * uInvBaseHalf);
+  float m = q.x + q.y + q.z - 1.0;
+  return m * uMinAxis * 0.5773502691896258;
+}
+
+float sdPyramidUpInv(vec3 p){
+  float oct = sdOctaAnisoInv(p);
+  float halfSpace = -p.y;
+  return max(oct, halfSpace);
+}
+
+mat3 hueRotation(float a){
+  float c = cos(a), s = sin(a);
+  mat3 W = mat3(
+    0.299, 0.587, 0.114,
+    0.299, 0.587, 0.114,
+    0.299, 0.587, 0.114
+  );
+  mat3 U = mat3(
+     0.701, -0.587, -0.114,
+    -0.299,  0.413, -0.114,
+    -0.300, -0.588,  0.886
+  );
+  mat3 V = mat3(
+     0.168, -0.331,  0.500,
+     0.328,  0.035, -0.500,
+    -0.497,  0.296,  0.201
+  );
+  return W + U * c + V * s;
+}
+
+void main(){
+  vec2 f = (gl_FragCoord.xy - 0.5 * iResolution.xy - uOffsetPx) * uPxScale;
+  float z = 5.0;
+  float d = 0.0;
+  vec3 p;
+  vec4 o = vec4(0.0);
+  float centerShift = uCenterShift;
+  float cf = uColorFreq;
+  mat2 wob = mat2(1.0);
+
+  if (uUseBaseWobble == 1) {
+    float t = iTime * uTimeScale;
+    float c0 = cos(t + 0.0);
+    float c1 = cos(t + 33.0);
+    float c2 = cos(t + 11.0);
+    wob = mat2(c0, c1, c2, c0);
+  }
+
+  const int STEPS = 100;
+  for (int i = 0; i < STEPS; i++) {
+    p = vec3(f, z);
+    p.xz = p.xz * wob;
+    p = uRot * p;
+    vec3 q = p;
+    q.y += centerShift;
+    d = 0.1 + 0.2 * abs(sdPyramidUpInv(q));
+    z -= d;
+    o += (sin((p.y + z) * cf + vec4(0.0, 1.0, 2.0, 3.0)) + 1.0) / d;
+  }
+
+  o = tanh4(o * o * (uGlow * uBloom) / 1e5);
+  vec3 col = o.rgb;
+  float n = rand(gl_FragCoord.xy + vec2(iTime));
+  col += (n - 0.5) * uNoise;
+  col = clamp(col, 0.0, 1.0);
+  float L = dot(col, vec3(0.2126, 0.7152, 0.0722));
+  col = clamp(mix(vec3(L), col, uSaturation), 0.0, 1.0);
+
+  if(abs(uHueShift) > 0.0001){
+    col = clamp(hueRotation(uHueShift) * col, 0.0, 1.0);
+  }
+
+  gl_FragColor = vec4(col, o.a);
+}
+`;
+
+/* ── component ─────────────────────────────────────────────── */
+const Prism = ({
+  height = 3.5,
+  baseWidth = 5.5,
+  animationType = 'rotate',
+  glow = 1.0,
+  offset = { x: 0, y: 0 },
+  noise = 0.5,
+  transparent = true,
+  scale = 3.6,
+  hueShift = 0,
+  colorFrequency = 1,
+  hoverStrength = 2,
+  inertia = 0.05,
+  bloom = 1,
+  suspendWhenOffscreen = false,
+  timeScale = 0.5
+}) => {
+  const containerRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const H = Math.max(0.001, height);
+    const BW = Math.max(0.001, baseWidth);
+    const BASE_HALF = BW * 0.5;
+    const GLOW = Math.max(0.0, glow);
+    const NOISE = Math.max(0.0, noise);
+    const offX = offset?.x ?? 0;
+    const offY = offset?.y ?? 0;
+    const SAT = transparent ? 1.5 : 1;
+    const SCALE = Math.max(0.001, scale);
+    const HUE = hueShift || 0;
+    const CFREQ = Math.max(0.0, colorFrequency || 1);
+    const BLOOM = Math.max(0.0, bloom || 1);
+    const RSX = 1;
+    const RSY = 1;
+    const RSZ = 1;
+    const TS = Math.max(0, timeScale || 1);
+    const HOVSTR = Math.max(0, hoverStrength || 1);
+    const INERT = Math.max(0, Math.min(1, inertia || 0.12));
+
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const canvas = document.createElement('canvas');
+    Object.assign(canvas.style, {
+      position: 'absolute',
+      inset: '0',
+      width: '100%',
+      height: '100%',
+      display: 'block'
+    });
+    container.appendChild(canvas);
+
+    const gl = canvas.getContext('webgl', {
+      alpha: transparent,
+      antialias: false,
+      premultipliedAlpha: false
+    });
+    if (!gl) {
+      console.warn('WebGL not supported');
+      return;
+    }
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.BLEND);
+
+    /* helper compile */
+    const compile = (type, src) => {
+      const s = gl.createShader(type);
+      gl.shaderSource(s, src);
+      gl.compileShader(s);
+      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+        console.error('Shader compilation error:', gl.getShaderInfoLog(s));
+        gl.deleteShader(s);
+        return null;
+      }
+      return s;
+    };
+
+    const vs = compile(gl.VERTEX_SHADER, vertexShader);
+    const fs = compile(gl.FRAGMENT_SHADER, fragmentShader);
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
+    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+      console.error('Program link error:', gl.getProgramInfoLog(prog));
+      return;
+    }
+    gl.useProgram(prog);
+
+    /* quad geometry */
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array([-1, -1, 1, -1, -1, 1, -1, 1, 1, -1, 1, 1]),
+      gl.STATIC_DRAW
+    );
+    const posAttr = gl.getAttribLocation(prog, 'position');
+    gl.enableVertexAttribArray(posAttr);
+    gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
+
+    /* uniform locations */
+    const getLoc = name => gl.getUniformLocation(prog, name);
+    const locs = {
+      iResolution: getLoc('iResolution'),
+      iTime: getLoc('iTime'),
+      uHeight: getLoc('uHeight'),
+      uBaseHalf: getLoc('uBaseHalf'),
+      uUseBaseWobble: getLoc('uUseBaseWobble'),
+      uRot: getLoc('uRot'),
+      uGlow: getLoc('uGlow'),
+      uOffsetPx: getLoc('uOffsetPx'),
+      uNoise: getLoc('uNoise'),
+      uSaturation: getLoc('uSaturation'),
+      uScale: getLoc('uScale'),
+      uHueShift: getLoc('uHueShift'),
+      uColorFreq: getLoc('uColorFreq'),
+      uBloom: getLoc('uBloom'),
+      uCenterShift: getLoc('uCenterShift'),
+      uInvBaseHalf: getLoc('uInvBaseHalf'),
+      uInvHeight: getLoc('uInvHeight'),
+      uMinAxis: getLoc('uMinAxis'),
+      uPxScale: getLoc('uPxScale'),
+      uTimeScale: getLoc('uTimeScale')
+    };
+
+    /* set constants */
+    gl.uniform1f(locs.uHeight, H);
+    gl.uniform1f(locs.uBaseHalf, BASE_HALF);
+    gl.uniform1f(locs.uGlow, GLOW);
+    gl.uniform1f(locs.uNoise, NOISE);
+    gl.uniform1f(locs.uSaturation, SAT);
+    gl.uniform1f(locs.uScale, SCALE);
+    gl.uniform1f(locs.uHueShift, HUE);
+    gl.uniform1f(locs.uColorFreq, CFREQ);
+    gl.uniform1f(locs.uBloom, BLOOM);
+    gl.uniform1f(locs.uCenterShift, H * 0.25);
+    gl.uniform1f(locs.uInvBaseHalf, 1 / BASE_HALF);
+    gl.uniform1f(locs.uInvHeight, 1 / H);
+    gl.uniform1f(locs.uMinAxis, Math.min(BASE_HALF, H));
+    gl.uniform1f(locs.uTimeScale, TS);
+
+    const resize = () => {
+      const w = container.clientWidth || 1;
+      const h = container.clientHeight || 1;
+      canvas.width = w * dpr;
+      canvas.height = h * dpr;
+      gl.viewport(0, 0, canvas.width, canvas.height);
+
+      gl.uniform2f(locs.iResolution, canvas.width, canvas.height);
+      gl.uniform2f(locs.uOffsetPx, offX * dpr, offY * dpr);
+      gl.uniform1f(locs.uPxScale, 1 / ((canvas.height || 1) * 0.1 * SCALE));
+    };
+
+    const ro = new ResizeObserver(resize);
+    ro.observe(container);
+    resize();
+
+    const rotBuf = new Float32Array(9);
+    const setMat3FromEuler = (yawY, pitchX, rollZ, out) => {
+      const cy = Math.cos(yawY), sy = Math.sin(yawY);
+      const cx = Math.cos(pitchX), sx = Math.sin(pitchX);
+      const cz = Math.cos(rollZ), sz = Math.sin(rollZ);
+
+      out[0] = cy * cz + sy * sx * sz;
+      out[1] = cx * sz;
+      out[2] = -sy * cz + cy * sx * sz;
+
+      out[3] = -cy * sz + sy * sx * cz;
+      out[4] = cx * cz;
+      out[5] = sy * sz + cy * sx * cz;
+
+      out[6] = sy * cx;
+      out[7] = -sx;
+      out[8] = cy * cx;
+      return out;
+    };
+
+    const NOISE_IS_ZERO = NOISE < 1e-6;
+    let raf = 0;
+    const t0 = performance.now();
+
+    const startRAF = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(render);
+    };
+
+    const stopRAF = () => {
+      if (!raf) return;
+      cancelAnimationFrame(raf);
+      raf = 0;
+    };
+
+    const rnd = () => Math.random();
+    const wX = (0.3 + rnd() * 0.6) * RSX;
+    const wY = (0.2 + rnd() * 0.7) * RSY;
+    const wZ = (0.1 + rnd() * 0.5) * RSZ;
+    const phX = rnd() * Math.PI * 2;
+    const phZ = rnd() * Math.PI * 2;
+
+    let yaw = 0, pitch = 0, roll = 0;
+    let targetYaw = 0, targetPitch = 0;
+
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const pointer = { x: 0, y: 0, inside: true };
+
+    const onMove = e => {
+      const ww = Math.max(1, window.innerWidth);
+      const wh = Math.max(1, window.innerHeight);
+      const cx = ww * 0.5;
+      const cy = wh * 0.5;
+      pointer.x = Math.max(-1, Math.min(1, (e.clientX - cx) / cx));
+      pointer.y = Math.max(-1, Math.min(1, (e.clientY - cy) / cy));
+      pointer.inside = true;
+    };
+
+    const onLeave = () => { pointer.inside = false; };
+    const onBlur = () => { pointer.inside = false; };
+
+    let onPointerMove = null;
+    if (animationType === 'hover') {
+      onPointerMove = e => {
+        onMove(e);
+        startRAF();
+      };
+      window.addEventListener('pointermove', onPointerMove, { passive: true });
+      window.addEventListener('mouseleave', onLeave);
+      window.addEventListener('blur', onBlur);
+      gl.uniform1i(locs.uUseBaseWobble, 0);
+    } else if (animationType === '3drotate') {
+      gl.uniform1i(locs.uUseBaseWobble, 0);
+    } else {
+      gl.uniform1i(locs.uUseBaseWobble, 1);
+    }
+
+    const render = t => {
+      const time = (t - t0) * 0.001;
+      gl.uniform1f(locs.iTime, time);
+
+      let continueRAF = true;
+
+      if (animationType === 'hover') {
+        const maxPitch = 0.6 * HOVSTR;
+        const maxYaw = 0.6 * HOVSTR;
+        targetYaw = (pointer.inside ? -pointer.x : 0) * maxYaw;
+        targetPitch = (pointer.inside ? pointer.y : 0) * maxPitch;
+
+        yaw = lerp(yaw, targetYaw, INERT);
+        pitch = lerp(pitch, targetPitch, INERT);
+        roll = lerp(roll, 0, 0.1);
+
+        setMat3FromEuler(yaw, pitch, roll, rotBuf);
+        gl.uniformMatrix3fv(locs.uRot, false, rotBuf);
+
+        if (NOISE_IS_ZERO) {
+          const settled = Math.abs(yaw - targetYaw) < 1e-4 &&
+                          Math.abs(pitch - targetPitch) < 1e-4 &&
+                          Math.abs(roll) < 1e-4;
+          if (settled) continueRAF = false;
+        }
+      } else if (animationType === '3drotate') {
+        const tScaled = time * TS;
+        yaw = tScaled * wY;
+        pitch = Math.sin(tScaled * wX + phX) * 0.6;
+        roll = Math.sin(tScaled * wZ + phZ) * 0.5;
+
+        setMat3FromEuler(yaw, pitch, roll, rotBuf);
+        gl.uniformMatrix3fv(locs.uRot, false, rotBuf);
+        if (TS < 1e-6) continueRAF = false;
+      } else {
+        rotBuf[0] = 1; rotBuf[1] = 0; rotBuf[2] = 0;
+        rotBuf[3] = 0; rotBuf[4] = 1; rotBuf[5] = 0;
+        rotBuf[6] = 0; rotBuf[7] = 0; rotBuf[8] = 1;
+        gl.uniformMatrix3fv(locs.uRot, false, rotBuf);
+        if (TS < 1e-6) continueRAF = false;
+      }
+
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLES, 0, 6);
+
+      if (continueRAF) {
+        raf = requestAnimationFrame(render);
+      } else {
+        raf = 0;
+      }
+    };
+
+    if (suspendWhenOffscreen) {
+      const io = new IntersectionObserver(entries => {
+        const vis = entries.some(e => e.isIntersecting);
+        if (vis) startRAF();
+        else stopRAF();
+      });
+      io.observe(container);
+      startRAF();
+      container.__prismIO = io;
+    } else {
+      startRAF();
+    }
+
+    return () => {
+      stopRAF();
+      ro.disconnect();
+      if (animationType === 'hover') {
+        if (onPointerMove) window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('mouseleave', onLeave);
+        window.removeEventListener('blur', onBlur);
+      }
+      if (suspendWhenOffscreen) {
+        const io = container.__prismIO;
+        if (io) io.disconnect();
+        delete container.__prismIO;
+      }
+      canvas.remove();
+      gl.deleteProgram(prog);
+      gl.deleteShader(vs);
+      gl.deleteShader(fs);
+      gl.deleteBuffer(buf);
+    };
+  }, [
+    height,
+    baseWidth,
+    animationType,
+    glow,
+    noise,
+    offset?.x,
+    offset?.y,
+    scale,
+    transparent,
+    hueShift,
+    colorFrequency,
+    timeScale,
+    hoverStrength,
+    inertia,
+    bloom,
+    suspendWhenOffscreen
+  ]);
+
+  return <div className="prism-container" ref={containerRef} />;
+};
+
+export default Prism;

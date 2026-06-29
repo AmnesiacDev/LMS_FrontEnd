@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
@@ -7,6 +7,7 @@ import Pet from '../Pet/Pet';
 import Logo from '../Logo/Logo';
 import { getAvatarUrl } from '../../utils/avatar';
 import GamificationWidget from '../Gamification/GamificationWidget';
+import useScrollReveal from '../../hooks/useScrollReveal';
 import './DashboardLayout.css';
 
 const navConfig = {
@@ -92,8 +93,12 @@ const DashboardLayout = () => {
   const { theme, toggleTheme } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 900);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout } = useAuth();
   const [avatarFailed, setAvatarFailed] = useState(false);
+
+  // Initialize scroll reveal animations for all dashboard pages
+  useScrollReveal();
 
   const role = user?.role || 'student';
   const navItems = navConfig[role] || navConfig.student;
@@ -204,7 +209,9 @@ const DashboardLayout = () => {
         </header>
 
         <div className="dashboard-content">
-          <Outlet />
+          <div key={location.pathname} className="page-animate">
+            <Outlet />
+          </div>
         </div>
       </div>
 
