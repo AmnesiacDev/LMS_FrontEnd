@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { buildApiUrl } from '../utils/apiUrl';
 
 export const useApiRequest = () => {
   const { ensureValidToken, refreshToken, logout } = useAuth();
@@ -27,7 +28,8 @@ export const useApiRequest = () => {
     const options = { method, headers, credentials: 'include' };
     if (body !== null) options.body = JSON.stringify(body);
 
-    const response = await fetch(url, options);
+    const requestUrl = buildApiUrl(url);
+    const response = await fetch(requestUrl, options);
 
     // If we get a 401/419, try to refresh the token and retry once
     if (response.status === 401 || response.status === 419) {
@@ -39,21 +41,21 @@ export const useApiRequest = () => {
       }
 
       const newToken = localStorage.getItem('access-token') || '';
-      const retryResponse = await fetch(url, {
+      const retryResponse = await fetch(requestUrl, {
         ...options,
         headers: { ...headers, 'Authorization': `Bearer ${newToken}` },
         credentials: 'include',
       });
       
+      const retryData = await retryResponse.json().catch(() => ({}));
       if (!retryResponse.ok) {
-        const data = await retryResponse.json().catch(() => ({}));
-        throw new Error(data.message || 'Request failed');
+        throw new Error(retryData.message || 'Request failed');
       }
       
-      return await retryResponse.json();
+      return retryData;
     }
 
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
     
     if (!response.ok) {
       throw new Error(data.message || `Request failed (${response.status})`);
@@ -79,7 +81,8 @@ export const useApiRequest = () => {
       body: formData,
     });
 
-    let response = await fetch(url, buildOptions());
+    const requestUrl = buildApiUrl(url);
+    let response = await fetch(requestUrl, buildOptions());
 
     if (response.status === 401 || response.status === 419) {
       const refreshed = await refreshToken();
@@ -88,7 +91,7 @@ export const useApiRequest = () => {
         navigate('/login');
         throw new Error('Session expired. Please login again.');
       }
-      response = await fetch(url, buildOptions());
+      response = await fetch(requestUrl, buildOptions());
     }
 
     const data = await response.json().catch(() => ({}));

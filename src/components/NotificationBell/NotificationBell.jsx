@@ -1,74 +1,32 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
-import { useApiRequest } from '../../hooks/useApiRequest';
-import { logger } from '../../utils/logger';
+import { useSocket } from '../../context/SocketContext';
+import { normalizeAppLink } from '../../utils/appLinks';
 
 const NotificationBell = () => {
-  const { user } = useAuth();
-  const { request } = useApiRequest();
+  const {
+    notifications,
+    unreadCount,
+    loading,
+    fetchNotifications,
+    markAsRead,
+    markAllRead
+  } = useSocket();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef(null);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await request('/api/v1/notifications/unread-count');
-      setUnreadCount(res.data?.unreadCount ?? 0);
-    } catch { /* silently handle */ }
-  };
-
-  const fetchNotifications = async () => {
-    setLoading(true);
-    try {
-      const res = await request('/api/v1/notifications');
-      const list = res.data || [];
-      setNotifications(Array.isArray(list) ? list : []);
-    } catch { setNotifications([]); }
-    finally { setLoading(false); }
-  };
-
-  const markAsRead = async (id) => {
-    try {
-      await request(`/api/v1/notifications/${id}/read`, 'PATCH');
-      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch { /* silently handle */ }
-  };
-
-  const markAllRead = async () => {
-    try {
-      await request('/api/v1/notifications/read-all', 'PATCH');
-      setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-      setUnreadCount(0);
-      // Re-fetch to reflect server state
-      await fetchNotifications();
-    } catch (err) {
-      logger.error('Mark all read failed:', err);
-    }
-  };
+  const [now] = useState(() => Date.now());
 
   const handleClick = (notif) => {
     if (!notif.isRead) markAsRead(notif._id);
     if (notif.link) {
-      navigate(notif.link);
+      navigate(normalizeAppLink(notif.link));
       setOpen(false);
     }
   };
 
-  // Poll unread count every 30s
-  useEffect(() => {
-    if (!user) return;
-    fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
-
   // Fetch full list when dropdown opens
-  useEffect(() => { if (open) fetchNotifications(); }, [open]);
+  useEffect(() => { if (open) fetchNotifications(); }, [open, fetchNotifications]);
 
   // Close on outside click
   useEffect(() => {
@@ -79,14 +37,25 @@ const NotificationBell = () => {
 
   const typeIcon = (type) => {
     const icons = {
-      new_message: '💬', new_task: '📝', task_graded: '✅',
-      new_session: '📅', session_review: '⭐', exam_result: '📊', system_alert: '🔔',
+      schedule_reminder: '⏰',
+      new_session: '📅',
+      schedule_updated: '🔄',
+      new_task: '📝',
+      xp_earned: '⚡',
+      level_up: '👑',
+      badge_unlocked: '🏆',
+      new_submission: '📥',
+      new_message: '💬',
+      task_graded: '✅',
+      session_review: '⭐',
+      exam_result: '📊',
+      system_alert: '🔔',
     };
     return icons[type] || '🔔';
   };
 
   const timeAgo = (date) => {
-    const diff = Date.now() - new Date(date).getTime();
+    const diff = now - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 1) return 'Just now';
     if (mins < 60) return `${mins}m ago`;
@@ -152,7 +121,7 @@ const NotificationBell = () => {
           </div>
 
           {/* List */}
-          <div style={{ maxHeight: '380px', overflowY: 'auto' }}>
+          <div style={{ maxHeight: '320px', overflowY: 'auto' }}>
             {loading ? (
               <p style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading...</p>
             ) : notifications.length === 0 ? (
@@ -161,7 +130,7 @@ const NotificationBell = () => {
                 <p style={{ fontSize: '0.85rem' }}>No notifications yet</p>
               </div>
             ) : (
-              notifications.slice(0, 20).map(notif => (
+              notifications.slice(0, 5).map(notif => (
                 <div
                   key={notif._id}
                   onClick={() => handleClick(notif)}
@@ -169,10 +138,10 @@ const NotificationBell = () => {
                     padding: '0.75rem 1rem', borderBottom: '1px solid var(--border-color)',
                     cursor: notif.link ? 'pointer' : 'default', display: 'flex', gap: '0.65rem',
                     alignItems: 'flex-start', transition: 'background 0.12s ease',
-                    background: notif.isRead ? 'transparent' : 'rgba(37,99,235,0.05)',
+                    background: notif.isRead ? 'transparent' : 'rgba(59,130,246,0.05)',
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(37,99,235,0.05)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(59,130,246,0.05)'; }}
                 >
                   <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: '0.1rem' }}>{typeIcon(notif.type)}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -195,6 +164,33 @@ const NotificationBell = () => {
                 </div>
               ))
             )}
+          </div>
+
+          {/* Footer View All Link */}
+          <div style={{
+            padding: '0.75rem 1rem',
+            borderTop: '3px solid var(--border-color)',
+            textAlign: 'center',
+            background: 'var(--bg-secondary)',
+          }}>
+            <button
+              onClick={() => {
+                navigate('/dashboard/notifications');
+                setOpen(false);
+              }}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--brand-primary)',
+                fontFamily: 'var(--font-heading)',
+                fontSize: '0.85rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                textDecoration: 'underline',
+              }}
+            >
+              View all notifications
+            </button>
           </div>
         </div>
       )}

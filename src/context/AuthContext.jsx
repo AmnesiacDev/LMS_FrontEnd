@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
+import { buildApiUrl } from '../utils/apiUrl';
 
 const AuthContext = createContext();
 
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }) => {
 
     refreshPromise.current = (async () => {
       try {
-        const response = await fetch('/api/v1/auth/refresh', {
+        const response = await fetch(buildApiUrl('/api/v1/auth/refresh'), {
           method: 'POST',
           credentials: 'include',
         });
@@ -220,7 +221,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/auth/login', {
+      const response = await fetch(buildApiUrl('/api/v1/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -259,7 +260,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/v1/auth/signup', {
+      const response = await fetch(buildApiUrl('/api/v1/auth/signup'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
@@ -295,7 +296,7 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     try {
       const currentToken = localStorage.getItem('access-token');
-      await fetch('/api/v1/auth/logout', {
+      await fetch(buildApiUrl('/api/v1/auth/logout'), {
         method: 'GET',
         credentials: 'include',
         headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { buildApiUrl } from '../utils/apiUrl';
 
 const useFetchData = (endpoint, options = {}) => {
   const { ensureValidToken, refreshToken } = useAuth();
@@ -40,7 +41,7 @@ const useFetchData = (endpoint, options = {}) => {
 
       const currentToken = localStorage.getItem('access-token') || '';
       
-      const response = await fetch(endpoint, {
+      const response = await fetch(buildApiUrl(endpoint), {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

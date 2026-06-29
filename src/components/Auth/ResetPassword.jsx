@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { buildApiUrl } from '../../utils/apiUrl';
 import './Auth.css';
 
 const ResetPassword = () => {
@@ -26,7 +27,7 @@ const ResetPassword = () => {
     }
 
     try {
-      const response = await fetch(`/api/v1/auth/reset-password/${token}`, {
+      const response = await fetch(buildApiUrl(`/api/v1/auth/reset-password/${token}`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',

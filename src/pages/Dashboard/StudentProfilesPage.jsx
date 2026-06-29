@@ -3,6 +3,7 @@ import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
+import { buildApiUrl } from '../../utils/apiUrl';
 
 const StudentProfilesPage = () => {
   const { user } = useAuth();
@@ -81,7 +82,7 @@ const StudentProfilesPage = () => {
 
   const downloadTranscript = async (profile) => {
     try {
-      const response = await fetch(`/api/v1/StudentProfile/${profile._id}/transcript.pdf`, {
+      const response = await fetch(buildApiUrl(`/api/v1/StudentProfile/${profile._id}/transcript.pdf`), {
         headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
         credentials: 'include',
       });

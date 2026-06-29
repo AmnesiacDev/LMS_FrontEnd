@@ -6,11 +6,13 @@ import NotificationBell from '../NotificationBell/NotificationBell';
 import Pet from '../Pet/Pet';
 import Logo from '../Logo/Logo';
 import { getAvatarUrl } from '../../utils/avatar';
+import GamificationWidget from '../Gamification/GamificationWidget';
 import './DashboardLayout.css';
 
 const navConfig = {
   student: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/curriculum', icon: 'fa-solid fa-graduation-cap', label: 'Curriculum' },
     { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'My Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'My Tasks' },
@@ -19,11 +21,16 @@ const navConfig = {
     { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'My Reviews' },
     { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/notifications', icon: 'fa-solid fa-bell', label: 'Notifications' },
     { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
     { to: '/dashboard/progress', icon: 'fa-solid fa-chart-line', label: 'My Progress' },
+    { to: '/dashboard/leaderboard', icon: 'fa-solid fa-trophy', label: 'Leaderboard' },
+    { to: '/dashboard/achievements', icon: 'fa-solid fa-medal', label: 'Achievements' },
+    { to: '/dashboard/challenges', icon: 'fa-solid fa-gamepad', label: 'Challenges' },
   ],
   parent: [
     { to: '/dashboard', icon: 'fa-solid fa-children', label: 'Children', end: true },
+    { to: '/dashboard/curriculum', icon: 'fa-solid fa-graduation-cap', label: 'Curriculum' },
     { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
@@ -31,11 +38,14 @@ const navConfig = {
     { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'Exams' },
     { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/notifications', icon: 'fa-solid fa-bell', label: 'Notifications' },
     { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
     { to: '/dashboard/progress', icon: 'fa-solid fa-chart-line', label: 'Children Progress' },
+    { to: '/dashboard/leaderboard', icon: 'fa-solid fa-trophy', label: 'Leaderboard' },
   ],
   instructor: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/curriculum', icon: 'fa-solid fa-graduation-cap', label: 'Curriculum' },
     { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/sessions', icon: 'fa-solid fa-calendar-days', label: 'Sessions' },
     { to: '/dashboard/tasks', icon: 'fa-solid fa-list-check', label: 'Tasks' },
@@ -43,11 +53,15 @@ const navConfig = {
     { to: '/dashboard/exams', icon: 'fa-solid fa-pen-to-square', label: 'Exams' },
     { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'Reviews' },
     { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/notifications', icon: 'fa-solid fa-bell', label: 'Notifications' },
     { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
     { to: '/dashboard/progress', icon: 'fa-solid fa-chart-bar', label: 'Progress Reports' },
+    { to: '/dashboard/leaderboard', icon: 'fa-solid fa-trophy', label: 'Leaderboard' },
+    { to: '/dashboard/challenges/manage', icon: 'fa-solid fa-gears', label: 'Manage Challenges' },
   ],
   admin: [
     { to: '/dashboard', icon: 'fa-solid fa-house', label: 'Overview', end: true },
+    { to: '/dashboard/curriculum', icon: 'fa-solid fa-graduation-cap', label: 'Curriculum' },
     { to: '/dashboard/schedule', icon: 'fa-solid fa-table-cells', label: 'Schedule' },
     { to: '/dashboard/users', icon: 'fa-solid fa-users', label: 'Users' },
     { to: '/dashboard/profiles', icon: 'fa-solid fa-id-card', label: 'Student Profiles' },
@@ -58,9 +72,12 @@ const navConfig = {
     { to: '/dashboard/reviews', icon: 'fa-solid fa-star', label: 'Reviews' },
     { to: '/dashboard/external', icon: 'fa-solid fa-globe', label: 'External Courses' },
     { to: '/dashboard/announcements', icon: 'fa-solid fa-bullhorn', label: 'Announcements' },
+    { to: '/dashboard/notifications', icon: 'fa-solid fa-bell', label: 'Notifications' },
     { to: '/dashboard/audit-logs', icon: 'fa-solid fa-shield-halved', label: 'Audit Logs' },
     { to: '/dashboard/messages', icon: 'fa-solid fa-message', label: 'Messages' },
     { to: '/dashboard/progress', icon: 'fa-solid fa-chart-bar', label: 'Progress Reports' },
+    { to: '/dashboard/leaderboard', icon: 'fa-solid fa-trophy', label: 'Leaderboard' },
+    { to: '/dashboard/challenges/manage', icon: 'fa-solid fa-gears', label: 'Manage Challenges' },
   ],
 };
 
@@ -169,6 +186,7 @@ const DashboardLayout = () => {
           </div>
 
           <div className="header-right">
+            {role === 'student' && <GamificationWidget />}
             <NotificationBell />
             <button className="theme-toggle-icon" onClick={toggleTheme} title="Toggle Theme" aria-label="Toggle theme">
               <i className={theme === 'light' ? 'fa-solid fa-moon' : 'fa-solid fa-sun'} />

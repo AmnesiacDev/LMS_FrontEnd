@@ -7,6 +7,7 @@ import DateRangeFilter from '../../components/DateRangeFilter/DateRangeFilter';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { appendDateRange } from '../../utils/dateRangeParams';
 import { safeUrl } from '../../utils/safeUrl';
+import { buildApiUrl } from '../../utils/apiUrl';
 import { SkeletonCardList } from '../../components/Skeleton/Skeleton';
 
 /* ─── Warm Status Colors ─── */
@@ -394,7 +395,7 @@ const SessionsPage = () => {
 
   const exportCalendar = async () => {
     try {
-      const response = await fetch('/api/v1/session/me/calendar.ics', {
+      const response = await fetch(buildApiUrl('/api/v1/session/me/calendar.ics'), {
         headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
         credentials: 'include',
       });

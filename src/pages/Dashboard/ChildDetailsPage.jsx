@@ -5,6 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 import TrendsChart from '../../components/TrendsChart/TrendsChart';
 import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
 import { SkeletonStatsGrid, SkeletonCardList } from '../../components/Skeleton/Skeleton';
+import { buildApiUrl } from '../../utils/apiUrl';
 import './DashboardOverview.css';
 
 // Styles for status badges
@@ -233,7 +234,7 @@ const ChildDetailsPage = () => {
 
   const downloadTranscript = async () => {
     try {
-      const response = await fetch(`/api/v1/StudentProfile/${profileId}/transcript.pdf`, {
+      const response = await fetch(buildApiUrl(`/api/v1/StudentProfile/${profileId}/transcript.pdf`), {
         headers: { Authorization: `Bearer ${localStorage.getItem('access-token') || ''}` },
         credentials: 'include',
       });

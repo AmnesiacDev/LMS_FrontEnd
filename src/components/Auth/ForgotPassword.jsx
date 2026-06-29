@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { buildApiUrl } from '../../utils/apiUrl';
 import './Auth.css';
 
 const ForgotPassword = () => {
@@ -17,7 +18,7 @@ const ForgotPassword = () => {
     setError('');
 
     try {
-      const response = await fetch('/api/v1/auth/forgot-password', {
+      const response = await fetch(buildApiUrl('/api/v1/auth/forgot-password'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
