@@ -1,7 +1,6 @@
 import { useState, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useApiRequest } from './useApiRequest';
-import { formatLocalDate } from '../utils/weekBoundary';
 
 /**
  * Schedule hook — builds schedule entries from sessions + tasks.

@@ -23,8 +23,8 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) (version 18 or above recommended)
-- npm or yarn
+- [Node.js](https://nodejs.org/) 22.x (`>=22.12.0`, required by Vite 8)
+- npm (the committed lockfile is used with `npm ci`)
 
 ### Installation
 
@@ -36,18 +36,51 @@ Follow these instructions to get a copy of the project up and running on your lo
 
 2. **Install dependencies:**
    ```bash
-   npm install
+   npm ci
    ```
 
-3. **Start the development server:**
+3. **Create a local environment file:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+   `VITE_API_BASE` and `VITE_SOCKET_URL` may remain empty locally. Vite proxies
+   API requests and Socket.IO falls back to `http://localhost:3000` only in
+   development.
+
+4. **Start the development server:**
    ```bash
    npm run dev
    ```
 
-4. **Build for production:**
+5. **Build for production:**
    ```bash
    npm run build
    ```
+
+   Builds fail unless both `VITE_API_BASE` and `VITE_SOCKET_URL` are non-local
+   HTTPS origins. These `VITE_` variables are public browser configuration, not
+   secrets.
+
+## Vercel deployment
+
+Create the Vercel project with `FrontEnd` as its root directory and use the Vite
+framework preset. Set these variables separately for Preview and Production:
+
+```text
+VITE_API_BASE=https://api.example.com
+VITE_SOCKET_URL=https://api.example.com
+```
+
+Use `npm ci` as the install command, `npm run build` as the build command, and
+`dist` as the output directory. `vercel.json` preserves SPA routing, applies
+security headers, prevents stale HTML, and gives content-hashed assets a
+one-year immutable cache policy. The build injects an additional CSP containing
+the exact configured API and Socket.IO origins.
+
+Do not add backend secrets to the frontend project: every `VITE_` value is
+embedded in the browser bundle. For Git-based deployment, validate a Preview
+deployment before promoting the same artifact to Production.
 
 ## Project Structure
 

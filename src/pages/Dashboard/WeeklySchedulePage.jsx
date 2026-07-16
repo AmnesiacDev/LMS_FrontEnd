@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import useScheduleApi from '../../hooks/useScheduleApi';
-import { getWeekBounds, formatLocalDate } from '../../utils/weekBoundary';
+import { getWeekBounds } from '../../utils/weekBoundary';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -27,7 +27,6 @@ function formatTime(isoString) {
 
 function formatDateRange(startIso, endIso) {
   const s = new Date(startIso);
-  const e = new Date(endIso);
   const dateStr = s.toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' });
   return `${dateStr} ${formatTime(startIso)}-${formatTime(endIso)}`;
 }
@@ -170,7 +169,7 @@ const WeeklySchedulePage = () => {
   useEffect(() => {
     if (!role) return;
     fetchWeek(currentWeek.start, currentWeek.end);
-  }, [currentWeek, role]);
+  }, [currentWeek, fetchWeek, role]);
 
   const handlePrev = useCallback(() => {
     setCurrentWeek(prev => { const d = new Date(prev.start); d.setDate(d.getDate() - 7); return getWeekBounds(d); });

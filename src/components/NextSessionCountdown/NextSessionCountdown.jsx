@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 /* ─────────────────────────────────────────────────────────────
    Parses the time remaining until `targetDate` into parts.
    Returns null when the date is in the past.
 ───────────────────────────────────────────────────────────── */
-const getTimeLeft = (targetDate) => {
-  const diff = new Date(targetDate) - Date.now();
+const getTimeLeft = (targetDate, now) => {
+  if (!targetDate) return null;
+  const diff = new Date(targetDate) - now;
   if (diff <= 0) return null;
 
   const totalSeconds = Math.floor(diff / 1000);
@@ -65,27 +66,25 @@ const Block = ({ value, label, accent }) => (
      role     — 'student' | 'instructor' | 'admin'
 ───────────────────────────────────────────────────────────── */
 const NextSessionCountdown = ({ session, role = 'student' }) => {
-  const [timeLeft, setTimeLeft] = useState(() => getTimeLeft(session?.date));
-  const intervalRef = useRef(null);
+  const [now, setNow] = useState(Date.now);
 
   useEffect(() => {
-    if (!session?.date) return;
-    setTimeLeft(getTimeLeft(session.date));
-
-    intervalRef.current = setInterval(() => {
-      const t = getTimeLeft(session.date);
-      setTimeLeft(t);
-      if (!t) clearInterval(intervalRef.current);
+    if (!session?.date) return undefined;
+    const intervalId = setInterval(() => {
+      const currentTime = Date.now();
+      setNow(currentTime);
+      if (!getTimeLeft(session.date, currentTime)) clearInterval(intervalId);
     }, 1000);
 
-    return () => clearInterval(intervalRef.current);
+    return () => clearInterval(intervalId);
   }, [session?.date]);
 
   if (!session) return null;
 
+  const timeLeft = getTimeLeft(session.date, now);
   const sessionDate = new Date(session.date);
-  const isToday = sessionDate.toDateString() === new Date().toDateString();
-  const isTomorrow = sessionDate.toDateString() === new Date(Date.now() + 86400000).toDateString();
+  const isToday = sessionDate.toDateString() === new Date(now).toDateString();
+  const isTomorrow = sessionDate.toDateString() === new Date(now + 86400000).toDateString();
   const isStartingSoon = timeLeft && timeLeft.totalSeconds < 3600; // < 1 hour
 
   /* accent colour shifts as session approaches */

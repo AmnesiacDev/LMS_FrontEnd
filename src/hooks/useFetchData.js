@@ -97,7 +97,7 @@ const useFetchData = (endpoint, options = {}) => {
     return () => {
       isMountedRef.current = false;
     };
-  }, [endpoint]);
+  }, [fetchData]);
 
   const refetch = useCallback(() => {
     retryCountRef.current = 0;

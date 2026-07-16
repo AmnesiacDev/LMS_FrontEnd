@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
@@ -10,7 +10,7 @@ const GamificationWidget = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     try {
       const res = await request('/api/v1/gamification/me');
       if (res.status === 'success' && res.data) {
@@ -21,13 +21,13 @@ const GamificationWidget = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [request]);
 
   useEffect(() => {
     if (user) {
       fetchProfile();
     }
-  }, [user]);
+  }, [fetchProfile, user]);
 
   useEffect(() => {
     if (!socket) return;

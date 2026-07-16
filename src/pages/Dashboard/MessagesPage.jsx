@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
@@ -144,15 +144,15 @@ const MessagesPage = () => {
   const otherUsers = allUsers.filter(u => u._id !== user?._id);
 
   // Fetch conversations list
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       const res = await request('/api/v1/messages/conversations');
       setConversations(res.data || []);
     } catch { /* silently handle */ }
-  };
+  }, [request]);
 
   // Fetch messages for a specific conversation
-  const fetchMessages = async (otherId) => {
+  const fetchMessages = useCallback(async (otherId) => {
     if (!otherId) return;
     setLoadingMsgs(true);
     try {
@@ -162,10 +162,10 @@ const MessagesPage = () => {
       await request(`/api/v1/messages/${otherId}/read`, 'PATCH').catch(() => {});
     } catch { setMessages([]); }
     finally { setLoadingMsgs(false); }
-  };
+  }, [request]);
 
-  useEffect(() => { fetchConversations(); }, []);
-  useEffect(() => { if (activeChat) fetchMessages(activeChat); }, [activeChat]);
+  useEffect(() => { fetchConversations(); }, [fetchConversations]);
+  useEffect(() => { if (activeChat) fetchMessages(activeChat); }, [activeChat, fetchMessages]);
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const handleSend = async () => {

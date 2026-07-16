@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
@@ -24,7 +24,7 @@ const StudentProfilesPage = () => {
   const emptyForm = { userId: '', parents: '', grade: '', notes: '' };
   const [formData, setFormData] = useState(emptyForm);
 
-  const fetchProfiles = async () => {
+  const fetchProfiles = useCallback(async () => {
     try {
       setLoading(true);
       let endpoint;
@@ -42,9 +42,9 @@ const StudentProfilesPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  };
+  }, [request, role]);
 
-  useEffect(() => { fetchProfiles(); }, []);
+  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
 
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);

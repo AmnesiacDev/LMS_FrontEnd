@@ -4,6 +4,8 @@ import { buildApiUrl } from '../utils/apiUrl';
 
 const AuthContext = createContext();
 
+// Consumers need the context hook from the same module as its provider.
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);
 
 // Decode JWT payload without external library

@@ -6,25 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="AlgoGambit — Chess & Algorithm Learning Management System" />
 
-    <!-- Security headers (belt-and-suspenders alongside server Helmet headers) -->
-    <!--
-      CSP: tighten connect-src to your real API domain before going live.
-      Replace https://your-api-domain.com with the actual production URL.
-    -->
-    <meta http-equiv="Content-Security-Policy"
-      content="
-        default-src 'self';
-        script-src 'self';
-        style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com;
-        font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:;
-        img-src 'self' data: blob:;
-        connect-src 'self' https://your-api-domain.com;
-        frame-ancestors 'none';
-        base-uri 'self';
-        form-action 'self';
-      " />
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <!-- Production security headers are configured in vercel.json. Vite also
+         injects an exact, environment-specific connect-src policy at build time. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
 
     <title>AlgoGambit</title>

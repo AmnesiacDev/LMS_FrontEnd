@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState } from 'react';
 
 /**
  * DateRangeFilter
@@ -75,43 +75,27 @@ const inputStyle = {
 
 const DateRangeFilter = ({ from = '', to = '', onChange, onClear }) => {
   const [activePreset, setActivePreset] = useState(null);
-  // Track whether the last change came from inside this component (preset/input)
-  // so we don't clear activePreset on our own onChange echo-back.
-  const internalChange = useRef(false);
-
-  // If the parent resets from/to to '' externally (e.g. a "clear all filters" button),
-  // clear the active preset highlight so the UI stays in sync.
-  useEffect(() => {
-    if (internalChange.current) {
-      internalChange.current = false;
-      return;
-    }
-    if (!from && !to) {
-      setActivePreset(null);
-    }
-  }, [from, to]);
+  const activePresetKey = activePreset?.from === from && activePreset?.to === to
+    ? activePreset.key
+    : null;
 
   const handlePreset = (key) => {
     const range = getPreset(key);
-    internalChange.current = true;
-    setActivePreset(key);
+    setActivePreset({ key, ...range });
     onChange(range);
   };
 
   const handleFrom = (e) => {
-    internalChange.current = true;
     setActivePreset(null);
     onChange({ from: e.target.value, to });
   };
 
   const handleTo = (e) => {
-    internalChange.current = true;
     setActivePreset(null);
     onChange({ from, to: e.target.value });
   };
 
   const handleClear = () => {
-    internalChange.current = true;
     setActivePreset(null);
     onClear?.();
     onChange({ from: '', to: '' });
@@ -136,30 +120,30 @@ const DateRangeFilter = ({ from = '', to = '', onChange, onClear }) => {
             padding: '0.38rem 0.75rem',
             border: '2px solid var(--border-color)',
             borderRadius: 'var(--radius-sm)',
-            background: activePreset === p.key ? 'var(--brand-primary)' : 'var(--card-bg)',
-            color: activePreset === p.key ? '#fff' : 'var(--text-secondary)',
+            background: activePresetKey === p.key ? 'var(--brand-primary)' : 'var(--card-bg)',
+            color: activePresetKey === p.key ? '#fff' : 'var(--text-secondary)',
             fontWeight: 700,
             fontSize: '0.75rem',
             textTransform: 'uppercase',
             letterSpacing: '0.04em',
             cursor: 'pointer',
-            boxShadow: activePreset === p.key
+            boxShadow: activePresetKey === p.key
               ? '2px 2px 0 var(--shadow-color)'
               : '2px 2px 0 var(--shadow-color)',
-            transform: activePreset === p.key ? 'translate(-1px,-1px)' : 'none',
+            transform: activePresetKey === p.key ? 'translate(-1px,-1px)' : 'none',
             transition: 'all 0.12s ease',
             fontFamily: 'var(--font-body)',
             whiteSpace: 'nowrap',
           }}
           onMouseEnter={e => {
-            if (activePreset !== p.key) {
+            if (activePresetKey !== p.key) {
               e.currentTarget.style.background = 'var(--bg-tertiary)';
               e.currentTarget.style.transform = 'translate(-1px,-1px)';
               e.currentTarget.style.boxShadow = '3px 3px 0 var(--shadow-color)';
             }
           }}
           onMouseLeave={e => {
-            if (activePreset !== p.key) {
+            if (activePresetKey !== p.key) {
               e.currentTarget.style.background = 'var(--card-bg)';
               e.currentTarget.style.transform = 'none';
               e.currentTarget.style.boxShadow = '2px 2px 0 var(--shadow-color)';

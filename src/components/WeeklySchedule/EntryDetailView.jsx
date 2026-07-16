@@ -23,21 +23,30 @@ const fieldRow = (label, value) => (
   </div>
 );
 
-const EntryDetailView = ({ entryId, isManager, onClose, onEdit, onDelete, onRefetch }) => {
+const EntryDetailView = ({ entryId, isManager, onClose, onEdit, onDelete }) => {
   const { getEntry } = useScheduleApi();
-  const [entry, setEntry] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [loadState, setLoadState] = useState({ entryId: null, entry: null, error: null });
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   useEffect(() => {
-    if (!entryId) return;
-    setLoading(true);
-    setError(null);
+    if (!entryId) return undefined;
+    let cancelled = false;
+
     getEntry(entryId)
-      .then(data => { setEntry(data); setLoading(false); })
-      .catch(err => { setError(err.message); setLoading(false); });
-  }, [entryId]);
+      .then(entry => {
+        if (!cancelled) setLoadState({ entryId, entry, error: null });
+      })
+      .catch(error => {
+        if (!cancelled) setLoadState({ entryId, entry: null, error: error.message });
+      });
+
+    return () => { cancelled = true; };
+  }, [entryId, getEntry]);
+
+  const isCurrentEntry = loadState.entryId === entryId;
+  const entry = isCurrentEntry ? loadState.entry : null;
+  const error = isCurrentEntry ? loadState.error : null;
+  const loading = Boolean(entryId) && !isCurrentEntry;
 
   const typeColors = entry ? (ENTRY_TYPE_COLORS[entry.entryType] || {}) : {};
 

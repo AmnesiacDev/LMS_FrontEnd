@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../context/AuthContext';
+import React, { useCallback, useState, useEffect } from 'react';
 import Modal from '../../components/Modal/Modal';
 import Pagination from '../../components/Pagination/Pagination';
 import { useApiRequest } from '../../hooks/useApiRequest';
@@ -27,7 +26,6 @@ const roleAvatarBg = {
 };
 
 const UsersPage = () => {
-  const { user } = useAuth();
   const { request } = useApiRequest();
 
   const [users, setUsers] = useState([]);
@@ -49,7 +47,7 @@ const UsersPage = () => {
   const emptyForm = { FullName: '', UserName: '', Email: '', password: '', passwordConfirm: '', role: 'student' };
   const [formData, setFormData] = useState(emptyForm);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({ page: String(page), limit: String(limit) });
@@ -62,9 +60,9 @@ const UsersPage = () => {
       setError(null);
     } catch (err) { setError(err.message); }
     finally { setLoading(false); }
-  };
+  }, [limit, page, request]);
 
-  useEffect(() => { fetchUsers(); }, [page, limit]);
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);

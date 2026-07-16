@@ -76,7 +76,6 @@ function layoutEntries(entries, weekDays) {
     const groups = [];
     for (const entry of sorted) {
       const start = new Date(entry.startAt).getTime();
-      const end   = new Date(entry.endAt).getTime();
       let placed = false;
       for (const group of groups) {
         const lastEnd = Math.max(...group.map(e => new Date(e.endAt).getTime()));

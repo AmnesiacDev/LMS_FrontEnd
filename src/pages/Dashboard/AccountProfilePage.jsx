@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getAvatarUrl } from '../../utils/avatar';
@@ -32,12 +32,11 @@ const AccountProfilePage = () => {
   const navigate = useNavigate();
 
   const userName = user?.FullName || user?.UserName || 'User';
-  const initials = userName.split(' ').map((part) => part[0]).join('').toUpperCase().slice(0, 2);
   const role = user?.role || 'student';
   const quickLinks = quickLinksByRole[role] || quickLinksByRole.student;
 
   /* Stable avatar seed — uses user id so it never changes between renders */
-  const avatarSeed = useMemo(() => user?._id || user?.UserName || userName, [user]);
+  const avatarSeed = user?._id || user?.UserName || userName;
   const avatarUrl = getAvatarUrl(avatarSeed, userName, 128);
 
   const details = [

@@ -45,7 +45,7 @@ const StatCard = ({ icon, iconBg, iconColor, value, label, loading, accent }) =>
 );
 
 /* ── Quick action item ── */
-const ActionItem = ({ icon, iconColor, title, desc, onClick, accent }) => (
+const ActionItem = ({ icon, title, desc, onClick, accent }) => (
   <div
     onClick={onClick}
     style={{

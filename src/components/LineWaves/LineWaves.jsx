@@ -125,8 +125,6 @@ export default function LineWaves({
   lineColor3 = '#a855f7',
   backgroundColor = 'transparent',
   waveSpeed = 0.5,
-  waveAmpX = 0.35,
-  waveAmpY = 0.35,
   warpIntensity = 0.6,
   numWaves = 12,
   brightness = 1.4,

@@ -2,6 +2,8 @@ import React from 'react';
 import { formatDuration, formatLocalTime } from '../../utils/weekBoundary';
 
 // ── Color themes per entry type ──────────────────────────────────────
+// Shared immutable display metadata is safe to export alongside the component.
+// eslint-disable-next-line react-refresh/only-export-components
 export const ENTRY_TYPE_COLORS = {
   session: {
     accent: '#3b82f6',
