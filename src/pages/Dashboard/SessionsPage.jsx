@@ -9,6 +9,7 @@ import { appendDateRange } from '../../utils/dateRangeParams';
 import { safeUrl } from '../../utils/safeUrl';
 import { buildApiUrl } from '../../utils/apiUrl';
 import { SkeletonCardList } from '../../components/Skeleton/Skeleton';
+import { sanitizeErrorMessage } from '../../utils/errorSanitizer';
 
 /* ─── Warm Status Colors ─── */
 const statusColor = (s) => {
@@ -412,7 +413,7 @@ const SessionsPage = () => {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
     }
   };
 

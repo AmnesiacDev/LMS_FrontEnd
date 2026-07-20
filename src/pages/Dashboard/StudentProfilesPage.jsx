@@ -4,6 +4,7 @@ import Modal from '../../components/Modal/Modal';
 import { useApiRequest } from '../../hooks/useApiRequest';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { buildApiUrl } from '../../utils/apiUrl';
+import { sanitizeErrorMessage } from '../../utils/errorSanitizer';
 
 const StudentProfilesPage = () => {
   const { user } = useAuth();
@@ -89,7 +90,7 @@ const StudentProfilesPage = () => {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Could not download transcript.');
+        throw new Error(sanitizeErrorMessage(data.message || 'Could not download transcript.'));
       }
 
       const blob = await response.blob();
@@ -102,7 +103,7 @@ const StudentProfilesPage = () => {
       anchor.remove();
       URL.revokeObjectURL(url);
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
     }
   };
 

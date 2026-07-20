@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { buildApiUrl } from '../../utils/apiUrl';
+import { sanitizeErrorMessage } from '../../utils/errorSanitizer';
 import './Auth.css';
 
 const ResetPassword = () => {
@@ -35,12 +36,12 @@ const ResetPassword = () => {
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || 'Could not reset password.');
+      if (!response.ok) throw new Error(sanitizeErrorMessage(data.message || 'Could not reset password.'));
 
       setMessage(data.message || 'Password reset successful. You can now log in.');
       setTimeout(() => navigate('/login', { replace: true }), 1500);
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
     } finally {
       setLoading(false);
     }

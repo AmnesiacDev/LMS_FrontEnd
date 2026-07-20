@@ -6,6 +6,7 @@ import TrendsChart from '../../components/TrendsChart/TrendsChart';
 import { TREND_CONFIGS, buildTrendEndpoint } from '../../components/TrendsChart/trendConfig';
 import { SkeletonStatsGrid, SkeletonCardList } from '../../components/Skeleton/Skeleton';
 import { buildApiUrl } from '../../utils/apiUrl';
+import { sanitizeErrorMessage } from '../../utils/errorSanitizer';
 import './DashboardOverview.css';
 
 // Styles for status badges
@@ -243,7 +244,7 @@ const ChildDetailsPage = () => {
         // Error responses are JSON envelopes; a 404 here means "not your student"
         // rather than "missing" — surface the server's own message.
         const data = await response.json().catch(() => ({}));
-        alert(data.message || 'Could not download transcript.');
+        alert(sanitizeErrorMessage(data.message || 'Could not download transcript.'));
         return;
       }
 

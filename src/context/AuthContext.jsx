@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '../utils/logger';
 import { buildApiUrl } from '../utils/apiUrl';
+import { sanitizeErrorMessage } from '../utils/errorSanitizer';
 
 const AuthContext = createContext();
 
@@ -232,7 +233,7 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Login failed');
+        throw new Error(sanitizeErrorMessage(data.message || 'Login failed'));
       }
 
       const data = await response.json();
@@ -251,7 +252,7 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('lms-user', JSON.stringify(loggedInUser));
       return true;
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
       return false;
     } finally {
       setLoading(false);
@@ -271,7 +272,7 @@ export const AuthProvider = ({ children }) => {
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(data.message || 'Signup failed');
+        throw new Error(sanitizeErrorMessage(data.message || 'Signup failed'));
       }
 
       const data = await response.json();
@@ -288,7 +289,7 @@ export const AuthProvider = ({ children }) => {
       if (newUser) localStorage.setItem('lms-user', JSON.stringify(newUser));
       return true;
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
       return false;
     } finally {
       setLoading(false);

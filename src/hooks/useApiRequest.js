@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { buildApiUrl } from '../utils/apiUrl';
+import { sanitizeErrorMessage } from '../utils/errorSanitizer';
 
 export const useApiRequest = () => {
   const { ensureValidToken, refreshToken, logout } = useAuth();
@@ -49,7 +50,7 @@ export const useApiRequest = () => {
       
       const retryData = await retryResponse.json().catch(() => ({}));
       if (!retryResponse.ok) {
-        throw new Error(retryData.message || 'Request failed');
+        throw new Error(sanitizeErrorMessage(retryData.message || 'Request failed'));
       }
       
       return retryData;
@@ -58,7 +59,7 @@ export const useApiRequest = () => {
     const data = await response.json().catch(() => ({}));
     
     if (!response.ok) {
-      throw new Error(data.message || `Request failed (${response.status})`);
+      throw new Error(sanitizeErrorMessage(data.message || `Request failed (${response.status})`));
     }
     
     return data;
@@ -96,7 +97,7 @@ export const useApiRequest = () => {
 
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {
-      throw new Error(data.message || `Request failed (${response.status})`);
+      throw new Error(sanitizeErrorMessage(data.message || `Request failed (${response.status})`));
     }
     return data;
   }, [ensureValidToken, refreshToken, logout, navigate]);

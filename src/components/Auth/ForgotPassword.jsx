@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { buildApiUrl } from '../../utils/apiUrl';
+import { sanitizeErrorMessage } from '../../utils/errorSanitizer';
 import './Auth.css';
 
 const ForgotPassword = () => {
@@ -26,11 +27,11 @@ const ForgotPassword = () => {
       });
 
       const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.message || 'Could not send reset link.');
+      if (!response.ok) throw new Error(sanitizeErrorMessage(data.message || 'Could not send reset link.'));
 
       setMessage(data.message || 'If this email exists, a password reset link has been sent.');
     } catch (err) {
-      setError(err.message);
+      setError(sanitizeErrorMessage(err.message));
     } finally {
       setLoading(false);
     }
@@ -53,7 +54,7 @@ const ForgotPassword = () => {
         <div className="auth-form-container glass-panel">
           <h2>Forgot Password</h2>
           <p className="auth-subtitle">Use the email connected to your AlgoGambit account.</p>
-
+ 
           {error && <div className="auth-error-msg">{error}</div>}
           {message && <div className="auth-success-msg">{message}</div>}
 

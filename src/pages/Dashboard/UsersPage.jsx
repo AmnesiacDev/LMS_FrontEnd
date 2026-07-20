@@ -44,7 +44,7 @@ const UsersPage = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  const emptyForm = { FullName: '', UserName: '', Email: '', password: '', passwordConfirm: '', role: 'student' };
+  const emptyForm = { FullName: '', UserName: '', Email: '', password: '', role: 'student' };
   const [formData, setFormData] = useState(emptyForm);
 
   const fetchUsers = useCallback(async () => {
@@ -77,7 +77,7 @@ const UsersPage = () => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
       const payload = { FullName: formData.FullName, UserName: formData.UserName, role: formData.role };
-      if (formData.password) { payload.password = formData.password; payload.passwordConfirm = formData.passwordConfirm; }
+      if (formData.password) { payload.password = formData.password; }
       await request(`/api/v1/user/${editUser._id}`, 'PATCH', payload);
       setEditUser(null); await fetchUsers();
     } catch (err) { setFormError(err.message); }
@@ -94,7 +94,7 @@ const UsersPage = () => {
   };
 
   const openEdit = (u) => {
-    setFormData({ FullName: u.FullName || '', UserName: u.UserName || '', Email: u.Email || '', password: '', passwordConfirm: '', role: u.role || 'student' });
+    setFormData({ FullName: u.FullName || '', UserName: u.UserName || '', Email: u.Email || '', password: '', role: u.role || 'student' });
     setFormError(null); setEditUser(u);
   };
 
@@ -119,62 +119,62 @@ const UsersPage = () => {
       <div className="glass-panel" style={{ borderRadius: '1rem', overflow: 'hidden' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.92rem' }}>
           <thead>
-            <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-              {['User', 'Email', 'Role', 'Status', 'Joined', 'Actions'].map(h => (
-                <th key={h} style={{ padding: '0.85rem 1rem', textAlign: 'left', fontWeight: '600', fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--text-muted)' }}>{h}</th>
-              ))}
+            <tr style={{ background: 'var(--table-header-bg)', borderBottom: '2px solid var(--border-color)', textAlign: 'left' }}>
+              <th style={{ padding: '1rem 1.5rem', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>User</th>
+              <th style={{ padding: '1rem 1.5rem', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Email</th>
+              <th style={{ padding: '1rem 1.5rem', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Role</th>
+              <th style={{ padding: '1rem 1.5rem', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em' }}>Status</th>
+              <th style={{ padding: '1rem 1.5rem', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.75rem', letterSpacing: '0.05em', textAlign: 'right' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {loading && <SkeletonTableRows rows={8} cols={6} />}
+            {loading && <SkeletonTableRows cols={5} rows={5} />}
             {!loading && users.map(u => {
               const initials = (u.FullName || 'U').split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+              const avatarColor = roleAvatarBg[u.role] || '#10b981';
               return (
-                <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'background 0.15s' }} onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-tertiary)'} onMouseLeave={e => e.currentTarget.style.background = ''}>
-                  <td style={{ padding: '0.75rem 1rem' }}>
+                <tr key={u._id} style={{ borderBottom: '1px solid var(--border-color)', background: 'var(--card-bg)' }}>
+                  <td style={{ padding: '1rem 1.5rem' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      <div style={{
-                        width: '36px', height: '36px', fontSize: '0.75rem', borderRadius: '10px',
-                        background: roleAvatarBg[u.role] || '#6366f1',
-                        color: '#fff',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontWeight: 800, flexShrink: 0,
-                        border: '2px solid var(--border-color)',
-                        boxShadow: '2px 2px 0 var(--shadow-color)',
-                        fontFamily: 'var(--font-heading)',
-                      }}>{initials}</div>
+                      <div className="modal-profile-avatar" style={{ width: '36px', height: '36px', fontSize: '0.85rem', borderRadius: '10px', background: avatarColor }}>{initials}</div>
                       <div>
-                        <div style={{ fontWeight: '700' }}>{u.FullName}</div>
-                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>@{u.UserName}</div>
+                        <div style={{ fontWeight: 700, color: 'var(--text-primary)' }}>{u.FullName}</div>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', fontWeight: 600 }}>@{u.UserName}</div>
                       </div>
                     </div>
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', color: 'var(--text-secondary)' }}>{u.Email}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>{roleBadge(u.role)}</td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <span className="modal-badge" style={{
-                      background: u.isActive !== false ? '#10b981' : '#ef4444',
-                      color: '#fff',
-                      fontWeight: 700,
-                      padding: '0.3rem 0.7rem',
-                      borderRadius: '6px',
-                      fontSize: '0.78rem',
-                    }}>
-                      {u.isActive !== false ? 'Active' : 'Inactive'}
-                    </span>
+                  <td style={{ padding: '1rem 1.5rem', color: 'var(--text-secondary)', fontWeight: 555 }}>{u.Email}</td>
+                  <td style={{ padding: '1rem 1.5rem' }}>{roleBadge(u.role)}</td>
+                  <td style={{ padding: '1rem 1.5rem' }}>
+                    {u.Active !== false ? (
+                      <span className="modal-badge" style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b98133', fontWeight: 700 }}>Active</span>
+                    ) : (
+                      <span className="modal-badge" style={{ background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid #ef444433', fontWeight: 700 }}>Inactive</span>
+                    )}
                   </td>
-                  <td style={{ padding: '0.75rem 1rem', color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '—'}
-                  </td>
-                  <td style={{ padding: '0.75rem 1rem' }}>
-                    <div style={{ display: 'flex', gap: '0.35rem' }}>
-                      <button onClick={() => openEdit(u)} style={{ padding: '0.3rem 0.55rem', background: 'rgba(59,130,246,0.08)', color: 'var(--info)', border: '1px solid rgba(59,130,246,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}><i className="fa-solid fa-pen-to-square" /></button>
-                      <button onClick={() => { setFormError(null); setDeleteUser(u); }} style={{ padding: '0.3rem 0.55rem', background: 'rgba(239,68,68,0.08)', color: 'var(--error)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}><i className="fa-solid fa-trash" /></button>
+                  <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                      <button onClick={() => openEdit(u)} className="modal-btn modal-btn-info" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto' }}>
+                        <i className="fa-solid fa-pen" /> Edit
+                      </button>
+                      {u.Active !== false && (
+                        <button onClick={() => setDeleteUser(u)} className="modal-btn modal-btn-danger" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto' }}>
+                          <i className="fa-solid fa-trash" /> Delete
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               );
             })}
+            {!loading && users.length === 0 && (
+              <tr>
+                <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)', fontWeight: 600 }}>
+                  <i className="fa-solid fa-folder-open" style={{ fontSize: '2rem', display: 'block', marginBottom: '0.5rem', color: '#a1a1aa' }} />
+                  No users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -208,15 +208,9 @@ const UsersPage = () => {
             <label className="modal-label">Email</label>
             <input className="modal-input" type="email" required placeholder="john@example.com" value={formData.Email} onChange={e => setFormData({ ...formData, Email: e.target.value })} />
           </div>
-          <div className="modal-row modal-row-2">
-            <div className="modal-form-group">
-              <label className="modal-label">Password</label>
-              <input className="modal-input" type="password" required placeholder="••••••••" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
-            </div>
-            <div className="modal-form-group">
-              <label className="modal-label">Confirm Password</label>
-              <input className="modal-input" type="password" required placeholder="••••••••" value={formData.passwordConfirm} onChange={e => setFormData({ ...formData, passwordConfirm: e.target.value })} />
-            </div>
+          <div className="modal-form-group">
+            <label className="modal-label">Password</label>
+            <input className="modal-input" type="password" required placeholder="••••••••" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
           </div>
           <div className="modal-form-group">
             <label className="modal-label">Role</label>
@@ -260,15 +254,9 @@ const UsersPage = () => {
             <p className="modal-hint">Email cannot be changed</p>
           </div>
           <div className="modal-section-label">Change Password (optional)</div>
-          <div className="modal-row modal-row-2">
-            <div className="modal-form-group">
-              <label className="modal-label">New Password</label>
-              <input className="modal-input" type="password" placeholder="Leave empty to keep" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
-            </div>
-            <div className="modal-form-group">
-              <label className="modal-label">Confirm</label>
-              <input className="modal-input" type="password" placeholder="Leave empty to keep" value={formData.passwordConfirm} onChange={e => setFormData({ ...formData, passwordConfirm: e.target.value })} />
-            </div>
+          <div className="modal-form-group">
+            <label className="modal-label">New Password</label>
+            <input className="modal-input" type="password" placeholder="Leave empty to keep" value={formData.password} onChange={e => setFormData({ ...formData, password: e.target.value })} />
           </div>
           <div className="modal-form-group">
             <label className="modal-label">Role</label>

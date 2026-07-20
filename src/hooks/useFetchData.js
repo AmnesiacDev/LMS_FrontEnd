@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { buildApiUrl } from '../utils/apiUrl';
+import { sanitizeErrorMessage } from '../utils/errorSanitizer';
 
 const useFetchData = (endpoint, options = {}) => {
   const { ensureValidToken, refreshToken } = useAuth();
@@ -65,7 +66,7 @@ const useFetchData = (endpoint, options = {}) => {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.message || 'Failed to fetch data');
+        throw new Error(sanitizeErrorMessage(result.message || 'Failed to fetch data'));
       }
 
       retryCountRef.current = 0;
@@ -79,7 +80,7 @@ const useFetchData = (endpoint, options = {}) => {
         if (err.name === 'SyntaxError') {
           setError('Invalid response from server');
         } else {
-          setError(err.message);
+          setError(sanitizeErrorMessage(err.message));
         }
       }
     } finally {
