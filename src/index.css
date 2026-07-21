@@ -60,7 +60,12 @@
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-[data-theme='dark'] {
+/* `data-cosmic-space` is set by CosmicScene once the home-page scroll journey
+   climbs out of the atmosphere. The sky behind the page is deep space by then,
+   so the light palette would leave dark text stranded on black — the dark skin
+   is the only readable one out there, whatever theme the visitor picked. */
+[data-theme='dark'],
+[data-cosmic-space='1'] {
   /* =====================================================================
      DARK THEME — Sleek Warm Zinc (Neo-Brutalist)
      ===================================================================== */

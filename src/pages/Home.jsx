@@ -167,8 +167,8 @@ const Home = () => {
         {/* ══════════ STACK ══════════ */}
         <section className="cx-section reveal slide-up">
           <p className="cx-eyebrow"><i className="fa-solid fa-toolbox" /> Tools and languages</p>
-          <h2 className="cx-title">The stack drifting past you</h2>
-          <p className="cx-sub">Every logo floating through the stars is something you will actually learn to use.</p>
+          <h2 className="cx-title">The tools you will actually use</h2>
+          <p className="cx-sub">Nothing here is filler. Every one of these turns up in a lesson, a task or a project you build.</p>
           <div className="cx-tags">
             {STACK.map((t) => (
               <span key={t.label} className="cx-tag"><i className={t.icon} /> {t.label}</span>

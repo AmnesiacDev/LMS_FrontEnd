@@ -2,62 +2,19 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useTheme } from '../../context/ThemeContext';
+import { createMoon, createSun, createGalaxy } from './celestial';
 import './CosmicScene.css';
 
 const TEX = '/textures/earth/';
+const MOON_TEX = '/textures/moon/';
 
-/* Programming-language glyphs baked from Font Awesome (already loaded in index.html).
-   `b` = brands family (weight 400) vs. free-solid (weight 900). Colours are the real
-   brand hues so the tunnel reads as a genuine tech stack, not random confetti.
-   Codepoints are Font Awesome 6.5.1 private-use characters. */
-const LOGOS = [
-  { ch: '', b: true,  color: '#4B8BBE' }, // python
-  { ch: '', b: true,  color: '#F7DF1E' }, // js
-  { ch: '', b: true,  color: '#E34F26' }, // html5
-  { ch: '', b: true,  color: '#2965F1' }, // css3-alt
-  { ch: '', b: true,  color: '#F05032' }, // git-alt
-  { ch: '', b: true,  color: '#5FA04E' }, // node-js
-  { ch: '', b: true,  color: '#61DAFB' }, // react
-  { ch: '', b: true,  color: '#F89820' }, // java
-  { ch: '', b: true,  color: '#8892BF' }, // php
-  { ch: '', b: true,  color: '#2496ED' }, // docker
-  { ch: '', b: true,  color: '#CC6699' }, // sass
-  { ch: '', b: true,  color: '#E6EDF3' }, // github
-  { ch: '', b: false, color: '#7EE7C7' }, // terminal
-  { ch: '', b: false, color: '#FCD34D' }, // database
-  { ch: '', b: false, color: '#93C5FD' }, // code
-  { ch: '', b: false, color: '#A78BFA' }, // laptop-code
-];
+/* Stage window: ramps 0->1 across [a,b], holds, then back to 0 across [c,d].
+   Give c,d values past 1 for a stage that arrives and never leaves. */
+const win = (p, a, b, c, d) =>
+  Math.min(THREE.MathUtils.smoothstep(p, a, b), 1 - THREE.MathUtils.smoothstep(p, c, d));
 
-const bakeGlyph = (glyph) => {
-  const S = 128;
-  const canvas = document.createElement('canvas');
-  canvas.width = S;
-  canvas.height = S;
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, S, S);
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `${glyph.b ? 400 : 900} 78px "${glyph.b ? 'Font Awesome 6 Brands' : 'Font Awesome 6 Free'}"`;
-  // Soft outer glow so a flat sprite still feels luminous.
-  ctx.shadowColor = glyph.color;
-  ctx.shadowBlur = 22;
-  ctx.fillStyle = glyph.color;
-  ctx.fillText(glyph.ch, S / 2, S / 2 + 4);
-  ctx.shadowBlur = 0;
-  // Dark rim: reads as edge definition against deep space, but it is the only
-  // thing keeping near-white marks (GitHub, terminal) visible once the daylight
-  // theme turns the sky pale.
-  ctx.lineJoin = 'round';
-  ctx.lineWidth = 5;
-  ctx.strokeStyle = 'rgba(10, 16, 32, 0.72)';
-  ctx.strokeText(glyph.ch, S / 2, S / 2 + 4);
-  ctx.fillText(glyph.ch, S / 2, S / 2 + 4); // final pass sharpens the core
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.anisotropy = 2;
-  return tex;
-};
+// Progress across a stage's whole window, which is what flies the body past.
+const span = (p, a, b) => THREE.MathUtils.clamp((p - a) / (b - a), 0, 1);
 
 // Radial flare used as the visible sun in the daylight theme.
 const bakeSun = () => {
@@ -106,6 +63,7 @@ const EARTH_FRAG = /* glsl */ `
   uniform vec3 sunDir;
   uniform float normalStrength;
   uniform float dayMix; // 0 = deep-space theme, 1 = daylight theme
+  uniform float amt;    // stage presence: fades the globe out as the Moon arrives
   varying vec2 vUv;
   varying vec3 vNormalW;
   varying vec3 vViewDir;
@@ -160,7 +118,7 @@ const EARTH_FRAG = /* glsl */ `
     surface += vec3(1.0, 0.92, 0.70) * spec * (0.55 + 0.35 * dayMix);
     surface *= mix(vec3(1.0), vec3(1.06, 1.03, 0.98), dayMix); // warm noon cast
 
-    gl_FragColor = vec4(surface, 1.0);
+    gl_FragColor = vec4(surface * amt, 1.0);
   }
 `;
 
@@ -215,16 +173,16 @@ const CosmicScene = ({ variant = 'home' }) => {
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     const small = window.innerWidth < 720;
 
-    // `drift` moves the logo tunnel on its own clock. The landing pages scrub it
-    // with scroll and leave it at 0; /login barely scrolls, so it needs a motor.
+    // `journey` turns on the scroll-driven trip out of Earth orbit — Moon, then
+    // Sun, then galaxy. Only the home page scrolls far enough to stage it.
     const CFG = {
-      about: { base: new THREE.Vector3(2.1, 0.3, -0.8), radius: 2.5, riseY: 2.2, riseX: 1.0, riseZ: 1.0, shrink: 0.46, cycles: 2.2, logoCount: small ? 12 : 20, drift: 0 },
+      about: { base: new THREE.Vector3(2.1, 0.3, -0.8), radius: 2.5, riseY: 2.2, riseX: 1.0, riseZ: 1.0, shrink: 0.46, journey: false },
       // Auth keeps the globe left of the form card. On phones the card takes the
       // whole width, so the globe retreats to a crescent above it instead.
       auth: small
-        ? { base: new THREE.Vector3(-0.8, 2.6, -1.6), radius: 2.4, riseY: 1.6, riseX: 0.4, riseZ: 1.0, shrink: 0.35, cycles: 1.4, logoCount: 10, drift: 1.8 }
-        : { base: new THREE.Vector3(-3.0, -1.05, -0.7), radius: 2.9, riseY: 1.2, riseX: 0.5, riseZ: 0.8, shrink: 0.30, cycles: 1.2, logoCount: 16, drift: 2.4 },
-      home: { base: new THREE.Vector3(1.9, -1.35, 0), radius: 3.6, riseY: 3.0, riseX: 1.2, riseZ: 1.6, shrink: 0.6, cycles: 3.0, logoCount: small ? 16 : 30, drift: 0 },
+        ? { base: new THREE.Vector3(-0.8, 2.6, -1.6), radius: 2.4, riseY: 1.6, riseX: 0.4, riseZ: 1.0, shrink: 0.35, journey: false }
+        : { base: new THREE.Vector3(-3.0, -1.05, -0.7), radius: 2.9, riseY: 1.2, riseX: 0.5, riseZ: 0.8, shrink: 0.30, journey: false },
+      home: { base: new THREE.Vector3(1.9, -1.35, 0), radius: 3.6, riseY: 3.0, riseX: 1.2, riseZ: 1.6, shrink: 0.6, journey: true },
     };
     const cfg = CFG[variant] || CFG.home;
 
@@ -241,6 +199,10 @@ const CosmicScene = ({ variant = 'home' }) => {
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
+    // JS now owns the sky cross-fade, because it has to blend the theme with the
+    // journey's climb out of the atmosphere. Drop the CSS transition that would
+    // otherwise lag a frame behind every write.
+    mount.classList.add('cosmic--driven');
 
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x05070f, 0.0075);
@@ -264,6 +226,8 @@ const CosmicScene = ({ variant = 'home' }) => {
     const DAY_AMB = new THREE.Color(0xc3d8f2);
     let dayTarget = 0;
     let dayMix = 0;
+    let lastSky = -1; // last value pushed to CSS, so we only write on a real change
+    let inSpace = false;
 
     /* ---------- Earth ---------- */
     const earthPivot = new THREE.Group();
@@ -274,7 +238,10 @@ const CosmicScene = ({ variant = 'home' }) => {
     earthSpin.rotation.z = THREE.MathUtils.degToRad(23.4);
     earthPivot.add(earthSpin);
 
-    const loader = new THREE.TextureLoader();
+    // Shared manager so the reduced-motion path can repaint once the plates
+    // land; without it its single frame draws untextured spheres forever.
+    const texManager = new THREE.LoadingManager();
+    const loader = new THREE.TextureLoader(texManager);
     const srgb = (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
     const lin = (t) => { t.colorSpace = THREE.NoColorSpace; return t; };
 
@@ -288,6 +255,7 @@ const CosmicScene = ({ variant = 'home' }) => {
       sunDir: { value: sunDir },
       normalStrength: { value: 0.22 },
       dayMix: { value: 0 },
+      amt: { value: 1 },
     };
 
     const earth = new THREE.Mesh(
@@ -400,42 +368,17 @@ const CosmicScene = ({ variant = 'home' }) => {
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    /* ---------- Logo tunnel ---------- */
-    const DEPTH = 150;
-    const logoSprites = [];
-    const glyphTextures = [];
-    const buildLogos = () => {
-      for (let i = 0; i < cfg.logoCount; i++) {
-        const g = LOGOS[i % LOGOS.length];
-        let tex = glyphTextures[i % LOGOS.length];
-        if (!tex) { tex = bakeGlyph(g); glyphTextures[i % LOGOS.length] = tex; }
-        // fog:false — aerial perspective would bleach the far end of the tunnel
-        // into the daylight sky; the per-sprite fade already handles depth.
-        const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false, opacity: 0, fog: false });
-        const sprite = new THREE.Sprite(mat);
-        const s = 1.7 + Math.random() * 1.8;
-        sprite.scale.set(s, s, s);
-        sprite.userData = {
-          bz: -Math.random() * DEPTH,
-          x: (Math.random() - 0.5) * 42,
-          y: (Math.random() - 0.5) * 26,
-          drift: 0.15 + Math.random() * 0.35,
-          spin: (Math.random() - 0.5) * 0.4,
-        };
-        sprite.position.set(sprite.userData.x, sprite.userData.y, sprite.userData.bz);
-        scene.add(sprite);
-        logoSprites.push(sprite);
+    /* ---------- Journey bodies (home only) ---------- */
+    // Built up front rather than on demand: each is a single draw call and stays
+    // .visible = false until its stage opens, so an idle body costs nothing.
+    const bodies = cfg.journey
+      ? {
+        moon: createMoon({ loader, texPath: MOON_TEX, small }),
+        sun: createSun({ small }),
+        galaxy: createGalaxy({ small }),
       }
-    };
-
-    // Fonts must be resident before we rasterise glyphs, else we bake tofu.
-    const fontReady = document.fonts
-      ? Promise.all([
-        document.fonts.load('400 78px "Font Awesome 6 Brands"'),
-        document.fonts.load('900 78px "Font Awesome 6 Free"'),
-      ]).then(() => document.fonts.ready)
-      : Promise.resolve();
-    let disposed = false;
+      : null;
+    if (bodies) Object.values(bodies).forEach((b) => scene.add(b.object));
 
     /* ---------- Drag to spin (mouse/pen only; touch keeps the page scrollable) ---------- */
     const spinTarget = { x: 0, y: 0 };
@@ -508,22 +451,50 @@ const CosmicScene = ({ variant = 'home' }) => {
       smoothP += (targetP - smoothP) * (reduced ? 1 : 0.06);
       dayMix += (dayTarget - dayMix) * (reduced ? 1 : 0.07);
 
+      // Leaving the atmosphere: whatever the theme says, the sky drains to deep
+      // space early on, and it finishes well before the Earth starts dimming so
+      // nothing ever has to fade out against a pale blue backdrop.
+      const spaceP = cfg.journey ? THREE.MathUtils.smoothstep(smoothP, 0.03, 0.13) : 0;
+      const sky = dayMix * (1 - spaceP);
+      if (Math.abs(sky - lastSky) > 0.004) {
+        lastSky = sky;
+        mount.style.setProperty('--cosmic-day', sky.toFixed(3));
+      }
+      // Once we are out of the atmosphere the page has to wear the dark skin
+      // whatever theme is selected, or light-theme text lands on a black sky.
+      // Hysteresis keeps it from strobing if the reader parks on the threshold.
+      if (cfg.journey && (inSpace ? spaceP < 0.4 : spaceP > 0.6)) {
+        inSpace = !inSpace;
+        document.documentElement.dataset.cosmicSpace = inSpace ? '1' : '0';
+      }
+
       // Day/night dressing: sunlight strength, sky haze, stars, sun flare.
-      scene.fog.color.lerpColors(NIGHT_FOG, DAY_FOG, dayMix);
-      ambient.color.lerpColors(NIGHT_AMB, DAY_AMB, dayMix);
-      // These two lights only ever reach the cloud shell — the globe itself is
-      // lit analytically from `sunDir`. Push them and the shell clips to a
-      // featureless white ball once scroll shrinks it.
-      ambient.intensity = 1.1 + 0.30 * dayMix;
-      sun.intensity = 2.2 + 0.50 * dayMix;
-      earthUniforms.dayMix.value = dayMix;
-      starMat.uniforms.dayMix.value = dayMix;
-      stars.visible = dayMix < 0.99;
-      sunFlare.material.opacity = dayMix;
-      sunFlare.visible = dayMix > 0.01;
+      scene.fog.color.lerpColors(NIGHT_FOG, DAY_FOG, sky);
+      ambient.color.lerpColors(NIGHT_AMB, DAY_AMB, sky);
+      // These two lights only ever reach the cloud shell. The globe itself is
+      // lit analytically from `sunDir`, so pushing them to "brighten the Earth"
+      // only clips the shell to a featureless white ball.
+      ambient.intensity = 1.1 + 0.30 * sky;
+      sun.intensity = 2.2 + 0.50 * sky;
+      earthUniforms.dayMix.value = sky;
+      starMat.uniforms.dayMix.value = sky;
+      stars.visible = sky < 0.99;
+      sunFlare.material.opacity = sky;
+      sunFlare.visible = sky > 0.01;
+
+      // Stage schedule. Earth is just the stage that starts already on screen;
+      // each body fades up and holds while the one before it clears the frame.
+      const earthAmt = cfg.journey ? 1 - THREE.MathUtils.smoothstep(smoothP, 0.16, 0.31) : 1;
+      earthUniforms.amt.value = earthAmt;
+      earthPivot.visible = earthAmt > 0.004;
+      if (bodies) {
+        bodies.moon.update(t, win(smoothP, 0.18, 0.31, 0.40, 0.52), span(smoothP, 0.18, 0.52), camera);
+        bodies.sun.update(t, win(smoothP, 0.46, 0.58, 0.69, 0.80), span(smoothP, 0.46, 0.80), camera);
+        bodies.galaxy.update(t, win(smoothP, 0.74, 0.87, 9, 10), span(smoothP, 0.74, 1.0), camera);
+      }
       // Thin the shell as scroll shrinks the globe: at small scale the mipped
       // coverage averages out into one flat white ball otherwise.
-      cloudMat.opacity = (0.80 - 0.06 * dayMix) * (1 - 0.45 * smoothP);
+      cloudMat.opacity = (0.80 - 0.06 * sky) * (1 - 0.45 * smoothP) * earthAmt;
 
       // Earth rises and recedes on scroll.
       earthPivot.position.set(
@@ -546,27 +517,13 @@ const CosmicScene = ({ variant = 'home' }) => {
         clouds.rotation.copy(earth.rotation);
       }
 
-      // Endless logo tunnel keyed to scroll so it scrubs both ways, plus the
-      // optional idle drift for pages that have nothing to scroll.
-      const travel = smoothP * DEPTH * cfg.cycles + t * cfg.drift;
-      for (const sp of logoSprites) {
-        const u = sp.userData;
-        const z = ((((u.bz + travel) % DEPTH) + DEPTH) % DEPTH) - DEPTH;
-        sp.position.z = z;
-        sp.position.x = u.x + Math.sin(t * u.drift + u.bz) * 1.4;
-        sp.position.y = u.y + Math.cos(t * u.drift * 0.8 + u.bz) * 1.0;
-        const fadeIn = THREE.MathUtils.smoothstep(z, -DEPTH, -DEPTH + 22);
-        const fadeOut = 1 - THREE.MathUtils.smoothstep(z, -16, -2);
-        sp.material.opacity = (0.92 - 0.10 * dayMix) * fadeIn * fadeOut;
-        if (!reduced) sp.material.rotation += u.spin * 0.01;
-      }
-
-      // Parallax drift on the whole vault.
+      // Parallax drift on the whole vault. The look target tilts up to follow the
+      // rising globe, then levels off with it so the journey runs dead ahead.
       const px = reduced ? 0 : parallax.x;
       const py = reduced ? 0 : parallax.y;
       camera.position.x += (px * 0.8 - camera.position.x) * 0.04;
       camera.position.y += (-py * 0.5 - camera.position.y) * 0.04;
-      camera.lookAt(0, smoothP * 1.5, 0);
+      camera.lookAt(0, smoothP * 1.5 * earthAmt, 0);
 
       renderer.render(scene, camera);
     };
@@ -592,20 +549,20 @@ const CosmicScene = ({ variant = 'home' }) => {
     if (reduced) {
       // No continuous loop; repaint only when the view actually changes.
       const repaint = () => { readScroll(); render(); };
-      fontReady.then(() => { if (!disposed) { buildLogos(); render(); } }).catch(() => {});
+      texManager.onLoad = render; // the plates arrive after that first frame
       render();
       window.addEventListener('scroll', repaint, { passive: true });
       window.addEventListener('resize', repaint);
       mount._cosmicRepaint = repaint;
     } else {
-      fontReady.then(() => { if (!disposed) buildLogos(); }).catch(() => { if (!disposed) buildLogos(); });
       raf = requestAnimationFrame(loop);
     }
 
     /* ---------- Cleanup ---------- */
     return () => {
-      disposed = true;
+      texManager.onLoad = undefined;
       applyThemeRef.current = null;
+      delete document.documentElement.dataset.cosmicSpace;
       document.body.classList.remove('cosmic-grabbing');
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', readScroll);
@@ -633,7 +590,7 @@ const CosmicScene = ({ variant = 'home' }) => {
       Object.values(earthUniforms).forEach((u) => u.value?.isTexture && u.value.dispose());
       cloudTex.dispose();
       sunTex.dispose();
-      glyphTextures.forEach((tx) => tx.dispose());
+      if (bodies) Object.values(bodies).forEach((b) => b.dispose());
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };

@@ -45,10 +45,22 @@
   --cx-ease: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
+/* Crossing into space swaps the palette under these. They carry no transition
+   of their own, so easing colour here turns the swap into dusk falling rather
+   than a light switch. */
+.cosmic-page .cx-title,
+.cosmic-page .cx-sub,
+.cosmic-page .cx-eyebrow,
+.cosmic-page .cx-card h3,
+.cosmic-page .cx-card p {
+  transition: color 0.45s ease;
+}
+
 /* ── Deep-space palette ──
    A black offset shadow would vanish against the void, so the dark skin
    throws an ice-blue one instead — same shape language, still readable. */
-[data-theme='dark'] .cosmic-page {
+[data-theme='dark'] .cosmic-page,
+[data-cosmic-space='1'] .cosmic-page {
   --cx-accent: #6ea8ff;
   --cx-accent-ink: #05070f;
   --cx-head: #eef4ff;
@@ -366,7 +378,8 @@
   background: var(--cx-panel);
   backdrop-filter: blur(8px);
   overflow: hidden;
-  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  transition: transform 0.18s ease, box-shadow 0.18s ease,
+              background-color 0.45s ease, border-color 0.45s ease;
 }
 /* Corner accent glow instead of a slop side-stripe. */
 .cx-card::after {

@@ -155,7 +155,9 @@
   -webkit-backdrop-filter: blur(12px);
 }
 [data-theme='dark'] .landing-navbar.cosmic,
-[data-theme='dark'] .landing-footer.cosmic {
+[data-theme='dark'] .landing-footer.cosmic,
+[data-cosmic-space='1'] .landing-navbar.cosmic,
+[data-cosmic-space='1'] .landing-footer.cosmic {
   --cxc-ink: #6c8ac4;
   --cxc-shadow: rgba(126, 200, 255, 0.34);
   --cxc-panel: rgba(9, 15, 30, 0.74);

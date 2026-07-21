@@ -10,9 +10,17 @@
   background:
     radial-gradient(130% 90% at 80% 12%, #12213f 0%, #0a1124 40%, #05070f 78%, #03040a 100%);
   touch-action: pan-y; /* never hijack vertical scrolling on touch */
+  --cosmic-day: 1;
 }
 
-/* Daylight sky, stacked over the night sky and faded out in the dark theme. */
+[data-theme='dark'] .cosmic-scene {
+  --cosmic-day: 0;
+}
+
+/* Daylight sky, stacked over the night sky. These two rules are the no-JS
+   fallback; once the scene is running it writes --cosmic-day inline every
+   frame, because the sky has to answer to the scroll journey (which climbs out
+   of the atmosphere) as well as to the theme. */
 .cosmic-scene::before {
   content: '';
   position: absolute;
@@ -20,12 +28,14 @@
   z-index: 0;
   background:
     radial-gradient(130% 92% at 74% 8%, #fff7e3 0%, #ffeec9 9%, #dcebfc 34%, #b6d2f0 64%, #94b9e5 100%);
-  opacity: 1;
+  opacity: var(--cosmic-day);
   transition: opacity 0.55s ease;
 }
 
-[data-theme='dark'] .cosmic-scene::before {
-  opacity: 0;
+/* JS is driving: it smooths the value itself, so a CSS transition on top would
+   only add lag. */
+.cosmic-scene.cosmic--driven::before {
+  transition: none;
 }
 
 .cosmic-scene canvas {
