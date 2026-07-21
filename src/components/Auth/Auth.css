@@ -1,267 +1,665 @@
-.auth-container {
-  display: flex;
-  height: 100vh;
-  width: 100%;
-  overflow: hidden;
-  background-color: var(--bg-primary);
-}
+/* =====================================================================
+   AUTH — sign in / sign up / recovery
+   Laid over the same WebGL CosmicScene the landing pages use (variant
+   "auth", which parks the globe left of the card), wearing the app's
+   neo-brutalist chrome: ink borders, hard offset shadows, Outfit
+   headings, Inter prose.
 
-/* Visual / Branding Side */
-.auth-visual {
-  flex: 1;
-  background: linear-gradient(135deg, var(--brand-primary), var(--success), var(--info));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 4rem;
-  color: white;
+   Two skins driven by the global [data-theme] switch:
+     light -> daylight orbit, ink-on-white panels
+     dark  -> deep space, ice-blue offsets on navy panels
+
+   The 3D backdrop is portalled to <body> at z-index:-1, so everything
+   here sits in normal flow above it and keeps a translucent panel.
+   ===================================================================== */
+
+.auth-stage {
   position: relative;
-  overflow: hidden;
-}
-
-/* Animated gradient overlay */
-.auth-visual::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 40%);
-  animation: shimmer 8s ease-in-out infinite alternate;
-}
-
-@keyframes shimmer {
-  0% { opacity: 0.5; transform: scale(1); }
-  100% { opacity: 1; transform: scale(1.05); }
-}
-
-/* Floating glass orbs */
-.auth-visual::after {
-  content: '';
-  position: absolute;
-  top: 15%;
-  right: 10%;
-  width: 300px;
-  height: 300px;
-  background: rgba(255, 255, 255, 0.08);
-  backdrop-filter: blur(30px);
-  border-radius: 50%;
-  animation: float 10s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0) scale(1) rotate(0deg); }
-  50% { transform: translateY(-40px) scale(1.1) rotate(5deg); }
-}
-
-.auth-visual-content {
-  position: relative;
-  z-index: 10;
-  max-width: 520px;
-  text-align: center;
-}
-
-.auth-visual-content h1 {
-  font-size: 3.8rem;
-  color: white;
-  margin-bottom: 1.5rem;
-  line-height: 1.05;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  text-shadow: 0 4px 30px rgba(0, 0, 0, 0.15);
-}
-
-.auth-visual-content p {
-  font-size: 1.3rem;
-  opacity: 0.9;
-  line-height: 1.6;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Form Side */
-.auth-form-wrapper {
-  flex: 1;
+  z-index: 1;
+  flex: 1; /* .app-container is a flex row; claim the whole viewport */
   display: flex;
   flex-direction: column;
-  position: relative;
-  padding: 2rem;
-  max-width: 600px;
-  overflow-y: auto;
-}
-
-.theme-toggle-btn {
-  align-self: flex-end;
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  padding: 0.5rem 1rem;
-  border-radius: 12px;
-  font-weight: 500;
-  font-size: 0.85rem;
-  border: 1px solid var(--border-color);
-  margin-bottom: auto;
-  transition: all 0.2s ease;
-}
-
-.theme-toggle-btn:hover {
-  background: var(--brand-light);
-  color: var(--brand-primary);
-  border-color: var(--brand-primary);
-}
-
-.auth-form-container {
-  margin: auto;
   width: 100%;
-  max-width: 420px;
-  padding: 2.5rem;
-  border-radius: 1.5rem;
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 1.25rem clamp(1rem, 4vw, 3rem) 2rem;
+  font-family: var(--font-body);
+  color: var(--ax-body);
+
+  /* ── Daylight palette (default) ── */
+  --ax-accent: #2563EB;
+  --ax-accent-hover: #1D4ED8;
+  --ax-accent-ink: #FFFFFF;
+  --ax-head: #0F172A;
+  --ax-body: #334155;
+  --ax-muted: #46536B;
+  --ax-panel: rgba(255, 255, 255, 0.94);
+  --ax-field: #FFFFFF;
+  --ax-field-soft: #F1F5F9;
+  --ax-chip: rgba(255, 255, 255, 0.88);
+  --ax-line: #1C1917;
+  --ax-line-soft: rgba(28, 25, 23, 0.55);
+  --ax-shadow: #1C1917;
+  --ax-danger: #B91C1C;
+  --ax-danger-bg: rgba(254, 226, 226, 0.92);
+  --ax-ok: #047857;
+  --ax-ok-bg: rgba(209, 250, 229, 0.92);
+  --ax-halo: 0 0 6px rgba(248, 251, 255, 1), 0 0 15px rgba(248, 251, 255, 0.98), 0 0 32px rgba(248, 251, 255, 0.88);
+  --ax-scrim: rgba(247, 251, 255, 0.86);
+
+  /* ── Brutalist shape tokens ── */
+  --ax-bd: 3px solid var(--ax-line);
+  --ax-bd-thin: 2px solid var(--ax-line);
+  --ax-sh-sm: 3px 3px 0 var(--ax-shadow);
+  --ax-sh: 5px 5px 0 var(--ax-shadow);
+  --ax-sh-lg: 8px 8px 0 var(--ax-shadow);
+  --ax-r: 10px;
+  --ax-r-sm: 6px;
 }
 
-.auth-form-container h2 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  font-weight: 700;
+/* ── Deep-space palette ──
+   A black offset shadow would vanish against the void, so the dark skin
+   throws an ice-blue one instead — same shape language, still readable. */
+[data-theme='dark'] .auth-stage {
+  --ax-accent: #6ea8ff;
+  --ax-accent-hover: #8dbcff;
+  --ax-accent-ink: #05070f;
+  --ax-head: #eef4ff;
+  --ax-body: rgba(214, 226, 248, 0.88);
+  --ax-muted: rgba(158, 178, 212, 0.82);
+  --ax-panel: rgba(12, 20, 40, 0.86);
+  --ax-field: rgba(5, 11, 26, 0.72);
+  --ax-field-soft: rgba(140, 170, 235, 0.10);
+  --ax-chip: rgba(140, 170, 235, 0.12);
+  --ax-line: #6c8ac4;
+  --ax-line-soft: rgba(108, 138, 196, 0.55);
+  --ax-shadow: rgba(126, 200, 255, 0.34);
+  --ax-danger: #ffb4b4;
+  --ax-danger-bg: rgba(94, 20, 32, 0.55);
+  --ax-ok: #86efac;
+  --ax-ok-bg: rgba(6, 78, 59, 0.50);
+  --ax-halo: 0 0 7px rgba(3, 6, 16, 0.96), 0 0 18px rgba(3, 6, 16, 0.88), 0 0 34px rgba(3, 6, 16, 0.7);
+  --ax-scrim: rgba(8, 14, 30, 0.62);
 }
 
-.auth-subtitle {
-  color: var(--text-muted);
-  margin-bottom: 2rem;
-  font-size: 0.95rem;
+.auth-stage :where(h1, h2, h3) {
+  font-family: var(--font-heading);
+  color: var(--ax-head);
 }
 
-.auth-error-msg {
-  background: rgba(239, 68, 68, 0.08);
-  color: var(--error);
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  margin-bottom: 1rem;
-  border: 1.5px solid rgba(239, 68, 68, 0.25);
-  font-size: 0.9rem;
-  font-weight: 500;
+/* ══════════════════════════════════════════════════════════════
+   TOP BAR
+══════════════════════════════════════════════════════════════ */
+.auth-topbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* On phones the globe's crescent sits directly behind this, so the brand gets
+   the same frosted chip as the buttons opposite it rather than floating bare
+   over whatever landmass happens to be rotating past. */
+.auth-home-link {
+  display: inline-flex;
+  padding: 0.35rem 0.8rem 0.35rem 0.4rem;
+  background: var(--ax-chip);
+  border: var(--ax-bd-thin);
+  border-radius: 999px;
+  text-decoration: none;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* The wordmark inherits the app's global text colour, which is tuned for a
+   solid page background rather than open sky. Re-ink it per skin. */
+.auth-topbar .auth-home-link span {
+  color: var(--ax-head) !important;
+}
+
+.auth-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.auth-ghost-link,
+.auth-theme-btn {
+  display: inline-flex;
+  align-items: center;
   gap: 0.5rem;
-  animation: shake 0.4s ease;
+  background: var(--ax-chip);
+  color: var(--ax-head);
+  border: var(--ax-bd-thin);
+  border-radius: var(--ax-r-sm);
+  box-shadow: var(--ax-sh-sm);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
 }
 
-.auth-success-msg {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--success);
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
+.auth-theme-btn {
+  width: 2.45rem;
+  padding: 0.5rem 0;
+  justify-content: center;
+}
+
+.auth-ghost-link:hover,
+.auth-theme-btn:hover {
+  color: var(--ax-head);
+  background: var(--ax-panel);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--ax-sh);
+}
+
+.auth-ghost-link:active,
+.auth-theme-btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LAYOUT — pitch column beside the card
+══════════════════════════════════════════════════════════════ */
+.auth-layout {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 27rem);
+  align-items: center;
+  gap: clamp(2rem, 6vw, 5rem);
+  width: 100%;
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: clamp(1.5rem, 5vh, 3.5rem) 0;
+}
+
+/* ── Pitch column ──
+   Sits over open sky and the drifting globe, so display type carries a halo
+   in the page's own sky colour and the small lines get a soft scrim. A bright
+   glow bleeds through thin antialiased stems and washes them out at body
+   size — that is why the two treatments differ. */
+.auth-pitch {
+  max-width: 34rem;
+}
+
+.auth-pitch-eyebrow {
+  display: inline-block;
+  width: fit-content;
   margin-bottom: 1rem;
-  border: 1.5px solid rgba(16, 185, 129, 0.28);
-  font-size: 0.9rem;
+  padding: 0.35rem 1rem;
+  background: var(--ax-chip);
+  border: var(--ax-bd-thin);
+  border-radius: 999px;
+  color: var(--ax-head);
+  font-family: var(--font-heading);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-pitch-title {
+  font-size: clamp(2.2rem, 4.4vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin-bottom: 1rem;
+  text-shadow: var(--ax-halo);
+}
+
+/* A soft radial scrim was not enough here: body-size text over the bright
+   daylight globe needs a real slab. This matches the frosted chips above and
+   below it, so the column reads as one stack rather than a patch. */
+.auth-pitch-blurb {
+  max-width: 30rem;
+  width: fit-content;
+  font-size: 1.05rem;
+  line-height: 1.6;
+  color: var(--ax-head);
+  padding: 0.7rem 1.1rem;
+  background: var(--ax-scrim);
+  border-radius: var(--ax-r);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.auth-pitch-points {
+  list-style: none;
+  margin: 1.75rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+.auth-pitch-points li {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: fit-content;
+  padding: 0.45rem 0.9rem 0.45rem 0.45rem;
+  background: var(--ax-chip);
+  border: var(--ax-bd-thin);
+  border-radius: 999px;
+  color: var(--ax-head);
+  font-size: 0.92rem;
   font-weight: 600;
-  line-height: 1.4;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-6px); }
-  40%, 80% { transform: translateX(6px); }
+.auth-point-icon {
+  display: grid;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  flex-shrink: 0;
+  background: var(--ax-accent);
+  color: var(--ax-accent-ink);
+  border: 2px solid var(--ax-line);
+  border-radius: 50%;
+  font-size: 0.75rem;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   CARD
+══════════════════════════════════════════════════════════════ */
+.auth-card {
+  width: 100%;
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  background: var(--ax-panel);
+  border: var(--ax-bd);
+  border-radius: var(--ax-r);
+  box-shadow: var(--ax-sh-lg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  animation: authCardIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes authCardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.auth-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  padding: 0.3rem 0.8rem;
+  background: var(--ax-field-soft);
+  border: 2px solid var(--ax-line);
+  border-radius: 999px;
+  color: var(--ax-head);
+  font-family: var(--font-heading);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.auth-card-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.35rem;
+}
+
+.auth-card-sub {
+  color: var(--ax-muted);
+  font-size: 0.92rem;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Segmented mode switch ──
+   The indicator is one sliding block behind both labels, so the active label
+   turning bold can never reflow the pair. */
+.auth-tabs {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  margin-bottom: 1.5rem;
+  padding: 4px;
+  background: var(--ax-field-soft);
+  border: var(--ax-bd-thin);
+  border-radius: var(--ax-r-sm);
+}
+
+.auth-tabs-indicator {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 4px);
+  background: var(--ax-accent);
+  border-radius: 4px;
+  transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.auth-tabs-indicator[data-side='left']  { left: 4px; }
+.auth-tabs-indicator[data-side='right'] { left: 50%; }
+
+.auth-tab {
+  position: relative;
+  z-index: 1;
+  padding: 0.6rem 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  color: var(--ax-muted);
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.auth-tab.is-active {
+  color: var(--ax-accent-ink);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   FORM
+══════════════════════════════════════════════════════════════ */
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.1rem;
 }
 
-.form-group {
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+
+.auth-field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.4rem;
+  min-width: 0;
 }
 
-.form-group label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--text-secondary);
+.auth-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.auth-label {
+  color: var(--ax-head);
+  font-family: var(--font-heading);
+  font-size: 0.74rem;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.08em;
+  padding: 0;
 }
 
-.form-group input {
-  padding: 0.8rem 1rem;
-  border-radius: 12px;
-  border: 1.5px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+.auth-control {
+  display: flex;
+  align-items: center;
+  background: var(--ax-field);
+  border: var(--ax-bd-thin);
+  border-radius: var(--ax-r-sm);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.form-group input:focus {
+.auth-control:focus-within {
+  border-color: var(--ax-accent);
+  box-shadow: var(--ax-sh-sm);
+  transform: translate(-1px, -1px);
+}
+
+.auth-control-icon {
+  width: 2.55rem;
+  flex-shrink: 0;
+  text-align: center;
+  color: var(--ax-muted);
+  font-size: 0.9rem;
+  transition: color 0.15s ease;
+}
+
+.auth-control:focus-within .auth-control-icon {
+  color: var(--ax-accent);
+}
+
+.auth-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.78rem 0.9rem 0.78rem 0;
+  background: transparent;
+  border: none;
   outline: none;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px var(--brand-light);
+  color: var(--ax-head);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
 }
 
-.auth-select {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  border: 1.5px solid var(--border-color);
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  font-family: inherit;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+.auth-input::placeholder {
+  color: var(--ax-muted);
+  opacity: 0.65;
+}
+
+/* Chrome paints its own autofill background straight over ours; an inset
+   shadow is the only thing it honours. */
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--ax-head);
+  -webkit-box-shadow: inset 0 0 0 100px var(--ax-field);
+  caret-color: var(--ax-head);
+  transition: background-color 9999s ease-in-out 0s;
+}
+
+.auth-reveal-btn {
+  flex-shrink: 0;
+  width: 2.6rem;
+  padding: 0.6rem 0;
+  background: transparent;
+  border: none;
+  color: var(--ax-muted);
+  font-size: 0.9rem;
   cursor: pointer;
+  transition: color 0.15s ease;
 }
 
-.auth-select:focus {
-  outline: none;
-  border-color: var(--brand-primary);
-  box-shadow: 0 0 0 3px var(--brand-light);
+.auth-reveal-btn:hover {
+  color: var(--ax-accent);
 }
 
-.form-group input::placeholder {
-  color: var(--text-muted);
-  opacity: 0.7;
+.auth-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--ax-muted);
+}
+
+.auth-hint-warn {
+  color: var(--ax-danger);
+  font-weight: 600;
 }
 
 .auth-inline-link {
-  align-self: flex-end;
-  color: var(--brand-primary);
-  font-size: 0.82rem;
-  font-weight: 600;
+  color: var(--ax-accent);
+  font-size: 0.78rem;
+  font-weight: 700;
   text-decoration: none;
 }
 
 .auth-inline-link:hover {
+  color: var(--ax-accent-hover);
   text-decoration: underline;
 }
 
-/* Password strength indicator could go here */
-.form-group:has(input:not(:placeholder-shown):invalid) input {
-  border-color: var(--error);
+/* ── Password strength ── */
+.auth-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
 }
 
-.auth-submit-btn {
-  margin-top: 0.5rem;
-  background: var(--brand-primary);
-  color: #FFFFFF;
-  padding: 0.9rem;
-  border: var(--border-width) solid var(--border-color);
-  border-radius: var(--radius-sm);
+.auth-strength-bars {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 3px;
+  flex: 1;
+}
+
+.auth-strength-bars span {
+  height: 6px;
+  background: var(--ax-field-soft);
+  border: 1px solid var(--ax-line-soft);
+  border-radius: 2px;
+  transition: background 0.25s ease;
+}
+
+.auth-strength-bars span.is-filled { background: var(--ax-strength, #f59e0b); }
+
+.auth-strength-label {
+  font-size: 0.72rem;
   font-weight: 700;
-  font-size: 1rem;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  transition: transform 0.1s ease, box-shadow 0.1s ease;
-  box-shadow: var(--shadow-sm);
+  letter-spacing: 0.06em;
+  color: var(--ax-strength, var(--ax-muted));
+}
+
+.auth-strength[data-score='0'] { --ax-strength: #ef4444; }
+.auth-strength[data-score='1'] { --ax-strength: #f97316; }
+.auth-strength[data-score='2'] { --ax-strength: #eab308; }
+.auth-strength[data-score='3'] { --ax-strength: #22c55e; }
+.auth-strength[data-score='4'] { --ax-strength: #10b981; }
+
+/* ── Role picker — radios drawn as brutalist tiles ── */
+.auth-roles {
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+
+.auth-roles legend {
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+.auth-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.6rem;
+}
+
+.auth-role {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.75rem 0.4rem;
+  background: var(--ax-field);
+  border: var(--ax-bd-thin);
+  border-radius: var(--ax-r-sm);
+  color: var(--ax-body);
+  text-align: center;
   cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease, color 0.2s ease;
+}
+
+/* Visually hidden, but still the focusable control — keyboard users get the
+   ring on the tile through :focus-visible below. */
+.auth-role input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-role i {
+  font-size: 1.05rem;
+  color: var(--ax-muted);
+  transition: color 0.2s ease;
+}
+
+.auth-role-label {
+  font-family: var(--font-heading);
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: var(--ax-head);
+}
+
+.auth-role-blurb {
+  font-size: 0.68rem;
+  color: var(--ax-muted);
+  line-height: 1.3;
+}
+
+.auth-role:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--ax-sh-sm);
+}
+
+.auth-role.is-active {
+  background: var(--ax-accent);
+  border-color: var(--ax-line);
+  box-shadow: var(--ax-sh-sm);
+}
+
+.auth-role.is-active i,
+.auth-role.is-active .auth-role-label,
+.auth-role.is-active .auth-role-blurb {
+  color: var(--ax-accent-ink);
+}
+
+.auth-role:has(input:focus-visible) {
+  outline: 3px solid var(--ax-accent);
+  outline-offset: 2px;
+}
+
+/* ── Submit ── */
+.auth-submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+  padding: 0.9rem 1.25rem;
+  background: var(--ax-accent);
+  color: var(--ax-accent-ink);
+  border: var(--ax-bd);
+  border-radius: var(--ax-r-sm);
+  box-shadow: var(--ax-sh-sm);
+  font-family: var(--font-heading);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
 }
 
 .auth-submit-btn:hover:not(:disabled) {
+  background: var(--ax-accent-hover);
   transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--ax-sh);
 }
 
 .auth-submit-btn:active:not(:disabled) {
-  transform: translate(2px, 2px);
+  transform: translate(3px, 3px);
   box-shadow: none;
 }
 
@@ -270,54 +668,150 @@
   cursor: not-allowed;
 }
 
+.auth-spin {
+  animation: authSpin 0.9s linear infinite;
+}
+
+@keyframes authSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Messages ── */
+.auth-error-msg,
+.auth-success-msg {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.1rem;
+  padding: 0.75rem 1rem;
+  border: var(--ax-bd-thin);
+  border-radius: var(--ax-r-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.auth-error-msg {
+  background: var(--ax-danger-bg);
+  border-color: var(--ax-danger);
+  color: var(--ax-danger);
+  animation: authShake 0.4s ease;
+}
+
+.auth-success-msg {
+  background: var(--ax-ok-bg);
+  border-color: var(--ax-ok);
+  color: var(--ax-ok);
+}
+
+@keyframes authShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+/* ── Footer switch ── */
 .auth-switch {
-  margin-top: 2rem;
-  text-align: center;
-  font-size: 0.9rem;
-  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 2px dashed var(--ax-line-soft);
+  font-size: 0.88rem;
+  color: var(--ax-muted);
 }
 
 .switch-btn {
   background: transparent;
-  color: var(--brand-primary);
-  font-weight: 600;
-  margin-left: 0.5rem;
+  border: none;
   padding: 0;
-  transition: all 0.2s ease;
+  color: var(--ax-accent);
+  font-family: var(--font-body);
+  font-size: 0.88rem;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 .switch-btn:hover {
+  color: var(--ax-accent-hover);
   text-decoration: underline;
-  opacity: 0.85;
 }
 
-/* Responsive */
-@media (max-width: 768px) {
-  .auth-container {
-    flex-direction: column;
+/* ── Focus visibility, everywhere ── */
+.auth-stage :where(a, button, input):focus-visible {
+  outline: 3px solid var(--ax-accent);
+  outline-offset: 2px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════════════════ */
+@media (max-width: 1024px) {
+  .auth-layout {
+    grid-template-columns: minmax(0, 27rem);
+    justify-content: center;
+    gap: 2rem;
   }
-  
-  .auth-visual {
+
+  /* The globe retreats to a crescent above the card on narrow viewports, so
+     the pitch column would collide with it — drop it and keep the card. */
+  .auth-pitch {
     display: none;
   }
-  
-  .auth-form-wrapper {
-    max-width: 100%;
+}
+
+@media (max-width: 560px) {
+  .auth-stage {
+    padding: 1rem 0.9rem 1.75rem;
+  }
+
+  .auth-ghost-link span {
+    display: none;
+  }
+
+  .auth-ghost-link {
+    width: 2.45rem;
+    padding: 0.5rem 0;
     justify-content: center;
   }
-  
-  .auth-form-container {
-    padding: 2rem 1.5rem;
-    margin: 0 auto;
+
+  .auth-row {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-role-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-role {
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.6rem;
+    text-align: left;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .auth-role-blurb {
+    margin-left: auto;
   }
 }
 
-@media (max-width: 480px) {
-  .auth-form-container {
-    padding: 1.5rem 1rem;
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-error-msg,
+  .auth-spin {
+    animation: none;
   }
-  
-  .auth-form-container h2 {
-    font-size: 1.75rem;
+
+  .auth-tabs-indicator,
+  .auth-control,
+  .auth-role,
+  .auth-submit-btn {
+    transition: none;
   }
 }

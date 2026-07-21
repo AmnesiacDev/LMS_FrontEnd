@@ -130,6 +130,111 @@
   color: var(--brand-primary);
 }
 
+/* ══════════════════════════════════════════════════════════════
+   COSMIC CHROME — Home & About
+   Keeps the app's brutalist frame (thick ink border, hard offset
+   shadow) but re-inks it per theme: black-on-white against the
+   daylight sky, ice-blue-on-navy against deep space, where a black
+   offset would simply disappear.
+══════════════════════════════════════════════════════════════ */
+.landing-navbar.cosmic,
+.landing-footer.cosmic {
+  --cxc-ink: #1C1917;
+  --cxc-shadow: #1C1917;
+  --cxc-panel: rgba(255, 255, 255, 0.88);
+  --cxc-text: #0F172A;
+  --cxc-muted: #55637A;
+  --cxc-accent: #2563EB;
+  --cxc-btn-ink: #FFFFFF;
+
+  background: var(--cxc-panel);
+  border: 3px solid var(--cxc-ink);
+  border-radius: 10px;
+  box-shadow: 5px 5px 0 var(--cxc-shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+[data-theme='dark'] .landing-navbar.cosmic,
+[data-theme='dark'] .landing-footer.cosmic {
+  --cxc-ink: #6c8ac4;
+  --cxc-shadow: rgba(126, 200, 255, 0.34);
+  --cxc-panel: rgba(9, 15, 30, 0.74);
+  --cxc-text: #eef4ff;
+  --cxc-muted: rgba(178, 196, 226, 0.82);
+  --cxc-accent: #6ea8ff;
+  --cxc-btn-ink: #05070f;
+}
+/* .glass-panel lifts on hover; a page-wide bar should not. */
+.landing-navbar.cosmic:hover,
+.landing-footer.cosmic:hover {
+  transform: none;
+  box-shadow: 5px 5px 0 var(--cxc-shadow);
+}
+
+.landing-navbar.cosmic .nav-links a {
+  color: var(--cxc-muted);
+  font-family: var(--font-heading);
+  font-weight: 700;
+}
+.landing-navbar.cosmic .nav-links a:hover,
+.landing-navbar.cosmic .nav-links a.active { color: var(--cxc-accent); }
+.landing-navbar.cosmic .btn-login {
+  color: var(--cxc-text);
+  font-family: var(--font-heading);
+}
+.landing-navbar.cosmic .btn-login:hover { color: var(--cxc-accent); }
+
+.landing-navbar.cosmic .theme-icon-btn {
+  background: var(--cxc-panel);
+  border: 2px solid var(--cxc-ink);
+  border-radius: 6px;
+  color: var(--cxc-text);
+  box-shadow: 3px 3px 0 var(--cxc-shadow);
+}
+.landing-navbar.cosmic .theme-icon-btn:hover {
+  background: var(--cxc-panel);
+  color: var(--cxc-accent);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--cxc-shadow);
+}
+.landing-navbar.cosmic .theme-icon-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+.landing-navbar.cosmic .btn-signup {
+  background: var(--cxc-accent);
+  color: var(--cxc-btn-ink);
+  border: 3px solid var(--cxc-ink);
+  border-radius: 6px;
+  box-shadow: 3px 3px 0 var(--cxc-shadow);
+  font-family: var(--font-heading);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.landing-navbar.cosmic .btn-signup:hover {
+  background: var(--cxc-accent);
+  color: var(--cxc-btn-ink);
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 var(--cxc-shadow);
+}
+.landing-navbar.cosmic .btn-signup:active {
+  transform: translate(3px, 3px);
+  box-shadow: none;
+}
+
+/* Recolour the wordmark (its colours are inline, hence !important). */
+.landing-navbar.cosmic .nav-brand span { color: var(--cxc-text) !important; }
+.landing-navbar.cosmic .nav-brand span span { color: var(--cxc-accent) !important; }
+.landing-footer.cosmic { color: var(--cxc-muted); }
+.landing-footer.cosmic .footer-links a { color: var(--cxc-muted); }
+.landing-footer.cosmic .footer-links a:hover { color: var(--cxc-accent); }
+.landing-footer.cosmic .nav-brand span,
+.landing-footer.cosmic span { color: var(--cxc-text) !important; }
+.landing-footer.cosmic span span { color: var(--cxc-accent) !important; }
+
 @media (max-width: 768px) {
   .nav-links {
     display: none;

@@ -13,10 +13,13 @@ const LandingLayout = () => {
   useScrollReveal();
 
   const isActive = (path) => location.pathname === path ? 'active' : '';
+  // Home and About render the deep-space CosmicScene, so the shared chrome
+  // switches to a translucent dark treatment on those routes.
+  const isCosmic = location.pathname === '/' || location.pathname === '/about';
 
   return (
-    <div className="landing-wrapper">
-      <nav className="landing-navbar glass-panel">
+    <div className={`landing-wrapper${isCosmic ? ' landing-cosmic' : ''}`}>
+      <nav className={`landing-navbar glass-panel${isCosmic ? ' cosmic' : ''}`}>
         <div className="nav-brand">
           <Link to="/" style={{ textDecoration: 'none' }}>
             <Logo size="md" variant="full" />
@@ -44,7 +47,7 @@ const LandingLayout = () => {
         </div>
       </main>
 
-      <footer className="landing-footer glass-panel">
+      <footer className={`landing-footer glass-panel${isCosmic ? ' cosmic' : ''}`}>
         <Logo size="sm" variant="full" />
         <p style={{ margin: 0 }}>&copy; {new Date().getFullYear()} AlgoGambit. All rights reserved.</p>
         <div className="footer-links">

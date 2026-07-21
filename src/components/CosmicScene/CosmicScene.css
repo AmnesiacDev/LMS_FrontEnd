@@ -1,0 +1,43 @@
+/* Fixed WebGL backdrop shared by the cosmic landing pages.
+   Portalled to <body> and pinned behind all app content (z-index: -1).
+   The renderer clears to transparent, so the sky itself lives here in CSS —
+   which lets the day/night backdrop cross-fade instead of snapping, and
+   doubles as a poster if WebGL never initialises. */
+.cosmic-scene {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(130% 90% at 80% 12%, #12213f 0%, #0a1124 40%, #05070f 78%, #03040a 100%);
+  touch-action: pan-y; /* never hijack vertical scrolling on touch */
+}
+
+/* Daylight sky, stacked over the night sky and faded out in the dark theme. */
+.cosmic-scene::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(130% 92% at 74% 8%, #fff7e3 0%, #ffeec9 9%, #dcebfc 34%, #b6d2f0 64%, #94b9e5 100%);
+  opacity: 1;
+  transition: opacity 0.55s ease;
+}
+
+[data-theme='dark'] .cosmic-scene::before {
+  opacity: 0;
+}
+
+.cosmic-scene canvas {
+  position: relative;
+  z-index: 1;
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Drag-to-spin cursor feedback (toggled on <body> while dragging). */
+body.cosmic-grabbing,
+body.cosmic-grabbing * {
+  cursor: grabbing !important;
+}
