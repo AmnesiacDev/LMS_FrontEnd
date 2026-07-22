@@ -23,6 +23,7 @@ const ParentOverview = () => {
 
   // Modal State for Link Child
   const [showLinkModal, setShowLinkModal] = useState(false);
+  const [linkMode, setLinkMode] = useState('single'); // 'single' | 'bulk'
   const [childIdentifier, setChildIdentifier] = useState('');
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState(null);
@@ -37,16 +38,24 @@ const ParentOverview = () => {
     setLinkSuccess(null);
 
     try {
-      const res = await request('/api/v1/StudentProfile/link-child', 'POST', { childIdentifier: childIdentifier.trim() });
-      setLinkSuccess(res.message || 'Child successfully linked!');
+      const endpoint = linkMode === 'bulk'
+        ? '/api/v1/StudentProfile/link-children-bulk'
+        : '/api/v1/StudentProfile/link-child';
+
+      const payload = linkMode === 'bulk'
+        ? { childIdentifiers: childIdentifier.trim() }
+        : { childIdentifier: childIdentifier.trim() };
+
+      const res = await request(endpoint, 'POST', payload);
+      setLinkSuccess(res.message || 'Child(ren) successfully linked!');
       setChildIdentifier('');
       if (refetch) refetch();
       setTimeout(() => {
         setShowLinkModal(false);
         setLinkSuccess(null);
-      }, 1500);
+      }, 2000);
     } catch (err) {
-      setLinkError(err.message || 'Failed to link child');
+      setLinkError(err.message || 'Failed to link child account(s)');
     } finally {
       setLinkLoading(false);
     }
@@ -302,44 +311,104 @@ const ParentOverview = () => {
       {/* Link Child Modal */}
       <Modal isOpen={showLinkModal} title="Link Your Child's Account" onClose={() => setShowLinkModal(false)}>
         <form onSubmit={handleLinkChild}>
-            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Enter your child's student <strong>Email Address</strong> or <strong>Username</strong> to link their profile to your parent account.
-            </p>
+          {/* Mode Switcher Tabs */}
+          <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>
+            <button
+              type="button"
+              onClick={() => { setLinkMode('single'); setLinkError(null); setLinkSuccess(null); }}
+              style={{
+                flex: 1,
+                padding: '0.5rem 0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                border: '2px solid var(--border-color)',
+                background: linkMode === 'single' ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
+                color: linkMode === 'single' ? '#ffffff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <i className="fa-solid fa-user" style={{ marginRight: '0.4rem' }} /> Single Student
+            </button>
+            <button
+              type="button"
+              onClick={() => { setLinkMode('bulk'); setLinkError(null); setLinkSuccess(null); }}
+              style={{
+                flex: 1,
+                padding: '0.5rem 0.75rem',
+                borderRadius: 'var(--radius-sm)',
+                fontWeight: '700',
+                fontSize: '0.85rem',
+                border: '2px solid var(--border-color)',
+                background: linkMode === 'bulk' ? 'var(--brand-primary)' : 'var(--bg-tertiary)',
+                color: linkMode === 'bulk' ? '#ffffff' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+              }}
+            >
+              <i className="fa-solid fa-users" style={{ marginRight: '0.4rem' }} /> Bulk Add (Multiple)
+            </button>
+          </div>
 
-            {linkError && (
-              <div className="form-error" style={{ marginBottom: '1rem' }}>
-                <i className="fa-solid fa-circle-exclamation" /> {linkError}
-              </div>
-            )}
-            {linkSuccess && (
-              <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: '700' }}>
-                <i className="fa-solid fa-circle-check" /> {linkSuccess}
-              </div>
-            )}
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.4' }}>
+            {linkMode === 'single'
+              ? "Enter your child's student Email Address or Username to link their profile."
+              : "Enter multiple student Email Addresses or Usernames separated by commas, spaces, or line breaks to link them all at once."}
+          </p>
 
-            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-              <label>Child Email or Username</label>
+          {linkError && (
+            <div className="modal-error" style={{ marginBottom: '1rem' }}>
+              <i className="fa-solid fa-circle-exclamation" /> {linkError}
+            </div>
+          )}
+          {linkSuccess && (
+            <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: '700' }}>
+              <i className="fa-solid fa-circle-check" /> {linkSuccess}
+            </div>
+          )}
+
+          <div className="modal-form-group" style={{ marginBottom: '1.5rem', width: '100%' }}>
+            <label className="modal-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700 }}>
+              {linkMode === 'single' ? 'Child Email or Username' : 'Child Emails / Usernames (Bulk)'}
+            </label>
+
+            {linkMode === 'single' ? (
               <input
+                className="modal-input"
                 type="text"
                 placeholder="e.g. child@email.com or ahmed_student"
                 value={childIdentifier}
                 onChange={(e) => setChildIdentifier(e.target.value)}
                 required
                 disabled={linkLoading}
+                style={{ width: '100%', boxSizing: 'border-box' }}
               />
-            </div>
+            ) : (
+              <textarea
+                className="modal-input"
+                rows={5}
+                placeholder="Enter email addresses or usernames (separated by commas or new lines)&#10;e.g.&#10;child1@email.com&#10;child2@email.com&#10;student_ahmed"
+                value={childIdentifier}
+                onChange={(e) => setChildIdentifier(e.target.value)}
+                required
+                disabled={linkLoading}
+                style={{ width: '100%', boxSizing: 'border-box', fontFamily: 'inherit', resize: 'vertical' }}
+              />
+            )}
+          </div>
 
-            <div className="modal-actions">
-              <button type="button" className="modal-btn secondary" onClick={() => setShowLinkModal(false)} disabled={linkLoading}>
-                Cancel
-              </button>
-              <button type="submit" className="modal-btn primary" disabled={linkLoading || !childIdentifier.trim()}>
-                {linkLoading ? 'Linking...' : 'Link Child Account'}
-              </button>
-            </div>
-          </form>
-        </Modal>
-      </div>
+          <div className="modal-actions" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <button type="button" className="modal-btn modal-btn-ghost" onClick={() => setShowLinkModal(false)} disabled={linkLoading}>
+              Cancel
+            </button>
+            <button type="submit" className="modal-btn modal-btn-primary" disabled={linkLoading || !childIdentifier.trim()}>
+              {linkLoading ? 'Linking...' : linkMode === 'bulk' ? 'Link Multiple Children' : 'Link Child Account'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
   );
 };
 
