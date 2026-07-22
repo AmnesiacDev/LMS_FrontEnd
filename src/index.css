@@ -7,18 +7,18 @@
   
   /* Backgrounds */
   --bg-primary: #F8FAFC;
-  --bg-secondary: #F1F5F9;
-  --bg-tertiary: #E2E8F0;
+  --bg-secondary: #F0F9FF;
+  --bg-tertiary: #E0F2FE;
   
   /* Foreground / Text */
-  --text-primary: #334155;
-  --text-secondary: #475569;
+  --text-primary: #0F172A;
+  --text-secondary: #334155;
   --text-muted: #64748B;
   
   /* Primary Brand (Vibrant Blue) */
-  --brand-primary: #3B82F6;
-  --brand-primary-hover: #2563EB;
-  --brand-light: rgba(59, 130, 246, 0.1);
+  --brand-primary: #2563EB;
+  --brand-primary-hover: #1D4ED8;
+  --brand-light: rgba(37, 99, 235, 0.08);
   
   /* Accent Colors (Calm Palette) */
   --accent-yellow: #E0E7FF;
@@ -27,15 +27,15 @@
   --accent-rose: #FCE7F3;
   
   /* Semantic Colors */
-  --success: #34D399;
-  --warning: #FBBF24;
-  --error: #FB7185;
-  --info: #60A5FA;
+  --success: #10B981;
+  --warning: #F59E0B;
+  --error: #EF4444;
+  --info: #3B82F6;
 
   /* Borders & Neo-Brutalist Shadows */
-  --border-color: #1C1917;
-  --border-width: 3px;
-  --shadow-color: #1C1917;
+  --border-color: #334155;
+  --border-width: 2.5px;
+  --shadow-color: #1E293B;
   --shadow-sm: 3px 3px 0px 0px var(--shadow-color);
   --shadow-md: 5px 5px 0px 0px var(--shadow-color);
   --shadow-lg: 8px 8px 0px 0px var(--shadow-color);

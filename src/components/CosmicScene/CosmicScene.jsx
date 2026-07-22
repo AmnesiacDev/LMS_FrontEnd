@@ -2,43 +2,10 @@ import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import * as THREE from 'three';
 import { useTheme } from '../../context/ThemeContext';
-import { createMoon, createSun, createGalaxy } from './celestial';
 import './CosmicScene.css';
 
 const TEX = '/textures/earth/';
 const MOON_TEX = '/textures/moon/';
-
-/* Stage window: ramps 0->1 across [a,b], holds, then back to 0 across [c,d].
-   Give c,d values past 1 for a stage that arrives and never leaves. */
-const win = (p, a, b, c, d) =>
-  Math.min(THREE.MathUtils.smoothstep(p, a, b), 1 - THREE.MathUtils.smoothstep(p, c, d));
-
-// Progress across a stage's whole window, which is what flies the body past.
-const span = (p, a, b) => THREE.MathUtils.clamp((p - a) / (b - a), 0, 1);
-
-// Radial flare used as the visible sun in the daylight theme.
-const bakeSun = () => {
-  const S = 256;
-  const canvas = document.createElement('canvas');
-  canvas.width = S;
-  canvas.height = S;
-  const ctx = canvas.getContext('2d');
-  const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
-  g.addColorStop(0.00, 'rgba(255, 255, 255, 1)');
-  g.addColorStop(0.05, 'rgba(255, 253, 242, 1)');
-  g.addColorStop(0.09, 'rgba(255, 244, 206, 0.90)');
-  g.addColorStop(0.19, 'rgba(255, 223, 152, 0.40)');
-  g.addColorStop(0.40, 'rgba(255, 201, 121, 0.13)');
-  g.addColorStop(1.00, 'rgba(255, 190, 110, 0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, S, S);
-  const tex = new THREE.CanvasTexture(canvas);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-};
-
-// Box–Muller — used to scatter stars around the galactic plane.
-const gauss = () => Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random());
 
 const EARTH_VERT = /* glsl */ `
   varying vec2 vUv;
@@ -62,14 +29,13 @@ const EARTH_FRAG = /* glsl */ `
   uniform sampler2D normalMap;
   uniform vec3 sunDir;
   uniform float normalStrength;
-  uniform float dayMix; // 0 = deep-space theme, 1 = daylight theme
-  uniform float amt;    // stage presence: fades the globe out as the Moon arrives
+  uniform float dayMix;
+  uniform float amt;
   varying vec2 vUv;
   varying vec3 vNormalW;
   varying vec3 vViewDir;
   varying vec3 vWorldPos;
 
-  // Tangent-free normal perturbation (screen-space derivatives).
   vec3 perturb(vec3 N, vec2 uv) {
     vec3 dp1 = dFdx(vWorldPos);
     vec3 dp2 = dFdy(vWorldPos);
@@ -93,32 +59,94 @@ const EARTH_FRAG = /* glsl */ `
 
     float ndl = dot(Np, sunDir);
     float term = smoothstep(-0.16, 0.36, ndl);
-    // Daylight theme floods the globe: the terminator all but closes so the
-    // whole disc reads as sunlit rather than half-swallowed by night.
     float dayAmt = mix(term, mix(term, 1.0, 0.88), dayMix);
 
     float ocean = texture2D(specMap, vUv).r;
     vec3 day = texture2D(dayMap, vUv).rgb;
-    // The bathymetry plate paints open water almost black. Real oceans owe most
-    // of their colour to scattered blue, so put that back or the marble reads
-    // like a grey moon.
     day += vec3(0.03, 0.09, 0.20) * ocean * (0.35 + 0.65 * dayMix);
 
     vec3 night = texture2D(nightMap, vUv).rgb;
-
-    // City lights only bleed through on the night side, and only after dark.
-    vec3 nightGlow = night * 1.7 * smoothstep(0.08, -0.28, ndl) * (1.0 - dayMix);
-    vec3 lit = mix(day * (0.46 + 1.35 * max(ndl, 0.0)),
-                   day * (1.00 + 1.00 * max(ndl, 0.0)), dayMix);
+    vec3 nightGlow = night * 1.7 * smoothstep(0.08, -0.28, ndl) * (1.0 - dayMix * 0.7);
+    vec3 lit = mix(
+      day * (0.46 + 1.35 * max(ndl, 0.0)),
+      day * (1.00 + 1.00 * max(ndl, 0.0)),
+      dayMix
+    );
     vec3 surface = mix(nightGlow, lit, dayAmt);
 
-    // A pinpoint sun glint on open water (geometric normal keeps it clean).
     vec3 R = reflect(-sunDir, N);
     float spec = pow(max(dot(R, V), 0.0), 260.0) * ocean * term;
     surface += vec3(1.0, 0.92, 0.70) * spec * (0.55 + 0.35 * dayMix);
-    surface *= mix(vec3(1.0), vec3(1.06, 1.03, 0.98), dayMix); // warm noon cast
+
+    float fresnel = pow(1.0 - max(dot(N, V), 0.0), 3.5);
+    vec3 atmosphereColor = mix(vec3(0.2, 0.5, 1.0), vec3(0.5, 0.75, 1.0), dayMix);
+    surface += atmosphereColor * fresnel * 0.45 * (0.4 + 0.6 * dayAmt);
 
     gl_FragColor = vec4(surface * amt, 1.0);
+  }
+`;
+
+const MOON_VERT = /* glsl */ `
+  varying vec2 vUv;
+  varying vec3 vN;
+  varying vec3 vT;
+  varying vec3 vB;
+  varying vec3 vView;
+  void main() {
+    vUv = uv;
+    vec4 wp = modelMatrix * vec4(position, 1.0);
+    mat3 nm = mat3(modelMatrix);
+    vec3 n = normalize(nm * normal);
+    vec3 t = normalize(cross(vec3(0.0, 1.0, 0.0), n) + vec3(1e-5, 0.0, 0.0));
+    vN = n;
+    vT = t;
+    vB = normalize(cross(n, t));
+    vView = normalize(cameraPosition - wp.xyz);
+    gl_Position = projectionMatrix * viewMatrix * wp;
+  }
+`;
+
+const MOON_FRAG = /* glsl */ `
+  uniform sampler2D colorMap;
+  uniform sampler2D heightMap;
+  uniform vec3 sunDir;
+  uniform vec2 texel;
+  uniform float bumpScale;
+  uniform float dayMix;
+  uniform float amt;
+  varying vec2 vUv;
+  varying vec3 vN;
+  varying vec3 vT;
+  varying vec3 vB;
+  varying vec3 vView;
+
+  void main() {
+    vec3 N = normalize(vN);
+    vec3 V = normalize(vView);
+
+    float hL = texture2D(heightMap, vUv - vec2(texel.x, 0.0)).r;
+    float hR = texture2D(heightMap, vUv + vec2(texel.x, 0.0)).r;
+    float hD = texture2D(heightMap, vUv - vec2(0.0, texel.y)).r;
+    float hU = texture2D(heightMap, vUv + vec2(0.0, texel.y)).r;
+    float dhdu = (hR - hL) * 0.5;
+    float dhdv = (hU - hD) * 0.5;
+    vec3 Np = normalize(N - (vT * dhdu + vB * dhdv) * bumpScale);
+
+    float NdL = dot(Np, sunDir);
+    float NdV = max(dot(Np, V), 0.0);
+    float lam = max(NdL, 0.0);
+
+    float ls = lam / max(lam + NdV, 1e-3);
+    float lit = mix(lam, ls * 1.85, 0.74);
+    lit *= smoothstep(-0.03, 0.05, dot(N, sunDir));
+
+    vec3 albedo = texture2D(colorMap, vUv).rgb;
+    albedo = pow(albedo, vec3(0.85)) * 1.15;
+
+    vec3 col = albedo * lit * (2.2 + 0.8 * dayMix);
+    col += albedo * vec3(0.08, 0.12, 0.22) * smoothstep(0.10, -0.45, NdL) * (1.0 - dayMix * 0.5);
+
+    gl_FragColor = vec4(col * amt, 1.0);
   }
 `;
 
@@ -132,13 +160,11 @@ const STAR_VERT = /* glsl */ `
   varying vec3 vColor;
   varying float vAlpha;
   void main() {
-    // Real starlight scintillates only slightly — keep the flicker restrained.
-    float tw = 0.80 + 0.20 * sin(time * 1.3 + phase);
-    // Daylight drowns the whole vault, exactly as it does from orbit.
+    float tw = 0.80 + 0.20 * sin(time * 1.2 + phase);
     vColor = starColor;
-    vAlpha = bright * tw * (1.0 - dayMix);
+    vAlpha = bright * tw * (1.0 - dayMix * 0.85);
     vec4 mv = modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = size * (300.0 / -mv.z);
+    gl_PointSize = size * (260.0 / -mv.z);
     gl_Position = projectionMatrix * mv;
   }
 `;
@@ -150,9 +176,8 @@ const STAR_FRAG = /* glsl */ `
     vec2 c = gl_PointCoord - 0.5;
     float d = length(c);
     if (d > 0.5) discard;
-    // Tight core plus a faint halo reads as a point source, not a fuzzy blob.
     float core = smoothstep(0.5, 0.08, d);
-    float halo = smoothstep(0.5, 0.0, d) * 0.30;
+    float halo = smoothstep(0.5, 0.0, d) * 0.25;
     gl_FragColor = vec4(vColor, (core * core + halo) * vAlpha);
   }
 `;
@@ -161,8 +186,6 @@ const CosmicScene = ({ variant = 'home' }) => {
   const mountRef = useRef(null);
   const themeApi = useTheme();
   const theme = themeApi?.theme === 'dark' ? 'dark' : 'light';
-  // The scene is expensive to build, so a theme flip must not re-run the setup
-  // effect. It hands a setter out through this ref instead.
   const applyThemeRef = useRef(null);
 
   useEffect(() => {
@@ -173,24 +196,57 @@ const CosmicScene = ({ variant = 'home' }) => {
     const isTouch = window.matchMedia('(pointer: coarse)').matches;
     const small = window.innerWidth < 720;
 
-    // `journey` turns on the scroll-driven trip out of Earth orbit — Moon, then
-    // Sun, then galaxy. Only the home page scrolls far enough to stage it.
+    const isMoon = variant === 'contact';
+
     const CFG = {
-      about: { base: new THREE.Vector3(2.1, 0.3, -0.8), radius: 2.5, riseY: 2.2, riseX: 1.0, riseZ: 1.0, shrink: 0.46, journey: false },
-      // Auth keeps the globe left of the form card. On phones the card takes the
-      // whole width, so the globe retreats to a crescent above it instead.
+      about: {
+        base: new THREE.Vector3(2.0, 0.2, -0.6),
+        radius: 2.5,
+        shrink: 0.15,
+        driftY: 0.5,
+      },
       auth: small
-        ? { base: new THREE.Vector3(-0.8, 2.6, -1.6), radius: 2.4, riseY: 1.6, riseX: 0.4, riseZ: 1.0, shrink: 0.35, journey: false }
-        : { base: new THREE.Vector3(-3.0, -1.05, -0.7), radius: 2.9, riseY: 1.2, riseX: 0.5, riseZ: 0.8, shrink: 0.30, journey: false },
-      home: { base: new THREE.Vector3(1.9, -1.35, 0), radius: 3.6, riseY: 3.0, riseX: 1.2, riseZ: 1.6, shrink: 0.6, journey: true },
+        ? {
+            base: new THREE.Vector3(-0.5, 2.4, -1.4),
+            radius: 2.2,
+            shrink: 0.1,
+            driftY: 0.3,
+          }
+        : {
+            base: new THREE.Vector3(-2.8, -0.8, -0.6),
+            radius: 2.8,
+            shrink: 0.12,
+            driftY: 0.4,
+          },
+      contact: small
+        ? {
+            base: new THREE.Vector3(0, 2.2, -1.2),
+            radius: 2.1,
+            shrink: 0.12,
+            driftY: 0.4,
+          }
+        : {
+            base: new THREE.Vector3(2.2, -0.2, -0.5),
+            radius: 2.7,
+            shrink: 0.15,
+            driftY: 0.6,
+          },
+      home: {
+        base: new THREE.Vector3(2.0, -0.8, 0),
+        radius: 3.4,
+        shrink: 0.35,
+        driftY: 1.8,
+      },
     };
     const cfg = CFG[variant] || CFG.home;
 
     let renderer;
     try {
-      // alpha:true lets the themed CSS gradient on the mount act as the sky, so
-      // the day/night backdrop cross-fades in CSS instead of snapping in GL.
-      renderer = new THREE.WebGLRenderer({ antialias: !small, alpha: true, powerPreference: 'high-performance' });
+      renderer = new THREE.WebGLRenderer({
+        antialias: !small,
+        alpha: true,
+        powerPreference: 'high-performance',
+      });
     } catch {
       mount.classList.add('cosmic--failed');
       return undefined;
@@ -199,164 +255,159 @@ const CosmicScene = ({ variant = 'home' }) => {
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
-    // JS now owns the sky cross-fade, because it has to blend the theme with the
-    // journey's climb out of the atmosphere. Drop the CSS transition that would
-    // otherwise lag a frame behind every write.
     mount.classList.add('cosmic--driven');
 
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x05070f, 0.0075);
+    scene.fog = new THREE.FogExp2(0x05070f, 0.006);
 
     const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 1000);
     camera.position.set(0, 0, 9);
 
-    // Lateral sun: right hemisphere in daylight, left slips into night (city
-    // lights), and the ocean glint stays a localised spot instead of a wash.
     const sunDir = new THREE.Vector3(0.82, 0.22, 0.28).normalize();
-    const ambient = new THREE.AmbientLight(0x223044, 1.1);
+    const ambient = new THREE.AmbientLight(0x223044, 1.2);
     scene.add(ambient);
     const sun = new THREE.DirectionalLight(0xfff2dd, 2.2);
     sun.position.copy(sunDir).multiplyScalar(10);
     scene.add(sun);
 
-    // Theme palette. dayMix drives every one of these in the frame loop.
     const NIGHT_FOG = new THREE.Color(0x05070f);
-    const DAY_FOG = new THREE.Color(0xc4dbf4);
-    const NIGHT_AMB = new THREE.Color(0x223044);
+    const DAY_FOG = new THREE.Color(0xdcebfc);
+    const NIGHT_AMB = new THREE.Color(0x1a2638);
     const DAY_AMB = new THREE.Color(0xc3d8f2);
     let dayTarget = 0;
     let dayMix = 0;
-    let lastSky = -1; // last value pushed to CSS, so we only write on a real change
-    let inSpace = false;
+    let lastSky = -1;
 
-    /* ---------- Earth ---------- */
-    const earthPivot = new THREE.Group();
-    earthPivot.position.copy(cfg.base);
-    scene.add(earthPivot);
+    /* ---------- 3D Body (Earth or Moon) ---------- */
+    const bodyPivot = new THREE.Group();
+    bodyPivot.position.copy(cfg.base);
+    scene.add(bodyPivot);
 
-    const earthSpin = new THREE.Group(); // holds axial tilt + user-drag rotation
-    earthSpin.rotation.z = THREE.MathUtils.degToRad(23.4);
-    earthPivot.add(earthSpin);
+    const bodySpin = new THREE.Group();
+    bodySpin.rotation.z = THREE.MathUtils.degToRad(isMoon ? 6.7 : 23.4);
+    bodyPivot.add(bodySpin);
 
-    // Shared manager so the reduced-motion path can repaint once the plates
-    // land; without it its single frame draws untextured spheres forever.
     const texManager = new THREE.LoadingManager();
     const loader = new THREE.TextureLoader(texManager);
-    const srgb = (t) => { t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; };
-    const lin = (t) => { t.colorSpace = THREE.NoColorSpace; return t; };
-
-    // NASA imagery: Blue Marble Next Generation (topography + bathymetry) for
-    // the day side, Black Marble 2012 for city lights.
-    const earthUniforms = {
-      dayMap: { value: srgb(loader.load(TEX + 'earth_day_4096.jpg')) },
-      nightMap: { value: srgb(loader.load(TEX + 'earth_night_2048.jpg')) },
-      specMap: { value: lin(loader.load(TEX + 'earth_specular_2048.jpg')) },
-      normalMap: { value: lin(loader.load(TEX + 'earth_normal_2048.jpg')) },
-      sunDir: { value: sunDir },
-      normalStrength: { value: 0.22 },
-      dayMix: { value: 0 },
-      amt: { value: 1 },
+    const srgb = (t) => {
+      t.colorSpace = THREE.SRGBColorSpace;
+      t.anisotropy = 4;
+      return t;
+    };
+    const lin = (t) => {
+      t.colorSpace = THREE.NoColorSpace;
+      return t;
     };
 
-    const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(cfg.radius, 96, 96),
-      new THREE.ShaderMaterial({ vertexShader: EARTH_VERT, fragmentShader: EARTH_FRAG, uniforms: earthUniforms }),
-    );
-    earthSpin.add(earth);
+    let bodyMesh;
+    let cloudMat;
+    let clouds;
+    let uniforms;
 
-    // NASA's combined cloud cover, stored greyscale. alphaMap samples the GREEN
-    // channel, which for a greyscale source is exactly the coverage value.
-    const cloudTex = lin(loader.load(TEX + 'earth_clouds_2048.jpg'));
-    cloudTex.anisotropy = 4;
-    const cloudMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      alphaMap: cloudTex,
-      transparent: true,
-      opacity: 0.88,
-      depthWrite: false,
-      roughness: 1,
-      metalness: 0,
-    });
-    const clouds = new THREE.Mesh(new THREE.SphereGeometry(cfg.radius * 1.012, 64, 64), cloudMat);
-    earthSpin.add(clouds);
+    if (isMoon) {
+      const moonColor = srgb(loader.load(MOON_TEX + 'moon_color_2048.jpg'));
+      const moonHeight = lin(loader.load(MOON_TEX + 'moon_height_2048.jpg'));
 
-    /* ---------- Sun (daylight theme only) ---------- */
-    // Placed for composition rather than strict physics: up-and-right, past the
-    // globe, so the flare agrees with the direction the terminator implies.
-    const sunTex = bakeSun();
-    const sunFlare = new THREE.Sprite(new THREE.SpriteMaterial({
-      map: sunTex,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-      opacity: 0,
-      fog: false,
-    }));
-    sunFlare.position.copy(new THREE.Vector3(0.55, 0.30, -1.0).normalize()).multiplyScalar(80);
-    sunFlare.scale.setScalar(34);
-    scene.add(sunFlare);
+      uniforms = {
+        colorMap: { value: moonColor },
+        heightMap: { value: moonHeight },
+        sunDir: { value: new THREE.Vector3(0.6, 0.24, 0.76).normalize() },
+        texel: { value: new THREE.Vector2(1 / 2048, 1 / 1024) },
+        bumpScale: { value: 36 },
+        dayMix: { value: 0 },
+        amt: { value: 1 },
+      };
 
-    /* ---------- Stars ---------- */
-    // Real stellar colours (blue giants down to red dwarfs), weighted so the
-    // vault reads mostly white with a scattering of tinted standouts.
+      bodyMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(cfg.radius, 96, 96),
+        new THREE.ShaderMaterial({
+          vertexShader: MOON_VERT,
+          fragmentShader: MOON_FRAG,
+          uniforms,
+        }),
+      );
+      bodySpin.add(bodyMesh);
+    } else {
+      uniforms = {
+        dayMap: { value: srgb(loader.load(TEX + 'earth_day_4096.jpg')) },
+        nightMap: { value: srgb(loader.load(TEX + 'earth_night_2048.jpg')) },
+        specMap: { value: lin(loader.load(TEX + 'earth_specular_2048.jpg')) },
+        normalMap: { value: lin(loader.load(TEX + 'earth_normal_2048.jpg')) },
+        sunDir: { value: sunDir },
+        normalStrength: { value: 0.25 },
+        dayMix: { value: 0 },
+        amt: { value: 1 },
+      };
+
+      bodyMesh = new THREE.Mesh(
+        new THREE.SphereGeometry(cfg.radius, 96, 96),
+        new THREE.ShaderMaterial({
+          vertexShader: EARTH_VERT,
+          fragmentShader: EARTH_FRAG,
+          uniforms,
+        }),
+      );
+      bodySpin.add(bodyMesh);
+
+      // Cloud shell (Earth only)
+      const cloudTex = lin(loader.load(TEX + 'earth_clouds_2048.jpg'));
+      cloudTex.anisotropy = 4;
+      cloudMat = new THREE.MeshStandardMaterial({
+        color: 0xffffff,
+        alphaMap: cloudTex,
+        transparent: true,
+        opacity: 0.85,
+        depthWrite: false,
+        roughness: 0.9,
+        metalness: 0,
+      });
+      clouds = new THREE.Mesh(
+        new THREE.SphereGeometry(cfg.radius * 1.012, 64, 64),
+        cloudMat,
+      );
+      bodySpin.add(clouds);
+    }
+
+    /* ---------- Subtle LMS Ambient Star / Particle Backdrop ---------- */
     const STAR_HUES = [
-      [0.63, 0.73, 1.00], // blue
-      [0.79, 0.86, 1.00], // blue-white
+      [0.70, 0.82, 1.00],
+      [0.85, 0.90, 1.00],
       [1.00, 1.00, 1.00],
-      [1.00, 1.00, 1.00],
-      [0.97, 0.98, 1.00],
-      [1.00, 0.97, 0.89], // yellow-white
-      [1.00, 0.94, 0.81],
-      [1.00, 0.87, 0.68], // orange
-      [1.00, 0.80, 0.60],
-      [1.00, 0.70, 0.54], // red
+      [1.00, 0.96, 0.88],
+      [0.65, 0.80, 1.00],
     ];
-    const STAR_N = small ? 2600 : 6000;
+    const STAR_N = small ? 1200 : 2500;
     const spos = new Float32Array(STAR_N * 3);
     const ssize = new Float32Array(STAR_N);
     const sphase = new Float32Array(STAR_N);
     const sbright = new Float32Array(STAR_N);
     const scolor = new Float32Array(STAR_N * 3);
-    // A share of the field hugs one great circle, which is what makes a real
-    // night sky read as a sky: the Milky Way, not uniform confetti.
-    const bandN = new THREE.Vector3(0.36, 0.88, 0.31).normalize();
-    const bandU = new THREE.Vector3(0, 0, 1).cross(bandN).normalize();
-    const bandV = new THREE.Vector3().crossVectors(bandN, bandU).normalize();
-    const dir = new THREE.Vector3();
+
     for (let i = 0; i < STAR_N; i++) {
-      const inBand = Math.random() < 0.42;
-      if (inBand) {
-        const a = Math.random() * Math.PI * 2;
-        const b = gauss() * 0.11; // radians off the galactic plane
-        dir.copy(bandU).multiplyScalar(Math.cos(a) * Math.cos(b))
-          .addScaledVector(bandV, Math.sin(a) * Math.cos(b))
-          .addScaledVector(bandN, Math.sin(b));
-      } else {
-        const th = Math.random() * Math.PI * 2;
-        const ph = Math.acos(2 * Math.random() - 1);
-        dir.set(Math.sin(ph) * Math.cos(th), Math.sin(ph) * Math.sin(th), Math.cos(ph));
-      }
-      const r = 60 + Math.random() * 140;
-      spos[i * 3] = dir.x * r;
-      spos[i * 3 + 1] = dir.y * r;
-      spos[i * 3 + 2] = dir.z * r;
-      // Power law: a handful of bright standouts over a dense field of pinpricks.
-      // Band members stay small and dim — they are unresolved galactic dust.
+      const th = Math.random() * Math.PI * 2;
+      const ph = Math.acos(2 * Math.random() - 1);
+      const r = 50 + Math.random() * 120;
+      spos[i * 3] = Math.sin(ph) * Math.cos(th) * r;
+      spos[i * 3 + 1] = Math.sin(ph) * Math.sin(th) * r;
+      spos[i * 3 + 2] = Math.cos(ph) * r;
+
       const rr = Math.random();
-      ssize[i] = inBand ? 0.9 + Math.pow(rr, 6.0) * 2.6 : 1.1 + Math.pow(rr, 5.0) * 6.5;
-      sbright[i] = inBand ? 0.16 + Math.pow(rr, 2.6) * 0.50 : 0.28 + Math.pow(rr, 2.2) * 0.72;
+      ssize[i] = 1.0 + Math.pow(rr, 4.0) * 4.5;
+      sbright[i] = 0.20 + Math.pow(rr, 2.0) * 0.55;
       const hue = STAR_HUES[(Math.random() * STAR_HUES.length) | 0];
       scolor[i * 3] = hue[0];
       scolor[i * 3 + 1] = hue[1];
       scolor[i * 3 + 2] = hue[2];
       sphase[i] = Math.random() * Math.PI * 2;
     }
+
     const starGeo = new THREE.BufferGeometry();
     starGeo.setAttribute('position', new THREE.BufferAttribute(spos, 3));
     starGeo.setAttribute('size', new THREE.BufferAttribute(ssize, 1));
     starGeo.setAttribute('phase', new THREE.BufferAttribute(sphase, 1));
     starGeo.setAttribute('bright', new THREE.BufferAttribute(sbright, 1));
     starGeo.setAttribute('starColor', new THREE.BufferAttribute(scolor, 3));
+
     const starMat = new THREE.ShaderMaterial({
       vertexShader: STAR_VERT,
       fragmentShader: STAR_FRAG,
@@ -368,29 +419,20 @@ const CosmicScene = ({ variant = 'home' }) => {
     const stars = new THREE.Points(starGeo, starMat);
     scene.add(stars);
 
-    /* ---------- Journey bodies (home only) ---------- */
-    // Built up front rather than on demand: each is a single draw call and stays
-    // .visible = false until its stage opens, so an idle body costs nothing.
-    const bodies = cfg.journey
-      ? {
-        moon: createMoon({ loader, texPath: MOON_TEX, small }),
-        sun: createSun({ small }),
-        galaxy: createGalaxy({ small }),
-      }
-      : null;
-    if (bodies) Object.values(bodies).forEach((b) => scene.add(b.object));
-
-    /* ---------- Drag to spin (mouse/pen only; touch keeps the page scrollable) ---------- */
+    /* ---------- Drag to spin ---------- */
     const spinTarget = { x: 0, y: 0 };
     let dragging = false;
     let last = { x: 0, y: 0 };
 
     const onDown = (e) => {
       if (e.pointerType === 'touch' || e.button !== 0) return;
-      // Let real controls and copyable text win; grab the globe from anywhere
-      // else. [data-no-drag] opts a whole region out — the auth card uses it so
-      // a stray drag across the form does not send the planet spinning.
-      if (e.target.closest && e.target.closest('a,button,input,textarea,select,label,[role="button"],[data-no-drag]')) return;
+      if (
+        e.target.closest &&
+        e.target.closest(
+          'a,button,input,textarea,select,label,[role="button"],[data-no-drag]',
+        )
+      )
+        return;
       dragging = true;
       last = { x: e.clientX, y: e.clientY };
       document.body.classList.add('cosmic-grabbing');
@@ -403,14 +445,17 @@ const CosmicScene = ({ variant = 'home' }) => {
       spinTarget.y += dx * 0.005;
       spinTarget.x = THREE.MathUtils.clamp(spinTarget.x + dy * 0.005, -1.1, 1.1);
     };
-    const onUp = () => { dragging = false; document.body.classList.remove('cosmic-grabbing'); };
+    const onUp = () => {
+      dragging = false;
+      document.body.classList.remove('cosmic-grabbing');
+    };
     if (!isTouch) {
       window.addEventListener('pointerdown', onDown);
       window.addEventListener('pointermove', onMove);
       window.addEventListener('pointerup', onUp);
     }
 
-    /* ---------- Mouse parallax ---------- */
+    /* ---------- Mouse Parallax ---------- */
     const parallax = { x: 0, y: 0 };
     const onParallax = (e) => {
       parallax.x = e.clientX / window.innerWidth - 0.5;
@@ -439,11 +484,13 @@ const CosmicScene = ({ variant = 'home' }) => {
     resize();
     window.addEventListener('resize', resize);
 
-    /* ---------- Frame ---------- */
+    /* ---------- Render Loop ---------- */
     const clock = new THREE.Clock();
     let raf = 0;
     let visible = true;
-    const onVis = () => { visible = document.visibilityState === 'visible'; };
+    const onVis = () => {
+      visible = document.visibilityState === 'visible';
+    };
     document.addEventListener('visibilitychange', onVis);
 
     const render = () => {
@@ -451,79 +498,46 @@ const CosmicScene = ({ variant = 'home' }) => {
       smoothP += (targetP - smoothP) * (reduced ? 1 : 0.06);
       dayMix += (dayTarget - dayMix) * (reduced ? 1 : 0.07);
 
-      // Leaving the atmosphere: whatever the theme says, the sky drains to deep
-      // space early on, and it finishes well before the Earth starts dimming so
-      // nothing ever has to fade out against a pale blue backdrop.
-      const spaceP = cfg.journey ? THREE.MathUtils.smoothstep(smoothP, 0.03, 0.13) : 0;
-      const sky = dayMix * (1 - spaceP);
-      if (Math.abs(sky - lastSky) > 0.004) {
-        lastSky = sky;
-        mount.style.setProperty('--cosmic-day', sky.toFixed(3));
-      }
-      // Once we are out of the atmosphere the page has to wear the dark skin
-      // whatever theme is selected, or light-theme text lands on a black sky.
-      // Hysteresis keeps it from strobing if the reader parks on the threshold.
-      if (cfg.journey && (inSpace ? spaceP < 0.4 : spaceP > 0.6)) {
-        inSpace = !inSpace;
-        document.documentElement.dataset.cosmicSpace = inSpace ? '1' : '0';
+      if (Math.abs(dayMix - lastSky) > 0.004) {
+        lastSky = dayMix;
+        mount.style.setProperty('--cosmic-day', dayMix.toFixed(3));
       }
 
-      // Day/night dressing: sunlight strength, sky haze, stars, sun flare.
-      scene.fog.color.lerpColors(NIGHT_FOG, DAY_FOG, sky);
-      ambient.color.lerpColors(NIGHT_AMB, DAY_AMB, sky);
-      // These two lights only ever reach the cloud shell. The globe itself is
-      // lit analytically from `sunDir`, so pushing them to "brighten the Earth"
-      // only clips the shell to a featureless white ball.
-      ambient.intensity = 1.1 + 0.30 * sky;
-      sun.intensity = 2.2 + 0.50 * sky;
-      earthUniforms.dayMix.value = sky;
-      starMat.uniforms.dayMix.value = sky;
-      stars.visible = sky < 0.99;
-      sunFlare.material.opacity = sky;
-      sunFlare.visible = sky > 0.01;
+      scene.fog.color.lerpColors(NIGHT_FOG, DAY_FOG, dayMix);
+      ambient.color.lerpColors(NIGHT_AMB, DAY_AMB, dayMix);
+      ambient.intensity = 1.2 + 0.3 * dayMix;
+      sun.intensity = 2.2 + 0.4 * dayMix;
 
-      // Stage schedule. Earth is just the stage that starts already on screen;
-      // each body fades up and holds while the one before it clears the frame.
-      const earthAmt = cfg.journey ? 1 - THREE.MathUtils.smoothstep(smoothP, 0.16, 0.31) : 1;
-      earthUniforms.amt.value = earthAmt;
-      earthPivot.visible = earthAmt > 0.004;
-      if (bodies) {
-        bodies.moon.update(t, win(smoothP, 0.18, 0.31, 0.40, 0.52), span(smoothP, 0.18, 0.52), camera);
-        bodies.sun.update(t, win(smoothP, 0.46, 0.58, 0.69, 0.80), span(smoothP, 0.46, 0.80), camera);
-        bodies.galaxy.update(t, win(smoothP, 0.74, 0.87, 9, 10), span(smoothP, 0.74, 1.0), camera);
-      }
-      // Thin the shell as scroll shrinks the globe: at small scale the mipped
-      // coverage averages out into one flat white ball otherwise.
-      cloudMat.opacity = (0.80 - 0.06 * sky) * (1 - 0.45 * smoothP) * earthAmt;
+      uniforms.dayMix.value = dayMix;
+      starMat.uniforms.dayMix.value = dayMix;
 
-      // Earth rises and recedes on scroll.
-      earthPivot.position.set(
-        cfg.base.x + smoothP * cfg.riseX,
-        cfg.base.y + smoothP * cfg.riseY,
-        cfg.base.z - smoothP * cfg.riseZ,
+      bodyPivot.position.set(
+        cfg.base.x,
+        cfg.base.y + smoothP * cfg.driftY,
+        cfg.base.z - smoothP * 0.5,
       );
-      earthPivot.scale.setScalar(1 - smoothP * cfg.shrink);
+      bodyPivot.scale.setScalar(1 - smoothP * cfg.shrink);
 
       if (!reduced) {
-        spinTarget.y += 0.0009; // gentle idle rotation
-        earth.rotation.y += (spinTarget.y - earth.rotation.y) * 0.08;
-        earth.rotation.x += (spinTarget.x - earth.rotation.x) * 0.08;
-        clouds.rotation.y = earth.rotation.y * 1.06 + t * 0.006;
-        clouds.rotation.x = earth.rotation.x;
+        spinTarget.y += isMoon ? 0.0004 : 0.001; // Moon rotates slower
+        bodyMesh.rotation.y += (spinTarget.y - bodyMesh.rotation.y) * 0.08;
+        bodyMesh.rotation.x += (spinTarget.x - bodyMesh.rotation.x) * 0.08;
+        if (clouds) {
+          clouds.rotation.y = bodyMesh.rotation.y * 1.05 + t * 0.005;
+          clouds.rotation.x = bodyMesh.rotation.x;
+        }
         starMat.uniforms.time.value = t;
       } else {
-        earth.rotation.y = spinTarget.y;
-        earth.rotation.x = spinTarget.x;
-        clouds.rotation.copy(earth.rotation);
+        bodyMesh.rotation.y = spinTarget.y;
+        bodyMesh.rotation.x = spinTarget.x;
+        if (clouds) clouds.rotation.copy(bodyMesh.rotation);
       }
 
-      // Parallax drift on the whole vault. The look target tilts up to follow the
-      // rising globe, then levels off with it so the journey runs dead ahead.
       const px = reduced ? 0 : parallax.x;
       const py = reduced ? 0 : parallax.y;
-      camera.position.x += (px * 0.8 - camera.position.x) * 0.04;
-      camera.position.y += (-py * 0.5 - camera.position.y) * 0.04;
-      camera.lookAt(0, smoothP * 1.5 * earthAmt, 0);
+      camera.position.x += (px * 0.6 - camera.position.x) * 0.04;
+      camera.position.y += (-py * 0.4 - camera.position.y) * 0.04;
+      camera.lookAt(0, 0, 0);
 
       renderer.render(scene, camera);
     };
@@ -533,9 +547,6 @@ const CosmicScene = ({ variant = 'home' }) => {
       raf = requestAnimationFrame(loop);
     };
 
-    // Theme changes mutate the running scene; they never rebuild it. The sibling
-    // effect below fires this once on mount (child effects run before the
-    // provider's), and that first call snaps rather than cross-fades.
     let themeApplied = false;
     applyThemeRef.current = (next) => {
       dayTarget = next === 'dark' ? 0 : 1;
@@ -547,9 +558,11 @@ const CosmicScene = ({ variant = 'home' }) => {
     };
 
     if (reduced) {
-      // No continuous loop; repaint only when the view actually changes.
-      const repaint = () => { readScroll(); render(); };
-      texManager.onLoad = render; // the plates arrive after that first frame
+      const repaint = () => {
+        readScroll();
+        render();
+      };
+      texManager.onLoad = render;
       render();
       window.addEventListener('scroll', repaint, { passive: true });
       window.addEventListener('resize', repaint);
@@ -558,11 +571,9 @@ const CosmicScene = ({ variant = 'home' }) => {
       raf = requestAnimationFrame(loop);
     }
 
-    /* ---------- Cleanup ---------- */
     return () => {
       texManager.onLoad = undefined;
       applyThemeRef.current = null;
-      delete document.documentElement.dataset.cosmicSpace;
       document.body.classList.remove('cosmic-grabbing');
       cancelAnimationFrame(raf);
       window.removeEventListener('scroll', readScroll);
@@ -580,28 +591,30 @@ const CosmicScene = ({ variant = 'home' }) => {
         window.removeEventListener('pointerup', onUp);
       }
       scene.traverse((o) => {
-        if (o.isMesh || o.isPoints || o.isSprite) {
+        if (o.isMesh || o.isPoints) {
           o.geometry?.dispose?.();
           const m = o.material;
           if (Array.isArray(m)) m.forEach((x) => x.dispose());
           else m?.dispose?.();
         }
       });
-      Object.values(earthUniforms).forEach((u) => u.value?.isTexture && u.value.dispose());
-      cloudTex.dispose();
-      sunTex.dispose();
-      if (bodies) Object.values(bodies).forEach((b) => b.dispose());
+      Object.values(uniforms).forEach((u) => u.value?.isTexture && u.value.dispose());
+      cloudMat?.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, [variant]);
 
-  useEffect(() => { applyThemeRef.current?.(theme); }, [theme]);
+  useEffect(() => {
+    applyThemeRef.current?.(theme);
+  }, [theme]);
 
-  // Portalled to <body> so a transformed route wrapper can't turn our
-  // position:fixed backdrop into a scroll-away absolute box.
   return createPortal(
-    <div ref={mountRef} className={`cosmic-scene cosmic-scene--${variant}`} aria-hidden="true" />,
+    <div
+      ref={mountRef}
+      className={`cosmic-scene cosmic-scene--${variant}`}
+      aria-hidden="true"
+    />,
     document.body,
   );
 };

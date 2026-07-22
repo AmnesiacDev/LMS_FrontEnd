@@ -27,7 +27,7 @@
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(130% 92% at 74% 8%, #fff7e3 0%, #ffeec9 9%, #dcebfc 34%, #b6d2f0 64%, #94b9e5 100%);
+    radial-gradient(130% 90% at 75% 10%, #FFFFFF 0%, #F0F9FF 35%, #E0F2FE 70%, #BAE6FD 100%);
   opacity: var(--cosmic-day);
   transition: opacity 0.55s ease;
 }

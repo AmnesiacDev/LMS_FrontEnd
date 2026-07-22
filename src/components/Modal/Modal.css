@@ -5,13 +5,18 @@
 /* Overlay */
 .modal-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 1000;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 99999;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.65);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   animation: modalOverlayIn 0.25s ease;
@@ -20,7 +25,7 @@
 /* Panel */
 .modal-panel {
   width: 100%;
-  max-height: 90vh;
+  max-height: 85vh;
   overflow-y: auto;
   border-radius: 1.25rem;
   background: var(--bg-secondary);
@@ -30,6 +35,7 @@
     0 25px 50px -12px rgba(0, 0, 0, 0.35),
     0 0 80px rgba(16, 185, 129, 0.06);
   animation: modalPanelIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  margin: auto;
 }
 
 .modal-panel.modal-sm { max-width: 480px; }
@@ -485,4 +491,168 @@
   .modal-detail-grid {
     grid-template-columns: 1fr;
   }
+}
+
+/* ═══ SEGMENTED TOGGLE SWITCH ═══ */
+.modal-segmented-control {
+  display: inline-flex;
+  background: var(--bg-primary);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border-color);
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.modal-segmented-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.55rem 1rem;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: inherit;
+}
+
+.modal-segmented-btn:hover:not(.active) {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.modal-segmented-btn.active {
+  background: var(--brand-primary);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+}
+
+/* ═══ BULK STUDENT PICKER ═══ */
+.bulk-student-container {
+  border: 1.5px solid var(--border-color);
+  border-radius: 14px;
+  background: var(--bg-primary);
+  overflow: hidden;
+  margin-top: 0.5rem;
+}
+
+.bulk-student-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.bulk-student-search {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.4rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+  outline: none;
+  font-family: inherit;
+}
+
+.bulk-student-search:focus {
+  border-color: var(--brand-primary);
+}
+
+.bulk-student-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.5rem;
+  padding: 0.75rem;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.student-card-option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.student-card-option:hover {
+  border-color: var(--brand-primary);
+  transform: translateY(-1px);
+}
+
+.student-card-option.selected {
+  border-color: var(--brand-primary);
+  background: rgba(37, 99, 235, 0.08);
+}
+
+.student-card-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--brand-primary), var(--info));
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.student-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.student-card-name {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.student-card-meta {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.student-card-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 1.5px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-size: 0.7rem;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.student-card-option.selected .student-card-check {
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
 }

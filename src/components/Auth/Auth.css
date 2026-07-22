@@ -32,20 +32,20 @@
   --ax-accent-ink: #FFFFFF;
   --ax-head: #0F172A;
   --ax-body: #334155;
-  --ax-muted: #46536B;
-  --ax-panel: rgba(255, 255, 255, 0.94);
+  --ax-muted: #475569;
+  --ax-panel: rgba(255, 255, 255, 0.92);
   --ax-field: #FFFFFF;
-  --ax-field-soft: #F1F5F9;
-  --ax-chip: rgba(255, 255, 255, 0.88);
-  --ax-line: #1C1917;
-  --ax-line-soft: rgba(28, 25, 23, 0.55);
-  --ax-shadow: #1C1917;
+  --ax-field-soft: #F0F9FF;
+  --ax-chip: rgba(240, 249, 255, 0.88);
+  --ax-line: #334155;
+  --ax-line-soft: rgba(51, 65, 85, 0.45);
+  --ax-shadow: #1E293B;
   --ax-danger: #B91C1C;
   --ax-danger-bg: rgba(254, 226, 226, 0.92);
   --ax-ok: #047857;
   --ax-ok-bg: rgba(209, 250, 229, 0.92);
-  --ax-halo: 0 0 6px rgba(248, 251, 255, 1), 0 0 15px rgba(248, 251, 255, 0.98), 0 0 32px rgba(248, 251, 255, 0.88);
-  --ax-scrim: rgba(247, 251, 255, 0.86);
+  --ax-halo: 0 0 6px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 255, 255, 0.95);
+  --ax-scrim: rgba(240, 249, 255, 0.90);
 
   /* ── Brutalist shape tokens ── */
   --ax-bd: 3px solid var(--ax-line);

@@ -1,4 +1,5 @@
 import React, { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import './Modal.css';
 
 /**
@@ -82,7 +83,7 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
 
   const sizeClass = `modal-${size}`;
 
-  return (
+  return createPortal(
     <div className="modal-overlay" onClick={onClose}>
       <div
         ref={panelRef}
@@ -108,7 +109,8 @@ const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

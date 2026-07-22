@@ -250,6 +250,11 @@ const SessionsPage = () => {
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  // Bulk session state
+  const [assignMode, setAssignMode] = useState('single');
+  const [selectedStudentIds, setSelectedStudentIds] = useState([]);
+  const [studentSearch, setStudentSearch] = useState('');
+
   const emptyForm = { title: '', description: '', studentProfileId: '', instructorId: '', date: '', meetingLink: '', notes: '', summary: '', status: 'pending', StudentAttended: true };
   const [formData, setFormData] = useState(emptyForm);
 
@@ -267,19 +272,21 @@ const SessionsPage = () => {
       setTotalDocs(data.data?.total || data.totalDocs || data.results || sessionList.length);
       setTotalPages(data.data?.totalPages || data.totalPages || 1);
 
-      // For instructors: derive unique students from their own sessions — no extra API call needed
-      if (role === 'instructor') {
-        const seen = new Set();
-        const students = [];
-        sessionList.forEach(s => {
-          const p = s.studentProfileId;
-          if (p && typeof p === 'object' && p._id && !seen.has(p._id)) {
-            seen.add(p._id);
-            students.push(p);
-          }
-        });
-        setStudentProfiles(students);
-      }
+      // Derived students from existing sessions
+      const seen = new Set();
+      const students = [];
+      sessionList.forEach(s => {
+        const p = s.studentProfileId;
+        if (p && typeof p === 'object' && p._id && !seen.has(p._id)) {
+          seen.add(p._id);
+          students.push(p);
+        }
+      });
+      setStudentProfiles(prev => {
+        const prevMap = new Map(prev.map(item => [item._id, item]));
+        students.forEach(item => prevMap.set(item._id, item));
+        return Array.from(prevMap.values());
+      });
 
       setError(null);
     } catch (err) { setError(err.message); }
@@ -287,15 +294,22 @@ const SessionsPage = () => {
   }, [role, isAdmin, page, limit, statusFilter, dateFrom, dateTo, request]);
 
   const fetchStudentProfiles = useCallback(async () => {
-    // Instructors get their students from sessions (derived above), admins fetch all
-    if (role === 'instructor') return;
     if (!isAdmin) return;
     try {
-      const data = await request('/api/v1/StudentProfile/all');
-      const list = data.data?.profiles || data.data?.docs || data.data;
-      setStudentProfiles(Array.isArray(list) ? list : []);
+      const data = await request('/api/v1/student-profile?limit=200').catch(() => null)
+        || await request('/api/v1/StudentProfile/all').catch(() => null);
+      const list = data?.data?.profiles || data?.data?.docs || data?.data || [];
+      if (Array.isArray(list) && list.length > 0) {
+        setStudentProfiles(prev => {
+          const prevMap = new Map(prev.map(item => [item._id, item]));
+          list.forEach(item => {
+            if (item && item._id) prevMap.set(item._id, item);
+          });
+          return Array.from(prevMap.values());
+        });
+      }
     } catch { /* ignore */ }
-  }, [role, isAdmin, request]);
+  }, [isAdmin, request]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
   useEffect(() => { fetchStudentProfiles(); }, [fetchStudentProfiles]);
@@ -317,7 +331,6 @@ const SessionsPage = () => {
     try {
       const data = await request(`/api/v1/session/${session._id}/ai-summary`, 'POST');
       const aiSummary = data.data?.aiSummary;
-      // Patch the freshly generated summary into local state so it renders immediately.
       setSessions(prev => prev.map(s => (s._id === session._id ? { ...s, aiSummary } : s)));
     } catch (err) {
       setAiErrors(prev => ({ ...prev, [session._id]: err.message }));
@@ -348,12 +361,50 @@ const SessionsPage = () => {
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
     try {
-      const payload = { title: formData.title, description: formData.description, studentProfileId: formData.studentProfileId, instructorId: formData.instructorId, date: formData.date, StudentAttended: formData.StudentAttended };
-      if (formData.notes) payload.notes = formData.notes;
-      if (formData.summary) payload.summary = formData.summary;
-      if (formData.meetingLink) payload.meetingLink = formData.meetingLink;
-      await request('/api/v1/session', 'POST', payload);
-      setShowCreate(false); setFormData(emptyForm); await fetchSessions();
+      if (assignMode === 'bulk') {
+        if (!selectedStudentIds || selectedStudentIds.length === 0) {
+          setFormError('Please select at least one student for bulk session creation.');
+          setFormLoading(false);
+          return;
+        }
+        if (!formData.date) {
+          setFormError('Please select a Date & Time for the sessions.');
+          setFormLoading(false);
+          return;
+        }
+        const bulkPayload = {
+          studentProfileIds: selectedStudentIds,
+          date: formData.date,
+          title: formData.title,
+          description: formData.description,
+        };
+        if (formData.meetingLink) bulkPayload.meetingLink = formData.meetingLink;
+        if (formData.notes) bulkPayload.notes = formData.notes;
+        if (formData.summary) bulkPayload.summary = formData.summary;
+        if (formData.instructorId) bulkPayload.instructorId = formData.instructorId;
+
+        await request('/api/v1/session/bulk', 'POST', bulkPayload);
+      } else {
+        const payload = {
+          title: formData.title,
+          description: formData.description,
+          studentProfileId: formData.studentProfileId,
+          instructorId: formData.instructorId || user?._id,
+          date: formData.date,
+          StudentAttended: formData.StudentAttended
+        };
+        if (formData.notes) payload.notes = formData.notes;
+        if (formData.summary) payload.summary = formData.summary;
+        if (formData.meetingLink) payload.meetingLink = formData.meetingLink;
+
+        await request('/api/v1/session', 'POST', payload);
+      }
+
+      setShowCreate(false);
+      setFormData(emptyForm);
+      setSelectedStudentIds([]);
+      setAssignMode('single');
+      await fetchSessions();
     } catch (err) { setFormError(err.message); }
     finally { setFormLoading(false); }
   };
@@ -424,6 +475,28 @@ const SessionsPage = () => {
 
   const renderFormFields = (isEdit) => (
     <>
+      {!isEdit && (
+        <div className="modal-form-group">
+          <label className="modal-label">Assignment Mode</label>
+          <div className="modal-segmented-control">
+            <button
+              type="button"
+              className={`modal-segmented-btn ${assignMode === 'single' ? 'active' : ''}`}
+              onClick={() => setAssignMode('single')}
+            >
+              <i className="fa-solid fa-user" /> Single Student
+            </button>
+            <button
+              type="button"
+              className={`modal-segmented-btn ${assignMode === 'bulk' ? 'active' : ''}`}
+              onClick={() => setAssignMode('bulk')}
+            >
+              <i className="fa-solid fa-users-gear" /> Bulk Students
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="modal-form-group">
         <label className="modal-label">Title</label>
         <input className="modal-input" required placeholder="Session title" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
@@ -432,12 +505,11 @@ const SessionsPage = () => {
         <label className="modal-label">Description</label>
         <textarea className="modal-textarea" required placeholder="Session description" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
       </div>
-      <div className="modal-row modal-row-2">
+
+      {!isEdit && assignMode === 'single' && (
         <div className="modal-form-group">
           <label className="modal-label">Student</label>
-          {isEdit ? (
-            <input className="modal-input" disabled value={formData.studentProfileId} />
-          ) : studentProfiles.length > 0 ? (
+          {studentProfiles.length > 0 ? (
             <select className="modal-select" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })}>
               <option value="">Choose a student</option>
               {studentProfiles.map(p => (
@@ -450,11 +522,78 @@ const SessionsPage = () => {
             <input className="modal-input" placeholder="ObjectId" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })} />
           )}
         </div>
+      )}
+
+      {!isEdit && assignMode === 'bulk' && (
         <div className="modal-form-group">
-          <label className="modal-label">Instructor ID</label>
-          <input className="modal-input" placeholder="ObjectId" required={!isEdit} disabled={isEdit} value={formData.instructorId} onChange={e => setFormData({ ...formData, instructorId: e.target.value })} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+            <label className="modal-label" style={{ margin: 0 }}>
+              Select Students ({selectedStudentIds.length} of {studentProfiles.length} Selected)
+            </label>
+          </div>
+
+          <div className="bulk-student-container">
+            <div className="bulk-student-header">
+              <input
+                type="text"
+                className="bulk-student-search"
+                placeholder="Search students by name..."
+                value={studentSearch}
+                onChange={e => setStudentSearch(e.target.value)}
+              />
+              <button
+                type="button"
+                className="modal-add-btn"
+                onClick={() => {
+                  if (selectedStudentIds.length === studentProfiles.length) {
+                    setSelectedStudentIds([]);
+                  } else {
+                    setSelectedStudentIds(studentProfiles.map(p => p._id));
+                  }
+                }}
+              >
+                <i className="fa-solid fa-check-double" /> {selectedStudentIds.length === studentProfiles.length ? 'Deselect All' : `Select All (${studentProfiles.length})`}
+              </button>
+            </div>
+
+            <div className="bulk-student-grid">
+              {studentProfiles
+                .filter(p => {
+                  if (!studentSearch.trim()) return true;
+                  const name = p.user?.FullName || p.user?.UserName || '';
+                  return name.toLowerCase().includes(studentSearch.toLowerCase());
+                })
+                .map(p => {
+                  const isSelected = selectedStudentIds.includes(p._id);
+                  const name = p.user?.FullName || p.user?.UserName || 'Student';
+                  const initials = name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase() || 'ST';
+                  return (
+                    <div
+                      key={p._id}
+                      className={`student-card-option ${isSelected ? 'selected' : ''}`}
+                      onClick={() => {
+                        if (isSelected) {
+                          setSelectedStudentIds(prev => prev.filter(id => id !== p._id));
+                        } else {
+                          setSelectedStudentIds(prev => [...prev, p._id]);
+                        }
+                      }}
+                    >
+                      <div className="student-card-avatar">{initials}</div>
+                      <div className="student-card-info">
+                        <span className="student-card-name">{name}</span>
+                        {p.grade && <span className="student-card-meta">Grade {p.grade}</span>}
+                      </div>
+                      <div className="student-card-check">
+                        {isSelected && <i className="fa-solid fa-check" />}
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
       <div className="modal-row modal-row-2">
         <div className="modal-form-group">
           <label className="modal-label">Date & Time</label>
@@ -818,11 +957,13 @@ const SessionsPage = () => {
       )}
 
       {/* ═══ CREATE ═══ */}
-      <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Create New Session" size="lg">
+      <Modal isOpen={showCreate} onClose={() => { setShowCreate(false); setSelectedStudentIds([]); setAssignMode('single'); }} title={assignMode === 'bulk' ? 'Create Bulk Sessions' : 'Create New Session'} size="lg">
         <form onSubmit={handleCreate}>
           {formError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {formError}</div>}
           {renderFormFields(false)}
-          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary">{formLoading ? 'Creating...' : <><i className="fa-solid fa-plus" /> Create Session</>}</button>
+          <button type="submit" disabled={formLoading} className="modal-btn modal-btn-primary" style={{ marginTop: '1rem' }}>
+            {formLoading ? 'Creating...' : <><i className="fa-solid fa-plus" /> {assignMode === 'bulk' ? `Assign Sessions to ${selectedStudentIds.length} Student(s)` : 'Create Session'}</>}
+          </button>
         </form>
       </Modal>
 
