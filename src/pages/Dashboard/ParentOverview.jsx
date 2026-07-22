@@ -1,22 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
+import { useApiRequest } from '../../hooks/useApiRequest';
+import Modal from '../../components/Modal/Modal';
 import { SkeletonStatsGrid, SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import './DashboardOverview.css';
 
 const ParentOverview = () => {
   const { user } = useAuth();
   const parentName = user?.FullName?.split(' ')[0] || 'Parent';
+  const { request } = useApiRequest();
 
   // Fetch children profiles
-  const { data: profiles, loading, error } = useFetchData('/api/v1/StudentProfile/me');
+  const { data: profiles, loading, error, refetch } = useFetchData('/api/v1/StudentProfile/me');
   // Stats (aggregated for all children)
   const { data: taskStats } = useFetchData('/api/v1/task/me/stats');
   const { data: subStats } = useFetchData('/api/v1/submission/me/stats');
   const { data: reviewStats } = useFetchData('/api/v1/sessionReview/me/stats');
   // Recent tasks
   const { data: tasksRaw } = useFetchData('/api/v1/task/me');
+
+  // Modal State for Link Child
+  const [showLinkModal, setShowLinkModal] = useState(false);
+  const [childIdentifier, setChildIdentifier] = useState('');
+  const [linkLoading, setLinkLoading] = useState(false);
+  const [linkError, setLinkError] = useState(null);
+  const [linkSuccess, setLinkSuccess] = useState(null);
+
+  const handleLinkChild = async (e) => {
+    e.preventDefault();
+    if (!childIdentifier.trim()) return;
+
+    setLinkLoading(true);
+    setLinkError(null);
+    setLinkSuccess(null);
+
+    try {
+      const res = await request('/api/v1/studentprofile/link-child', 'POST', { childIdentifier: childIdentifier.trim() });
+      setLinkSuccess(res.message || 'Child successfully linked!');
+      setChildIdentifier('');
+      if (refetch) refetch();
+      setTimeout(() => {
+        setShowLinkModal(false);
+        setLinkSuccess(null);
+      }, 1500);
+    } catch (err) {
+      setLinkError(err.message || 'Failed to link child');
+    } finally {
+      setLinkLoading(false);
+    }
+  };
 
   if (loading) return (
     <div className="overview-container">
@@ -32,8 +66,7 @@ const ParentOverview = () => {
 
   const childrenList = Array.isArray(profiles) ? profiles : (profiles?.docs || profiles?.profiles || []);
 
-  // Normalize stats — useFetchData already strips outer { status, data } wrapper,
-  // so we receive { stats: {...} } and need to grab .stats.
+  // Normalize stats
   const ts = taskStats?.stats || taskStats || {};
   const ss = subStats?.stats || subStats || {};
   const rs = reviewStats?.stats || reviewStats || {};
@@ -79,9 +112,31 @@ const ParentOverview = () => {
 
   return (
     <div className="overview-container">
-      <div>
-        <h1 className="page-title">Welcome, {parentName}! <i className="fa-solid fa-people-roof" style={{ color: 'var(--brand-primary)' }} /></h1>
-        <p className="page-subtitle">Track your children's educational progress below.</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
+        <div>
+          <h1 className="page-title">Welcome, {parentName}! <i className="fa-solid fa-people-roof" style={{ color: 'var(--brand-primary)' }} /></h1>
+          <p className="page-subtitle">Track your children's educational progress below.</p>
+        </div>
+        <button
+          onClick={() => { setShowLinkModal(true); setLinkError(null); setLinkSuccess(null); }}
+          style={{
+            padding: '0.6rem 1.25rem',
+            background: 'var(--brand-primary)',
+            color: 'white',
+            border: '2px solid var(--border-color)',
+            borderRadius: 'var(--radius-md)',
+            fontWeight: '700',
+            cursor: 'pointer',
+            boxShadow: '3px 3px 0px 0px var(--shadow-color)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontFamily: 'var(--font-heading)',
+            fontSize: '0.9rem',
+          }}
+        >
+          <i className="fa-solid fa-user-plus" /> + Link Child
+        </button>
       </div>
 
       {/* Aggregated Stats */}
@@ -156,7 +211,23 @@ const ParentOverview = () => {
           </div>
           <div className="course-list">
             {childrenList.length === 0 ? (
-              <p style={{ color: 'var(--text-muted)' }}>No children profiles linked yet.</p>
+              <div style={{ padding: '1rem', textAlign: 'center' }}>
+                <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>No children profiles linked to your account yet.</p>
+                <button
+                  onClick={() => setShowLinkModal(true)}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: 'var(--brand-primary)',
+                    color: 'white',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: 'var(--radius-sm)',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Link Child by Email/Username
+                </button>
+              </div>
             ) : (
               childrenList.map(child => {
                 const childDetails = child.user || {};
@@ -166,7 +237,7 @@ const ParentOverview = () => {
                     <div className="avatar" style={{ width: '48px', height: '48px', fontSize: '1rem' }}>{initials}</div>
                     <div className="course-details" style={{ flex: 1 }}>
                       <h4>{childDetails.FullName || 'Student'}</h4>
-                      <p>Grade: {child.grade || 'N/A'}</p>
+                      <p>Grade: {child.grade || 'N/A'} {childDetails.Email ? `• ${childDetails.Email}` : ''}</p>
                     </div>
                     <Link to={`/dashboard/child/${child._id}`}
                       style={{ 
@@ -227,6 +298,49 @@ const ParentOverview = () => {
           )}
         </div>
       </div>
+
+      {/* Link Child Modal */}
+      {showLinkModal && (
+        <Modal title="Link Your Child's Account" onClose={() => setShowLinkModal(false)}>
+          <form onSubmit={handleLinkChild}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Enter your child's student <strong>Email Address</strong> or <strong>Username</strong> to link their profile to your parent account.
+            </p>
+
+            {linkError && (
+              <div className="form-error" style={{ marginBottom: '1rem' }}>
+                <i className="fa-solid fa-circle-exclamation" /> {linkError}
+              </div>
+            )}
+            {linkSuccess && (
+              <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: '700' }}>
+                <i className="fa-solid fa-circle-check" /> {linkSuccess}
+              </div>
+            )}
+
+            <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+              <label>Child Email or Username</label>
+              <input
+                type="text"
+                placeholder="e.g. child@email.com or ahmed_student"
+                value={childIdentifier}
+                onChange={(e) => setChildIdentifier(e.target.value)}
+                required
+                disabled={linkLoading}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button type="button" className="modal-btn secondary" onClick={() => setShowLinkModal(false)} disabled={linkLoading}>
+                Cancel
+              </button>
+              <button type="submit" className="modal-btn primary" disabled={linkLoading || !childIdentifier.trim()}>
+                {linkLoading ? 'Linking...' : 'Link Child Account'}
+              </button>
+            </div>
+          </form>
+        </Modal>
+      )}
     </div>
   );
 };

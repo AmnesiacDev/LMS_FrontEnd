@@ -98,6 +98,83 @@ const UsersPage = () => {
     setFormError(null); setEditUser(u);
   };
 
+  const [linkTargetUser, setLinkTargetUser] = useState(null);
+  const [linkModalType, setLinkModalType] = useState(null); // 'parent' or 'instructor' or 'student'
+  const [selectedStudentId, setSelectedStudentId] = useState('');
+  const [selectedParentId, setSelectedParentId] = useState('');
+  const [selectedInstructorId, setSelectedInstructorId] = useState('');
+  const [linkActionLoading, setLinkActionLoading] = useState(false);
+  const [linkActionError, setLinkActionError] = useState(null);
+  const [linkActionSuccess, setLinkActionSuccess] = useState(null);
+
+  const openLinkModal = (userObj, type) => {
+    setLinkTargetUser(userObj);
+    setLinkModalType(type);
+    setSelectedStudentId('');
+    setSelectedParentId('');
+    setSelectedInstructorId('');
+    setLinkActionError(null);
+    setLinkActionSuccess(null);
+  };
+
+  const handleAdminLinkParent = async (e) => {
+    e.preventDefault();
+    setLinkActionLoading(true);
+    setLinkActionError(null);
+    setLinkActionSuccess(null);
+    try {
+      const studentId = linkModalType === 'student' ? linkTargetUser._id : selectedStudentId;
+      const parentId = linkModalType === 'parent' ? linkTargetUser._id : selectedParentId;
+
+      await request('/api/v1/studentprofile/admin/link-parent', 'POST', {
+        studentUserId: studentId,
+        parentUserId: parentId,
+      });
+
+      setLinkActionSuccess('Parent successfully linked to student!');
+      fetchUsers();
+      setTimeout(() => {
+        setLinkTargetUser(null);
+        setLinkActionSuccess(null);
+      }, 1500);
+    } catch (err) {
+      setLinkActionError(err.message);
+    } finally {
+      setLinkActionLoading(false);
+    }
+  };
+
+  const handleAdminLinkInstructor = async (e) => {
+    e.preventDefault();
+    setLinkActionLoading(true);
+    setLinkActionError(null);
+    setLinkActionSuccess(null);
+    try {
+      const studentId = linkModalType === 'student' ? linkTargetUser._id : selectedStudentId;
+      const instructorId = linkModalType === 'instructor' ? linkTargetUser._id : selectedInstructorId;
+
+      await request('/api/v1/studentprofile/admin/link-instructor', 'POST', {
+        studentUserId: studentId,
+        instructorUserId: instructorId,
+      });
+
+      setLinkActionSuccess('Instructor successfully linked to student!');
+      fetchUsers();
+      setTimeout(() => {
+        setLinkTargetUser(null);
+        setLinkActionSuccess(null);
+      }, 1500);
+    } catch (err) {
+      setLinkActionError(err.message);
+    } finally {
+      setLinkActionLoading(false);
+    }
+  };
+
+  const studentsList = users.filter((u) => u.role === 'student');
+  const parentsList = users.filter((u) => u.role === 'parent');
+  const instructorsList = users.filter((u) => u.role === 'instructor');
+
   return (
     <div style={{ padding: '2rem 0' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
@@ -153,7 +230,22 @@ const UsersPage = () => {
                     )}
                   </td>
                   <td style={{ padding: '1rem 1.5rem', textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.5rem' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.5rem', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                      {u.role === 'parent' && (
+                        <button onClick={() => openLinkModal(u, 'parent')} className="modal-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto', background: 'rgba(139,92,246,0.15)', color: '#8b5cf6', border: '1px solid #8b5cf666' }}>
+                          <i className="fa-solid fa-link" /> Link Student
+                        </button>
+                      )}
+                      {u.role === 'instructor' && (
+                        <button onClick={() => openLinkModal(u, 'instructor')} className="modal-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto', background: 'rgba(59,130,246,0.15)', color: '#3b82f6', border: '1px solid #3b82f666' }}>
+                          <i className="fa-solid fa-link" /> Assign Student
+                        </button>
+                      )}
+                      {u.role === 'student' && (
+                        <button onClick={() => openLinkModal(u, 'student')} className="modal-btn" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto', background: 'rgba(16,185,129,0.15)', color: '#10b981', border: '1px solid #10b98166' }}>
+                          <i className="fa-solid fa-link" /> Manage Links
+                        </button>
+                      )}
                       <button onClick={() => openEdit(u)} className="modal-btn modal-btn-info" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', width: 'auto' }}>
                         <i className="fa-solid fa-pen" /> Edit
                       </button>
@@ -281,6 +373,90 @@ const UsersPage = () => {
           <button onClick={() => setDeleteUser(null)} className="modal-btn modal-btn-ghost">Cancel</button>
           <button onClick={handleDelete} disabled={formLoading} className="modal-btn modal-btn-danger">{formLoading ? 'Deleting...' : <><i className="fa-solid fa-trash" /> Delete</>}</button>
         </div>
+      </Modal>
+
+      {/* ═══ ADMIN FORCE-LINK MODAL ═══ */}
+      <Modal isOpen={!!linkTargetUser} onClose={() => setLinkTargetUser(null)} title={`Force-Connect: ${linkTargetUser?.FullName} (${linkTargetUser?.role})`} size="md">
+        {linkActionError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {linkActionError}</div>}
+        {linkActionSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: 700 }}><i className="fa-solid fa-circle-check" /> {linkActionSuccess}</div>}
+
+        {linkModalType === 'parent' && (
+          <form onSubmit={handleAdminLinkParent}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Select a <strong>Student</strong> to forcefully link to Parent <strong>{linkTargetUser?.FullName}</strong>.
+            </p>
+            <div className="modal-form-group">
+              <label className="modal-label">Select Student</label>
+              <select className="modal-select" required value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
+                <option value="">-- Choose Student --</option>
+                {studentsList.map(s => (
+                  <option key={s._id} value={s._id}>{s.FullName} (@{s.UserName}) - {s.Email}</option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" disabled={linkActionLoading || !selectedStudentId} className="modal-btn modal-btn-primary">
+              {linkActionLoading ? 'Linking...' : 'Force-Link Student to Parent'}
+            </button>
+          </form>
+        )}
+
+        {linkModalType === 'instructor' && (
+          <form onSubmit={handleAdminLinkInstructor}>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Select a <strong>Student</strong> to assign to Instructor <strong>{linkTargetUser?.FullName}</strong>.
+            </p>
+            <div className="modal-form-group">
+              <label className="modal-label">Select Student</label>
+              <select className="modal-select" required value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
+                <option value="">-- Choose Student --</option>
+                {studentsList.map(s => (
+                  <option key={s._id} value={s._id}>{s.FullName} (@{s.UserName}) - {s.Email}</option>
+                ))}
+              </select>
+            </div>
+            <button type="submit" disabled={linkActionLoading || !selectedStudentId} className="modal-btn modal-btn-primary">
+              {linkActionLoading ? 'Assigning...' : 'Assign Student to Instructor'}
+            </button>
+          </form>
+        )}
+
+        {linkModalType === 'student' && (
+          <div>
+            <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+              Manage links for Student <strong>{linkTargetUser?.FullName}</strong>.
+            </p>
+
+            <form onSubmit={handleAdminLinkParent} style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid var(--border-color)' }}>
+              <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Link Parent</h4>
+              <div className="modal-form-group">
+                <select className="modal-select" required value={selectedParentId} onChange={e => setSelectedParentId(e.target.value)}>
+                  <option value="">-- Choose Parent --</option>
+                  {parentsList.map(p => (
+                    <option key={p._id} value={p._id}>{p.FullName} (@{p.UserName}) - {p.Email}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" disabled={linkActionLoading || !selectedParentId} className="modal-btn modal-btn-primary" style={{ marginTop: '0.5rem' }}>
+                {linkActionLoading ? 'Linking...' : 'Link Parent'}
+              </button>
+            </form>
+
+            <form onSubmit={handleAdminLinkInstructor}>
+              <h4 style={{ margin: '0 0 0.5rem', fontSize: '0.95rem' }}>Assign Instructor</h4>
+              <div className="modal-form-group">
+                <select className="modal-select" required value={selectedInstructorId} onChange={e => setSelectedInstructorId(e.target.value)}>
+                  <option value="">-- Choose Instructor --</option>
+                  {instructorsList.map(inst => (
+                    <option key={inst._id} value={inst._id}>{inst.FullName} (@{inst.UserName}) - {inst.Email}</option>
+                  ))}
+                </select>
+              </div>
+              <button type="submit" disabled={linkActionLoading || !selectedInstructorId} className="modal-btn modal-btn-info" style={{ marginTop: '0.5rem' }}>
+                {linkActionLoading ? 'Assigning...' : 'Assign Instructor'}
+              </button>
+            </form>
+          </div>
+        )}
       </Modal>
     </div>
   );
