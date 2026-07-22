@@ -3,7 +3,6 @@ const dashboardRoots = new Set([
   'announcements',
   'audit-logs',
   'challenges',
-  'curriculum',
   'exams',
   'external',
   'leaderboard',

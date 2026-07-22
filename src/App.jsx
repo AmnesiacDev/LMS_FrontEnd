@@ -183,11 +183,7 @@ function App() {
                     </ProtectedRoute>
                   } />
 
-                  <Route path="curriculum" element={
-                    <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
-                      <CurriculumPage />
-                    </ProtectedRoute>
-                  } />
+                  <Route path="curriculum" element={<Navigate to="/dashboard" replace />} />
 
                   <Route path="curriculum/lessons/:lessonId" element={
                     <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>

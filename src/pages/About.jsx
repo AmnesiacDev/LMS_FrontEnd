@@ -109,7 +109,7 @@ const About = () => {
       {/* ══════════ WHAT WE TEACH ══════════ */}
       <section className="features-section">
         <div className="section-eyebrow">
-          <i className="fa-solid fa-book-open" /> Curriculum
+          <i className="fa-solid fa-graduation-cap" /> Skill Tracks
         </div>
         <h2 className="section-title">Everything We Teach</h2>
         <p className="section-sub">Six complete skill tracks, each with structured lessons and real projects.</p>
