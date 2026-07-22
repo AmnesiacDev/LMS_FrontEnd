@@ -37,7 +37,7 @@ const ParentOverview = () => {
     setLinkSuccess(null);
 
     try {
-      const res = await request('/api/v1/studentprofile/link-child', 'POST', { childIdentifier: childIdentifier.trim() });
+      const res = await request('/api/v1/StudentProfile/link-child', 'POST', { childIdentifier: childIdentifier.trim() });
       setLinkSuccess(res.message || 'Child successfully linked!');
       setChildIdentifier('');
       if (refetch) refetch();
@@ -300,9 +300,8 @@ const ParentOverview = () => {
       </div>
 
       {/* Link Child Modal */}
-      {showLinkModal && (
-        <Modal title="Link Your Child's Account" onClose={() => setShowLinkModal(false)}>
-          <form onSubmit={handleLinkChild}>
+      <Modal isOpen={showLinkModal} title="Link Your Child's Account" onClose={() => setShowLinkModal(false)}>
+        <form onSubmit={handleLinkChild}>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
               Enter your child's student <strong>Email Address</strong> or <strong>Username</strong> to link their profile to your parent account.
             </p>
@@ -340,8 +339,7 @@ const ParentOverview = () => {
             </div>
           </form>
         </Modal>
-      )}
-    </div>
+      </div>
   );
 };
 

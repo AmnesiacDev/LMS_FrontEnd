@@ -126,7 +126,7 @@ const UsersPage = () => {
       const studentId = linkModalType === 'student' ? linkTargetUser._id : selectedStudentId;
       const parentId = linkModalType === 'parent' ? linkTargetUser._id : selectedParentId;
 
-      await request('/api/v1/studentprofile/admin/link-parent', 'POST', {
+      await request('/api/v1/StudentProfile/admin/link-parent', 'POST', {
         studentUserId: studentId,
         parentUserId: parentId,
       });
@@ -153,7 +153,7 @@ const UsersPage = () => {
       const studentId = linkModalType === 'student' ? linkTargetUser._id : selectedStudentId;
       const instructorId = linkModalType === 'instructor' ? linkTargetUser._id : selectedInstructorId;
 
-      await request('/api/v1/studentprofile/admin/link-instructor', 'POST', {
+      await request('/api/v1/StudentProfile/admin/link-instructor', 'POST', {
         studentUserId: studentId,
         instructorUserId: instructorId,
       });
