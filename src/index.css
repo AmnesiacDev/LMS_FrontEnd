@@ -487,3 +487,12 @@ button {
   opacity: 1;
   transform: translate(0) scale(1);
 }
+
+/* ═══ AG LOGO BRAND STYLING ═══ */
+.ag-logo-mark img {
+  transition: filter 0.25s ease, transform 0.25s ease;
+}
+
+[data-theme="dark"] .ag-logo-mark img {
+  filter: brightness(0) invert(1) drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
+}

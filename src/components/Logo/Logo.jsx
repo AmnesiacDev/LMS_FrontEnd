@@ -12,60 +12,58 @@ import React from 'react';
  *   style    — extra inline styles on the wrapper
  */
 const SIZES = {
-  sm: { mark: 28, font: '1.1rem', gap: '0.45rem', iconSize: '0.75rem' },
-  md: { mark: 36, font: '1.35rem', gap: '0.55rem', iconSize: '0.85rem' },
-  lg: { mark: 48, font: '1.8rem',  gap: '0.7rem',  iconSize: '1.1rem'  },
+  sm: { mark: 28, font: '1.1rem', gap: '0.45rem' },
+  md: { mark: 36, font: '1.35rem', gap: '0.55rem' },
+  lg: { mark: 48, font: '1.8rem',  gap: '0.7rem' },
 };
 
 const Logo = ({ size = 'md', variant = 'full', onClick, style = {} }) => {
   const s = SIZES[size] || SIZES.md;
 
   const mark = (
-    <div style={{
-      width:  s.mark,
-      height: s.mark,
-      flexShrink: 0,
-      borderRadius: '10px',
-      background: 'linear-gradient(135deg, #3b82f6 0%, #6366f1 100%)',
-      border: '2px solid var(--border-color)',
-      boxShadow: '3px 3px 0 var(--shadow-color)',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      position: 'relative',
-      overflow: 'hidden',
-    }}>
-      {/* Code brackets icon */}
-      <i
-        className="fa-solid fa-code"
+    <div
+      className="ag-logo-mark"
+      style={{
+        width: s.mark,
+        height: s.mark,
+        flexShrink: 0,
+        borderRadius: '10px',
+        background: 'linear-gradient(135deg, rgba(37, 99, 235, 0.12) 0%, rgba(99, 102, 241, 0.12) 100%)',
+        border: '1.5px solid var(--border-color)',
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
+        overflow: 'hidden',
+        padding: '3px',
+      }}
+    >
+      <img
+        src="/AG_Logo.png"
+        alt="AlgoGambit Logo"
         style={{
-          color: '#fff',
-          fontSize: s.iconSize,
-          position: 'relative',
-          zIndex: 1,
+          width: '100%',
+          height: '100%',
+          objectFit: 'contain',
+          display: 'block',
         }}
       />
-      {/* subtle shine */}
-      <div style={{
-        position: 'absolute',
-        top: 0, left: 0,
-        width: '50%', height: '50%',
-        background: 'rgba(255,255,255,0.15)',
-        borderRadius: '0 0 100% 0',
-      }} />
     </div>
   );
 
   const wordmark = (
-    <span style={{
-      fontFamily: "'Outfit', sans-serif",
-      fontWeight: 800,
-      fontSize: s.font,
-      color: 'var(--text-primary)',
-      letterSpacing: '-0.02em',
-      lineHeight: 1,
-      whiteSpace: 'nowrap',
-    }}>
+    <span
+      style={{
+        fontFamily: "'Outfit', sans-serif",
+        fontWeight: 800,
+        fontSize: s.font,
+        color: 'var(--text-primary)',
+        letterSpacing: '-0.02em',
+        lineHeight: 1,
+        whiteSpace: 'nowrap',
+      }}
+    >
       Algo<span style={{ color: '#6366f1' }}>Gambit</span>
     </span>
   );
