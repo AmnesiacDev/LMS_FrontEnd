@@ -2,7 +2,6 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useApiRequest } from '../../hooks/useApiRequest';
-import useFetchData from '../../hooks/useFetchData';
 import { Skeleton } from '../../components/Skeleton/Skeleton';
 
 /* ─── Neo-Brutalist Inline Styles ─── */
@@ -137,11 +136,129 @@ const MessagesPage = () => {
   const [loadingMsgs, setLoadingMsgs] = useState(false);
   const [searchQ, setSearchQ] = useState('');
   const [showNewMsg, setShowNewMsg] = useState(false);
+  const [allowedContacts, setAllowedContacts] = useState([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
 
-  // Fetch all users for new message picker
-  const { data: usersData } = useFetchData('/api/v1/user');
-  const allUsers = Array.isArray(usersData) ? usersData : (usersData?.docs || usersData?.users || []);
-  const otherUsers = allUsers.filter(u => u._id !== user?._id);
+  // Fetch allowed contacts based on user role
+  const fetchContacts = useCallback(async () => {
+    if (!user) return;
+    const role = (user.role || '').toLowerCase();
+    setLoadingContacts(true);
+
+    const contactsMap = new Map();
+    const addContact = (u, roleHint) => {
+      if (!u) return;
+      const id = typeof u === 'object' ? u._id : u;
+      if (!id || id === user._id) return;
+
+      const existing = contactsMap.get(id);
+      const fullName = (typeof u === 'object' ? (u.FullName || u.UserName) : null) || existing?.FullName || 'User';
+      const email = (typeof u === 'object' ? u.Email : null) || existing?.Email || '';
+      const r = (typeof u === 'object' ? u.role : null) || existing?.role || roleHint || 'user';
+
+      contactsMap.set(id, {
+        _id: id,
+        FullName: fullName,
+        Email: email,
+        role: r,
+      });
+    };
+
+    const extractList = (res) => {
+      if (!res) return [];
+      const d = res.data ?? res;
+      if (Array.isArray(d)) return d;
+      if (d && typeof d === 'object') {
+        if (Array.isArray(d.docs)) return d.docs;
+        if (Array.isArray(d.users)) return d.users;
+        if (Array.isArray(d.sessions)) return d.sessions;
+        if (Array.isArray(d.tasks)) return d.tasks;
+      }
+      return [];
+    };
+
+    try {
+      if (role === 'admin') {
+        try {
+          const res = await request('/api/v1/user');
+          const list = extractList(res);
+          list.forEach(u => addContact(u));
+        } catch { /* admin fallback */ }
+      } else if (role === 'instructor') {
+        const [sessionsRes, tasksRes, profilesRes] = await Promise.allSettled([
+          request('/api/v1/session?limit=500'),
+          request('/api/v1/task?limit=500'),
+          request('/api/v1/studentProfile?limit=500'),
+        ]);
+
+        if (sessionsRes.status === 'fulfilled') {
+          extractList(sessionsRes.value).forEach(s => {
+            if (s.studentProfileId?.user) addContact(s.studentProfileId.user, 'student');
+          });
+        }
+
+        if (tasksRes.status === 'fulfilled') {
+          extractList(tasksRes.value).forEach(t => {
+            if (t.studentProfileId?.user) addContact(t.studentProfileId.user, 'student');
+          });
+        }
+
+        if (profilesRes.status === 'fulfilled') {
+          extractList(profilesRes.value).forEach(p => {
+            if (p.user) addContact(p.user, 'student');
+            if (p.parent?.user) addContact(p.parent.user, 'parent');
+            else if (p.parent) addContact(p.parent, 'parent');
+          });
+        }
+      } else if (role === 'student') {
+        const [sessionsRes, tasksRes] = await Promise.allSettled([
+          request('/api/v1/session/me?limit=500'),
+          request('/api/v1/task/me?limit=500'),
+        ]);
+
+        if (sessionsRes.status === 'fulfilled') {
+          extractList(sessionsRes.value).forEach(s => {
+            if (s.instructorId) addContact(s.instructorId, 'instructor');
+          });
+        }
+
+        if (tasksRes.status === 'fulfilled') {
+          extractList(tasksRes.value).forEach(t => {
+            if (t.instructorId) addContact(t.instructorId, 'instructor');
+          });
+        }
+
+        if (user.parent) addContact(user.parent, 'parent');
+      } else if (role === 'parent') {
+        const [childrenRes, sessionsRes] = await Promise.allSettled([
+          request('/api/v1/studentProfile/me'),
+          request('/api/v1/session/me?limit=500'),
+        ]);
+
+        if (childrenRes.status === 'fulfilled') {
+          extractList(childrenRes.value).forEach(p => {
+            if (p.user) addContact(p.user, 'student');
+          });
+        }
+
+        if (sessionsRes.status === 'fulfilled') {
+          extractList(sessionsRes.value).forEach(s => {
+            if (s.instructorId) addContact(s.instructorId, 'instructor');
+          });
+        }
+      }
+
+      setAllowedContacts(Array.from(contactsMap.values()));
+    } catch {
+      setAllowedContacts([]);
+    } finally {
+      setLoadingContacts(false);
+    }
+  }, [user, request]);
+
+  useEffect(() => {
+    fetchContacts();
+  }, [fetchContacts]);
 
   // Fetch conversations list
   const fetchConversations = useCallback(async () => {
@@ -194,7 +311,7 @@ const MessagesPage = () => {
 
   // Find active user info
   const activeChatUser = conversations.find(c => c.otherUserId === activeChat);
-  const activeChatUserFromList = otherUsers.find(u => u._id === activeChat);
+  const activeChatUserFromList = allowedContacts.find(u => u._id === activeChat);
   const chatName = activeChatUser?.fullName || activeChatUserFromList?.FullName || 'User';
   const chatRole = activeChatUser?.role || activeChatUserFromList?.role || '';
   const chatInitials = chatName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
@@ -204,8 +321,8 @@ const MessagesPage = () => {
     : conversations;
 
   const filteredUsers = searchQ.trim()
-    ? otherUsers.filter(u => u.FullName?.toLowerCase().includes(searchQ.toLowerCase()) || u.Email?.toLowerCase().includes(searchQ.toLowerCase()))
-    : otherUsers;
+    ? allowedContacts.filter(u => u.FullName?.toLowerCase().includes(searchQ.toLowerCase()) || u.Email?.toLowerCase().includes(searchQ.toLowerCase()))
+    : allowedContacts;
 
   return (
     <div style={{ padding: '0' }}>
@@ -228,8 +345,14 @@ const MessagesPage = () => {
           <div style={{ flex: 1, overflowY: 'auto' }}>
             {showNewMsg ? (
               /* New Message: User Picker */
-              filteredUsers.length === 0 ? (
-                <p style={{ padding: '1rem', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.85rem' }}>No users found</p>
+              loadingContacts ? (
+                <p style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.85rem' }}>
+                  <i className="fa-solid fa-circle-notch fa-spin" /> Loading contacts...
+                </p>
+              ) : filteredUsers.length === 0 ? (
+                <p style={{ padding: '1.5rem', color: 'var(--text-muted)', textAlign: 'center', fontSize: '0.85rem' }}>
+                  No contacts found
+                </p>
               ) : filteredUsers.map(u => (
                 <div
                   key={u._id}
@@ -243,7 +366,7 @@ const MessagesPage = () => {
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={s.convName}>{u.FullName}</p>
-                    <p style={s.convPreview(false)}>{u.role}</p>
+                    <p style={s.convPreview(false)}>{u.role || 'User'}</p>
                   </div>
                 </div>
               ))
