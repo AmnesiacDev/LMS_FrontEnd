@@ -40,7 +40,7 @@ const Logo = ({ size = 'md', variant = 'full', onClick, style = {} }) => {
       }}
     >
       <img
-        src="/AG_Logo.png"
+        src="/logo.png"
         alt="AlgoGambit Logo"
         style={{
           width: '100%',
