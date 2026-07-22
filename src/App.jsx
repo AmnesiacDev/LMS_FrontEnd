@@ -28,6 +28,7 @@ import ChildDetailsPage from './pages/Dashboard/ChildDetailsPage';
 import ProgressPage from './pages/Dashboard/ProgressPage';
 import ExamsPage from './pages/Dashboard/ExamsPage';
 import MessagesPage from './pages/Dashboard/MessagesPage';
+import ChannelsPage from './pages/Dashboard/ChannelsPage';
 import AnnouncementsPage from './pages/Dashboard/AnnouncementsPage';
 import AuditLogsPage from './pages/Dashboard/AuditLogsPage';
 import AccountProfilePage from './pages/Dashboard/AccountProfilePage';
@@ -156,6 +157,12 @@ function App() {
                   <Route path="messages/:userId" element={
                     <ProtectedRoute allowedRoles={['student', 'parent', 'instructor', 'admin']}>
                       <MessagesPage />
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="channels" element={
+                    <ProtectedRoute allowedRoles={['student', 'parent', 'instructor']}>
+                      <ChannelsPage />
                     </ProtectedRoute>
                   } />
 

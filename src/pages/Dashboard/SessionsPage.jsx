@@ -219,6 +219,7 @@ const SessionsPage = () => {
 
   const [sessions, setSessions] = useState([]);
   const [studentProfiles, setStudentProfiles] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -296,9 +297,14 @@ const SessionsPage = () => {
   const fetchStudentProfiles = useCallback(async () => {
     if (!isAdmin) return;
     try {
-      const data = await request('/api/v1/student-profile?limit=200').catch(() => null)
-        || await request('/api/v1/StudentProfile/all').catch(() => null);
-      const list = data?.data?.profiles || data?.data?.docs || data?.data || [];
+      const data = role === 'instructor'
+        ? await request('/api/v1/student-instructor-assignments/me/students')
+        : await request('/api/v1/student-instructor-assignments');
+      const nextAssignments = data?.data?.assignments || [];
+      const list = role === 'instructor'
+        ? (data?.data?.students || [])
+        : nextAssignments.map(assignment => assignment.studentProfileId).filter(Boolean);
+      setAssignments(nextAssignments);
       if (Array.isArray(list) && list.length > 0) {
         setStudentProfiles(prev => {
           const prevMap = new Map(prev.map(item => [item._id, item]));
@@ -309,7 +315,7 @@ const SessionsPage = () => {
         });
       }
     } catch { /* ignore */ }
-  }, [isAdmin, request]);
+  }, [isAdmin, request, role]);
 
   useEffect(() => { fetchSessions(); }, [fetchSessions]);
   useEffect(() => { fetchStudentProfiles(); }, [fetchStudentProfiles]);
@@ -473,6 +479,22 @@ const SessionsPage = () => {
     setFormError(null); setEditSession(s);
   };
 
+  const assignedInstructors = Array.from(
+    new Map(
+      assignments
+        .map(assignment => assignment.instructorId)
+        .filter(Boolean)
+        .map(instructor => [instructor._id, instructor]),
+    ).values(),
+  );
+
+  const availableStudentProfiles = role !== 'admin'
+    ? studentProfiles
+    : studentProfiles.filter(profile => assignments.some(assignment => (
+      assignment.instructorId?._id === formData.instructorId
+      && assignment.studentProfileId?._id === profile._id
+    )));
+
   const renderFormFields = (isEdit) => (
     <>
       {!isEdit && (
@@ -497,6 +519,29 @@ const SessionsPage = () => {
         </div>
       )}
 
+      {!isEdit && role === 'admin' && (
+        <div className="modal-form-group">
+          <label className="modal-label">Assigned Instructor</label>
+          <select
+            className="modal-select"
+            required
+            value={formData.instructorId}
+            onChange={e => {
+              setFormData({ ...formData, instructorId: e.target.value, studentProfileId: '' });
+              setSelectedStudentIds([]);
+            }}
+          >
+            <option value="">Choose an instructor</option>
+            {assignedInstructors.map(instructor => (
+              <option key={instructor._id} value={instructor._id}>
+                {instructor.FullName || instructor.UserName}
+              </option>
+            ))}
+          </select>
+          <p className="modal-hint">Only students assigned to this instructor will appear.</p>
+        </div>
+      )}
+
       <div className="modal-form-group">
         <label className="modal-label">Title</label>
         <input className="modal-input" required placeholder="Session title" value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} />
@@ -509,10 +554,10 @@ const SessionsPage = () => {
       {!isEdit && assignMode === 'single' && (
         <div className="modal-form-group">
           <label className="modal-label">Student</label>
-          {studentProfiles.length > 0 ? (
+          {availableStudentProfiles.length > 0 ? (
             <select className="modal-select" required value={formData.studentProfileId} onChange={e => setFormData({ ...formData, studentProfileId: e.target.value })}>
               <option value="">Choose a student</option>
-              {studentProfiles.map(p => (
+              {availableStudentProfiles.map(p => (
                 <option key={p._id} value={p._id}>
                   {p.user?.FullName || p.user?.UserName || 'Student'}{p.grade ? ` - Grade ${p.grade}` : ''}
                 </option>
@@ -528,7 +573,7 @@ const SessionsPage = () => {
         <div className="modal-form-group">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
             <label className="modal-label" style={{ margin: 0 }}>
-              Select Students ({selectedStudentIds.length} of {studentProfiles.length} Selected)
+              Select Students ({selectedStudentIds.length} of {availableStudentProfiles.length} Selected)
             </label>
           </div>
 
@@ -545,19 +590,19 @@ const SessionsPage = () => {
                 type="button"
                 className="modal-add-btn"
                 onClick={() => {
-                  if (selectedStudentIds.length === studentProfiles.length) {
+                  if (selectedStudentIds.length === availableStudentProfiles.length) {
                     setSelectedStudentIds([]);
                   } else {
-                    setSelectedStudentIds(studentProfiles.map(p => p._id));
+                    setSelectedStudentIds(availableStudentProfiles.map(p => p._id));
                   }
                 }}
               >
-                <i className="fa-solid fa-check-double" /> {selectedStudentIds.length === studentProfiles.length ? 'Deselect All' : `Select All (${studentProfiles.length})`}
+                <i className="fa-solid fa-check-double" /> {selectedStudentIds.length === availableStudentProfiles.length ? 'Deselect All' : `Select All (${availableStudentProfiles.length})`}
               </button>
             </div>
 
             <div className="bulk-student-grid">
-              {studentProfiles
+              {availableStudentProfiles
                 .filter(p => {
                   if (!studentSearch.trim()) return true;
                   const name = p.user?.FullName || p.user?.UserName || '';
@@ -660,7 +705,7 @@ const SessionsPage = () => {
           )}
           {isAdmin && (
             <button
-              onClick={() => { setFormData({ ...emptyForm, instructorId: user?._id || '' }); setFormError(null); setShowCreate(true); }}
+              onClick={() => { setFormData({ ...emptyForm, instructorId: role === 'instructor' ? user?._id || '' : '' }); setFormError(null); setShowCreate(true); }}
               style={styles.createBtn}
               onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-2px, -2px)'; e.currentTarget.style.boxShadow = 'var(--shadow-md)'; }}
               onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'var(--shadow-sm)'; }}

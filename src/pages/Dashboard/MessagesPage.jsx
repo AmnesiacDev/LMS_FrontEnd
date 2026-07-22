@@ -173,11 +173,19 @@ const MessagesPage = () => {
         if (Array.isArray(d.users)) return d.users;
         if (Array.isArray(d.sessions)) return d.sessions;
         if (Array.isArray(d.tasks)) return d.tasks;
+        if (Array.isArray(d.channels)) return d.channels;
       }
       return [];
     };
 
     try {
+      try {
+        const channelResponse = await request('/api/v1/channels');
+        extractList(channelResponse).forEach(channel => {
+          (channel.members || []).forEach(member => addContact(member.userId, member.role));
+        });
+      } catch { /* direct messages still have role-specific fallbacks */ }
+
       if (role === 'admin') {
         try {
           const res = await request('/api/v1/user');

@@ -29,6 +29,7 @@ const UsersPage = () => {
   const { request } = useApiRequest();
 
   const [users, setUsers] = useState([]);
+  const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -63,6 +64,17 @@ const UsersPage = () => {
   }, [limit, page, request]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  const fetchAssignments = useCallback(async () => {
+    try {
+      const data = await request('/api/v1/student-instructor-assignments');
+      setAssignments(data.data?.assignments || []);
+    } catch {
+      setAssignments([]);
+    }
+  }, [request]);
+
+  useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
 
   const handleCreate = async (e) => {
     e.preventDefault(); setFormLoading(true); setFormError(null);
@@ -153,13 +165,13 @@ const UsersPage = () => {
       const studentId = linkModalType === 'student' ? linkTargetUser._id : selectedStudentId;
       const instructorId = linkModalType === 'instructor' ? linkTargetUser._id : selectedInstructorId;
 
-      await request('/api/v1/StudentProfile/admin/link-instructor', 'POST', {
+      await request('/api/v1/student-instructor-assignments', 'POST', {
         studentUserId: studentId,
         instructorUserId: instructorId,
       });
 
-      setLinkActionSuccess('Instructor successfully linked to student!');
-      fetchUsers();
+      setLinkActionSuccess('Instructor assigned. The learning-team channel is ready.');
+      await Promise.all([fetchUsers(), fetchAssignments()]);
       setTimeout(() => {
         setLinkTargetUser(null);
         setLinkActionSuccess(null);
@@ -171,9 +183,38 @@ const UsersPage = () => {
     }
   };
 
+  const handleUnassignInstructor = async (assignmentId) => {
+    setLinkActionLoading(true);
+    setLinkActionError(null);
+    setLinkActionSuccess(null);
+    try {
+      await request(`/api/v1/student-instructor-assignments/${assignmentId}`, 'DELETE');
+      setLinkActionSuccess('Assignment ended and the learning-team channel was archived.');
+      await fetchAssignments();
+    } catch (err) {
+      setLinkActionError(err.message);
+    } finally {
+      setLinkActionLoading(false);
+    }
+  };
+
   const studentsList = users.filter((u) => u.role === 'student');
   const parentsList = users.filter((u) => u.role === 'parent');
   const instructorsList = users.filter((u) => u.role === 'instructor');
+  const targetAssignments = assignments.filter(assignment => {
+    if (!linkTargetUser) return false;
+    if (linkTargetUser.role === 'instructor') {
+      return assignment.instructorId?._id === linkTargetUser._id;
+    }
+    if (linkTargetUser.role === 'student') {
+      return assignment.studentProfileId?.user?._id === linkTargetUser._id;
+    }
+    return false;
+  });
+  const isAssignedPair = (studentUserId, instructorUserId) => assignments.some(assignment => (
+    assignment.studentProfileId?.user?._id === studentUserId
+    && assignment.instructorId?._id === instructorUserId
+  ));
 
   return (
     <div style={{ padding: '2rem 0' }}>
@@ -376,9 +417,35 @@ const UsersPage = () => {
       </Modal>
 
       {/* ═══ ADMIN FORCE-LINK MODAL ═══ */}
-      <Modal isOpen={!!linkTargetUser} onClose={() => setLinkTargetUser(null)} title={`Force-Connect: ${linkTargetUser?.FullName} (${linkTargetUser?.role})`} size="md">
+      <Modal isOpen={!!linkTargetUser} onClose={() => setLinkTargetUser(null)} title={`Manage connections: ${linkTargetUser?.FullName} (${linkTargetUser?.role})`} size="md">
         {linkActionError && <div className="modal-error"><i className="fa-solid fa-triangle-exclamation" /> {linkActionError}</div>}
         {linkActionSuccess && <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: 700 }}><i className="fa-solid fa-circle-check" /> {linkActionSuccess}</div>}
+
+        {targetAssignments.length > 0 && (
+          <div style={{ marginBottom: '1.25rem', padding: '0.85rem', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)' }}>
+            <h4 style={{ margin: '0 0 0.65rem' }}>Active instructor assignments</h4>
+            <div style={{ display: 'grid', gap: '0.55rem' }}>
+              {targetAssignments.map(assignment => (
+                <div key={assignment._id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-primary)' }}>
+                    <strong>{assignment.studentProfileId?.user?.FullName || 'Student'}</strong>
+                    {' → '}
+                    {assignment.instructorId?.FullName || 'Instructor'}
+                  </span>
+                  <button
+                    type="button"
+                    className="modal-btn modal-btn-danger"
+                    style={{ width: 'auto', padding: '0.35rem 0.65rem', fontSize: '0.72rem' }}
+                    disabled={linkActionLoading}
+                    onClick={() => handleUnassignInstructor(assignment._id)}
+                  >
+                    Unassign
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {linkModalType === 'parent' && (
           <form onSubmit={handleAdminLinkParent}>
@@ -389,7 +456,7 @@ const UsersPage = () => {
               <label className="modal-label">Select Student</label>
               <select className="modal-select" required value={selectedStudentId} onChange={e => setSelectedStudentId(e.target.value)}>
                 <option value="">-- Choose Student --</option>
-                {studentsList.map(s => (
+                {studentsList.filter(s => !isAssignedPair(s._id, linkTargetUser?._id)).map(s => (
                   <option key={s._id} value={s._id}>{s.FullName} (@{s.UserName}) - {s.Email}</option>
                 ))}
               </select>
@@ -446,7 +513,7 @@ const UsersPage = () => {
               <div className="modal-form-group">
                 <select className="modal-select" required value={selectedInstructorId} onChange={e => setSelectedInstructorId(e.target.value)}>
                   <option value="">-- Choose Instructor --</option>
-                  {instructorsList.map(inst => (
+                  {instructorsList.filter(inst => !isAssignedPair(linkTargetUser?._id, inst._id)).map(inst => (
                     <option key={inst._id} value={inst._id}>{inst.FullName} (@{inst.UserName}) - {inst.Email}</option>
                   ))}
                 </select>
