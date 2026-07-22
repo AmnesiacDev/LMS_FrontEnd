@@ -2,15 +2,39 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
+import { useApiRequest } from '../../hooks/useApiRequest';
 import NextSessionCountdown from '../../components/NextSessionCountdown/NextSessionCountdown';
 import './DashboardOverview.css';
 
 const DashboardOverview = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const { request } = useApiRequest();
   
   // Profile
   const { data: profileData, loading: profileLoading } = useFetchData('/api/v1/StudentProfile/me');
+  // Pending parent link requests for student
+  const { data: pendingRequestsRaw, refetch: refetchPendingRequests } = useFetchData('/api/v1/StudentProfile/me/parent-requests');
+
+  const pendingRequests = Array.isArray(pendingRequestsRaw) ? pendingRequestsRaw : (pendingRequestsRaw?.data || []);
+
+  const handleAcceptParent = async (parentId) => {
+    try {
+      await request(`/api/v1/StudentProfile/me/parent-requests/${parentId}/accept`, 'POST');
+      if (refetchPendingRequests) refetchPendingRequests();
+    } catch (_err) {
+      console.error('Failed to accept parent link request:', _err);
+    }
+  };
+
+  const handleRejectParent = async (parentId) => {
+    try {
+      await request(`/api/v1/StudentProfile/me/parent-requests/${parentId}/reject`, 'POST');
+      if (refetchPendingRequests) refetchPendingRequests();
+    } catch (_err) {
+      console.error('Failed to reject parent link request:', _err);
+    }
+  };
   // Stats endpoints — useFetchData returns result.data from API
   // API returns: { status: "success", data: { stats: {...} } }
   // So useFetchData returns: { stats: {...} }
@@ -106,6 +130,85 @@ const DashboardOverview = () => {
           marginLeft: '0.4rem'
         }}>Grade: {grade}</span></p>
       </div>
+
+      {/* ══════ PENDING PARENT LINK REQUESTS BANNER ══════ */}
+      {pendingRequests.length > 0 && (
+        <div style={{
+          background: 'rgba(139,92,246,0.12)',
+          border: '2px solid #8b5cf6',
+          borderRadius: 'var(--radius-md)',
+          padding: '1.25rem',
+          marginBottom: '1.5rem',
+          boxShadow: '3px 3px 0px 0px #8b5cf6',
+        }}>
+          <h3 style={{ margin: '0 0 0.5rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontFamily: 'var(--font-heading)' }}>
+            <i className="fa-solid fa-people-roof" /> Pending Parent Link Request{pendingRequests.length > 1 ? 's' : ''} ({pendingRequests.length})
+          </h3>
+          <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+            The following parent user(s) requested to link to your account to track your learning progress:
+          </p>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {pendingRequests.map((p) => {
+              const pid = p._id || p;
+              return (
+                <div key={pid} style={{
+                  display: 'flex',
+                  justify: 'space-between',
+                  alignItems: 'center',
+                  background: 'var(--card-bg)',
+                  padding: '0.75rem 1rem',
+                  borderRadius: 'var(--radius-sm)',
+                  border: '2px solid var(--border-color)',
+                  flexWrap: 'wrap',
+                  gap: '0.75rem',
+                }}>
+                  <div>
+                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{p.FullName || 'Parent'}</strong>
+                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
+                      {p.Email ? `(${p.Email})` : `@${p.UserName}`}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <button
+                      onClick={() => handleAcceptParent(pid)}
+                      style={{
+                        padding: '0.4rem 1rem',
+                        background: '#10b981',
+                        color: 'white',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                      }}
+                    >
+                      ✓ Accept
+                    </button>
+                    <button
+                      onClick={() => handleRejectParent(pid)}
+                      style={{
+                        padding: '0.4rem 1rem',
+                        background: 'var(--bg-tertiary)',
+                        color: 'var(--text-primary)',
+                        border: '2px solid var(--border-color)',
+                        borderRadius: 'var(--radius-sm)',
+                        fontWeight: '700',
+                        cursor: 'pointer',
+                        fontSize: '0.82rem',
+                        boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                      }}
+                    >
+                      ✕ Decline
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ══════ NEXT SESSION COUNTDOWN ══════ */}
       {upcomingSessions.length > 0 && (
