@@ -11,24 +11,34 @@ function sessionToEntry(session) {
   const startAt = session.date ? new Date(session.date).toISOString() : null;
   if (!startAt) return null;
   const endAt = new Date(new Date(startAt).getTime() + 60 * 60 * 1000).toISOString();
-  const instructor = session.instructorId && typeof session.instructorId === 'object'
+  
+  const instructorObj = session.instructorId && typeof session.instructorId === 'object'
     ? session.instructorId
-    : { _id: session.instructorId, FullName: 'Instructor' };
+    : null;
+  const studentObj = session.studentProfileId && typeof session.studentProfileId === 'object'
+    ? session.studentProfileId
+    : null;
+
+  const instructorName = instructorObj?.FullName || instructorObj?.UserName || 'Instructor';
+  const studentName = studentObj?.user?.FullName || studentObj?.user?.UserName || studentObj?.FullName || 'Student';
+
   return {
     _id: session._id,
     entryType: 'session',
-    title: session.title || 'Session',
-    subject: session.title || 'Session',
+    title: session.title || 'Untitled Session',
+    subject: session.title || 'Untitled Session',
+    description: session.description || '',
     startAt,
     endAt,
-    status: session.status || 'scheduled',
-    color: null,
+    status: session.status || 'pending',
+    meetingLink: session.meetingLink || '',
     notes: session.notes || null,
-    instructorId: instructor,
-    studentProfileId: session.studentProfileId || null,
+    instructorName,
+    studentName,
+    instructorId: session.instructorId,
+    studentProfileId: session.studentProfileId,
     sessionId: session._id,
     taskId: null,
-    seriesId: null,
   };
 }
 
@@ -36,24 +46,34 @@ function taskToEntry(task) {
   const endAt = task.dueDate ? new Date(task.dueDate).toISOString() : null;
   if (!endAt) return null;
   const startAt = new Date(new Date(endAt).getTime() - 30 * 60 * 1000).toISOString();
-  const instructor = task.instructorId && typeof task.instructorId === 'object'
+
+  const instructorObj = task.instructorId && typeof task.instructorId === 'object'
     ? task.instructorId
-    : { _id: task.instructorId, FullName: 'Instructor' };
+    : null;
+  const studentObj = task.studentProfileId && typeof task.studentProfileId === 'object'
+    ? task.studentProfileId
+    : null;
+
+  const instructorName = instructorObj?.FullName || instructorObj?.UserName || 'Instructor';
+  const studentName = studentObj?.user?.FullName || studentObj?.user?.UserName || studentObj?.FullName || 'Student';
+
   return {
     _id: task._id,
     entryType: 'task_due',
     title: task.title || 'Task Due',
     subject: task.title || 'Task Due',
+    description: task.description || '',
     startAt,
     endAt,
     status: task.status || 'pending',
-    color: null,
+    meetingLink: '',
     notes: task.description || null,
-    instructorId: instructor,
-    studentProfileId: task.studentProfileId || null,
+    instructorName,
+    studentName,
+    instructorId: task.instructorId,
+    studentProfileId: task.studentProfileId,
     sessionId: null,
     taskId: task._id,
-    seriesId: null,
   };
 }
 
@@ -108,20 +128,8 @@ const useScheduleApi = () => {
       const sessionBase = (isAdmin || isInstructor) ? '/api/v1/session' : '/api/v1/session/me';
       const taskBase    = (isAdmin || isInstructor) ? '/api/v1/task'    : '/api/v1/task/me';
 
-      // Build query params with sort and fields
-      const sessionParams = new URLSearchParams({
-        page: '1',
-        limit: '500',
-        sort: 'date',
-        fields: 'title,date,status,instructorId,studentProfileId,notes,description',
-      });
-
-      const taskParams = new URLSearchParams({
-        page: '1',
-        limit: '500',
-        sort: 'dueDate',
-        fields: 'title,dueDate,status,instructorId,studentProfileId,description',
-      });
+      const sessionParams = new URLSearchParams({ page: '1', limit: '500', sort: 'date' });
+      const taskParams    = new URLSearchParams({ page: '1', limit: '500', sort: 'dueDate' });
 
       console.log('[Schedule] Fetching:', sessionBase, taskBase, '| role:', role);
 

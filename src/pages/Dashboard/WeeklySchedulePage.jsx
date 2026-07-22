@@ -23,12 +23,7 @@ function formatTimeRange(startIso, endIso) {
   return `${formatTimeSingle(startIso)} - ${formatTimeSingle(endIso)}`;
 }
 
-const getEntryRoom = (entry) => {
-  if (entry.entryType === 'session') {
-    return 'ONLINE';
-  }
-  return '—';
-};
+
 
 // ── Styles Generator ──────────────────────────────────────────────────
 const getStyles = (isMobile) => ({
@@ -373,56 +368,25 @@ const WeeklySchedulePage = () => {
     }).sort((a, b) => new Date(a.startAt) - new Date(b.startAt));
   };
 
-  // Directory generators (for the sidebar)
+  // Catalog all real entries for the week
   const uniqueSubjects = [];
   const seenSubjects = new Set();
-  const subjectToCodeMap = {};
-  let codeCounter = 301; // Starting subject number
 
-  const getSubjectCode = (subjName) => {
-    const name = subjName || 'Untitled Session';
-    if (subjectToCodeMap[name]) return subjectToCodeMap[name];
-
-    // Build subject prefix
-    const words = name.trim().toUpperCase().split(/\s+/);
-    let prefix = '';
-    if (words.length >= 2) {
-      prefix = words.map(w => w[0]).join('').replace(/[^A-Z]/g, '').slice(0, 3);
-    } else {
-      prefix = words[0].replace(/[^A-Z]/g, '').slice(0, 3);
-    }
-    if (prefix.length < 2) prefix = (prefix + 'AIT').slice(0, 3);
-
-    const code = `${prefix} ${codeCounter}`;
-    codeCounter += 4; // Increment codes
-    subjectToCodeMap[name] = code;
-    return code;
-  };
-
-  // Catalog all entries for the week
   entries.forEach(entry => {
-    const subjectName = entry.subject || entry.title || 'Untitled Session';
-    if (!seenSubjects.has(subjectName)) {
-      seenSubjects.add(subjectName);
-      const code = getSubjectCode(subjectName);
-      const instructor = typeof entry.instructorId === 'object' ? entry.instructorId : null;
-      let profName = instructor?.FullName || instructor?.UserName || 'Staff';
-      
-      // format prof prefix for high-fidelity representation
-      if (profName !== 'Staff' && !profName.startsWith('Mr.') && !profName.startsWith('Ms.') && !profName.startsWith('Dr.')) {
-        profName = `Prof. ${profName}`;
-      }
+    const title = entry.subject || entry.title || 'Untitled Session';
+    if (!seenSubjects.has(title)) {
+      seenSubjects.add(title);
+      const participant = role === 'student'
+        ? (entry.instructorName || 'Instructor')
+        : (entry.studentName || 'Student');
 
       uniqueSubjects.push({
-        code,
-        subjectName,
-        profName
+        title,
+        participant,
+        type: entry.entryType === 'session' ? 'Session' : 'Task Due',
       });
     }
   });
-
-  // Sort catalog by code
-  uniqueSubjects.sort((a, b) => a.code.localeCompare(b.code));
 
   const styles = getStyles(isMobile);
 
@@ -495,38 +459,85 @@ const WeeklySchedulePage = () => {
                 </div>
                 {/* Day Timetable Rows */}
                 <div style={styles.dayContent}>
-                  <div style={styles.gridHeader}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: isMobile ? '1fr' : '1.3fr 2fr 1.4fr 1.2fr 0.9fr',
+                    borderBottom: '2px solid var(--border-color)',
+                    background: 'var(--bg-secondary)',
+                    fontWeight: 800,
+                    fontSize: '0.8rem',
+                    letterSpacing: '0.08em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-primary)',
+                    textAlign: 'center',
+                    padding: '0.6rem 0.75rem',
+                  }}>
                     <div>Time</div>
-                    <div>Link</div>
-                    <div>Code</div>
+                    <div>Subject / Title</div>
+                    <div>Participant</div>
+                    <div>Link / Type</div>
+                    <div>Status</div>
                   </div>
                   {dayEntries.length > 0 ? (
                     dayEntries.map((entry, eIdx) => {
                       const subjectName = entry.subject || entry.title || 'Untitled Session';
-                      const code = getSubjectCode(subjectName);
                       const timeRange = formatTimeRange(entry.startAt, entry.endAt);
-                      const roomVal = getEntryRoom(entry);
-                      const meetingLink = entry.meetingLink || (typeof entry.sessionId === 'object' ? entry.sessionId?.meetingLink : null);
-                      const isOnline = roomVal === 'ONLINE';
+                      const meetingLink = entry.meetingLink;
+                      const participantName = role === 'student' ? entry.instructorName : entry.studentName;
+                      const isSession = entry.entryType === 'session';
 
                       return (
-                        <div key={eIdx} style={styles.gridRow}>
+                        <div key={eIdx} style={{
+                          display: 'grid',
+                          gridTemplateColumns: isMobile ? '1fr' : '1.3fr 2fr 1.4fr 1.2fr 0.9fr',
+                          borderBottom: '1.5px dashed var(--border-color)',
+                          fontSize: '0.88rem',
+                          fontWeight: 700,
+                          color: 'var(--text-primary)',
+                          textAlign: 'center',
+                          padding: '0.75rem 0.75rem',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                        }}>
                           <div style={styles.timeValue}>{timeRange}</div>
+                          <div style={{ textAlign: 'left', fontWeight: 800, color: 'var(--brand-primary)' }}>
+                            {subjectName}
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                            {participantName || 'N/A'}
+                          </div>
                           <div>
-                            {isOnline ? (
-                              meetingLink ? (
-                                <a href={meetingLink} target="_blank" rel="noopener noreferrer" style={styles.onlineLink} title="Join Online Meeting">
-                                  ONLINE <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '0.65rem', marginLeft: '0.15rem' }} />
-                                </a>
-                              ) : (
-                                <span style={{ textTransform: 'uppercase', opacity: 0.7 }}>ONLINE</span>
-                              )
+                            {meetingLink ? (
+                              <a
+                                href={meetingLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={styles.onlineLink}
+                                title="Join Online Meeting"
+                              >
+                                JOIN MEETING <i className="fa-solid fa-arrow-up-right-from-square" style={{ fontSize: '0.65rem', marginLeft: '0.15rem' }} />
+                              </a>
                             ) : (
-                              <span style={{ textTransform: 'uppercase', opacity: 0.5 }}>{roomVal}</span>
+                              <span style={{ fontSize: '0.78rem', textTransform: 'uppercase', opacity: 0.7 }}>
+                                {isSession ? 'Online Session' : 'Task Deadline'}
+                              </span>
                             )}
                           </div>
-                          <div style={styles.codeValue} title={subjectName}>
-                            {code}
+                          <div>
+                            <span
+                              style={{
+                                padding: '0.2rem 0.65rem',
+                                borderRadius: '100px',
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                textTransform: 'uppercase',
+                                background: entry.status === 'completed' ? 'rgba(16, 185, 129, 0.15)' : entry.status === 'canceled' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                color: entry.status === 'completed' ? 'var(--success)' : entry.status === 'canceled' ? 'var(--error)' : 'var(--warning)',
+                                border: '1px solid currentColor',
+                              }}
+                            >
+                              {entry.status}
+                            </span>
                           </div>
                         </div>
                       );
@@ -542,35 +553,50 @@ const WeeklySchedulePage = () => {
           })}
         </div>
 
-        {/* Right Column: Code directories */}
+        {/* Right Column: Real DB Summary */}
         <div style={styles.sidebarSectionContainer}>
-          {/* CODE | SUBJECT Block */}
+          {/* SCHEDULE SUMMARY Block */}
           <div style={styles.sidebarBlock}>
-            <div style={styles.sidebarHeader}>CODE | SUBJECT</div>
+            <div style={styles.sidebarHeader}>SCHEDULE SUMMARY</div>
+            <div style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Total Entries</span>
+                <span style={{ fontWeight: 900, color: 'var(--brand-primary)' }}>{entries.length}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Sessions</span>
+                <span style={{ fontWeight: 900, color: 'var(--success)' }}>
+                  {entries.filter(e => e.entryType === 'session').length}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem' }}>
+                <span style={{ color: 'var(--text-secondary)', fontWeight: 600 }}>Tasks Due</span>
+                <span style={{ fontWeight: 900, color: 'var(--warning)' }}>
+                  {entries.filter(e => e.entryType === 'task_due').length}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* ACTIVE SUBJECTS & PARTICIPANTS Block */}
+          <div style={styles.sidebarBlock}>
+            <div style={styles.sidebarHeader}>ACTIVE SUBJECTS ({uniqueSubjects.length})</div>
             {uniqueSubjects.length > 0 ? (
               uniqueSubjects.map((sub, sIdx) => (
                 <div key={sIdx} style={styles.sidebarRow}>
-                  <div style={styles.sidebarCode}>{sub.code}</div>
-                  <div style={styles.sidebarValue}>{sub.subjectName}</div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                    <span style={{ fontWeight: 800, color: 'var(--text-primary)' }}>{sub.title}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      {role === 'student' ? `Instructor: ${sub.participant}` : `Student: ${sub.participant}`}
+                    </span>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '0.15rem 0.45rem', borderRadius: '4px', background: 'var(--bg-tertiary)', color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
+                    {sub.type}
+                  </span>
                 </div>
               ))
             ) : (
-              <div style={styles.sidebarEmptyRow}>No scheduled subjects</div>
-            )}
-          </div>
-
-          {/* CODE | PROFESSORS Block */}
-          <div style={styles.sidebarBlock}>
-            <div style={styles.sidebarHeader}>CODE | PROFESSORS</div>
-            {uniqueSubjects.length > 0 ? (
-              uniqueSubjects.map((sub, pIdx) => (
-                <div key={pIdx} style={styles.sidebarRow}>
-                  <div style={styles.sidebarCode}>{sub.code}</div>
-                  <div style={styles.sidebarValue}>{sub.profName}</div>
-                </div>
-              ))
-            ) : (
-              <div style={styles.sidebarEmptyRow}>No assigned professors</div>
+              <div style={styles.sidebarEmptyRow}>No active subjects for this period</div>
             )}
           </div>
         </div>
