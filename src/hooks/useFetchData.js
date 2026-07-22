@@ -102,7 +102,7 @@ const useFetchData = (endpoint, options = {}) => {
 
   const refetch = useCallback(() => {
     retryCountRef.current = 0;
-    fetchData();
+    return fetchData();
   }, [fetchData]);
 
   return { data, loading, error, refetch };

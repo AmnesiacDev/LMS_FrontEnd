@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import useFetchData from '../../hooks/useFetchData';
@@ -12,29 +12,46 @@ const DashboardOverview = () => {
   const { request } = useApiRequest();
   
   // Profile
-  const { data: profileData, loading: profileLoading } = useFetchData('/api/v1/StudentProfile/me');
+  const { data: profileData, loading: profileLoading, refetch: refetchProfile } = useFetchData('/api/v1/StudentProfile/me');
   // Pending parent link requests for student
-  const { data: pendingRequestsRaw, refetch: refetchPendingRequests } = useFetchData('/api/v1/StudentProfile/me/parent-requests');
+  const {
+    data: pendingRequestsRaw,
+    loading: pendingRequestsLoading,
+    error: pendingRequestsError,
+    refetch: refetchPendingRequests,
+  } = useFetchData('/api/v1/StudentProfile/me/parent-requests');
 
   const pendingRequests = Array.isArray(pendingRequestsRaw) ? pendingRequestsRaw : (pendingRequestsRaw?.data || []);
+  const [parentRequestAction, setParentRequestAction] = useState(null);
+  const [parentRequestFeedback, setParentRequestFeedback] = useState(null);
 
-  const handleAcceptParent = async (parentId) => {
+  const handleParentRequest = async (parentId, action) => {
+    if (parentRequestAction) return;
+
+    setParentRequestAction({ parentId, action });
+    setParentRequestFeedback(null);
+
     try {
-      await request(`/api/v1/StudentProfile/me/parent-requests/${parentId}/accept`, 'POST');
-      if (refetchPendingRequests) refetchPendingRequests();
-    } catch (_err) {
-      console.error('Failed to accept parent link request:', _err);
+      const response = await request(`/api/v1/StudentProfile/me/parent-requests/${parentId}/${action}`, 'POST');
+      const refreshes = [refetchPendingRequests()];
+      if (action === 'accept') refreshes.push(refetchProfile());
+      await Promise.all(refreshes);
+
+      setParentRequestFeedback({
+        type: 'success',
+        message: response?.message || (action === 'accept' ? 'Parent link request accepted.' : 'Parent link request declined.'),
+      });
+    } catch (err) {
+      setParentRequestFeedback({
+        type: 'error',
+        message: err.message || `Failed to ${action} the parent link request.`,
+      });
+    } finally {
+      setParentRequestAction(null);
     }
   };
 
-  const handleRejectParent = async (parentId) => {
-    try {
-      await request(`/api/v1/StudentProfile/me/parent-requests/${parentId}/reject`, 'POST');
-      if (refetchPendingRequests) refetchPendingRequests();
-    } catch (_err) {
-      console.error('Failed to reject parent link request:', _err);
-    }
-  };
+  const showParentRequestPanel = pendingRequestsLoading || pendingRequestsError || parentRequestFeedback || pendingRequests.length > 0;
   // Stats endpoints — useFetchData returns result.data from API
   // API returns: { status: "success", data: { stats: {...} } }
   // So useFetchData returns: { stats: {...} }
@@ -132,8 +149,8 @@ const DashboardOverview = () => {
       </div>
 
       {/* ══════ PENDING PARENT LINK REQUESTS BANNER ══════ */}
-      {pendingRequests.length > 0 && (
-        <div style={{
+      {showParentRequestPanel && (
+        <div aria-busy={Boolean(parentRequestAction)} style={{
           background: 'rgba(139,92,246,0.12)',
           border: '2px solid #8b5cf6',
           borderRadius: 'var(--radius-md)',
@@ -142,19 +159,52 @@ const DashboardOverview = () => {
           boxShadow: '3px 3px 0px 0px #8b5cf6',
         }}>
           <h3 style={{ margin: '0 0 0.5rem', color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '1.1rem', fontFamily: 'var(--font-heading)' }}>
-            <i className="fa-solid fa-people-roof" /> Pending Parent Link Request{pendingRequests.length > 1 ? 's' : ''} ({pendingRequests.length})
+            <i className="fa-solid fa-people-roof" /> Parent Link Requests{pendingRequests.length > 0 ? ` (${pendingRequests.length})` : ''}
           </h3>
-          <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
-            The following parent user(s) requested to link to your account to track your learning progress:
-          </p>
+
+          {parentRequestFeedback && (
+            <div
+              role={parentRequestFeedback.type === 'error' ? 'alert' : 'status'}
+              style={{
+                marginBottom: pendingRequests.length > 0 ? '1rem' : 0,
+                padding: '0.7rem 0.8rem',
+                borderRadius: 'var(--radius-sm)',
+                border: `2px solid ${parentRequestFeedback.type === 'error' ? 'var(--error)' : '#10b981'}`,
+                background: parentRequestFeedback.type === 'error' ? 'rgba(239,68,68,0.08)' : 'rgba(16,185,129,0.1)',
+                color: parentRequestFeedback.type === 'error' ? 'var(--error)' : '#047857',
+                fontWeight: 700,
+              }}
+            >
+              <i className={`fa-solid ${parentRequestFeedback.type === 'error' ? 'fa-circle-exclamation' : 'fa-circle-check'}`} />{' '}
+              {parentRequestFeedback.message}
+            </div>
+          )}
+
+          {pendingRequestsLoading && <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Checking for parent link requests…</p>}
+          {pendingRequestsError && !pendingRequestsLoading && (
+            <div role="alert" style={{ color: 'var(--error)', fontWeight: 700 }}>
+              <i className="fa-solid fa-circle-exclamation" /> {pendingRequestsError}
+            </div>
+          )}
+
+          {pendingRequests.length > 0 && (
+            <p style={{ margin: '0 0 1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 550 }}>
+              Accept only if you recognize the parent. Acceptance gives them access to your learning progress.
+            </p>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {pendingRequests.map((p) => {
               const pid = p._id || p;
+              const isAccepting = parentRequestAction?.parentId === pid && parentRequestAction.action === 'accept';
+              const isRejecting = parentRequestAction?.parentId === pid && parentRequestAction.action === 'reject';
+              const actionsDisabled = Boolean(parentRequestAction);
+              const parentName = typeof p === 'object' ? (p.FullName || p.UserName || 'Parent') : 'Parent';
+              const parentDetails = typeof p === 'object' ? (p.Email || (p.UserName ? `@${p.UserName}` : '')) : '';
               return (
                 <div key={pid} style={{
                   display: 'flex',
-                  justify: 'space-between',
+                  justifyContent: 'space-between',
                   alignItems: 'center',
                   background: 'var(--card-bg)',
                   padding: '0.75rem 1rem',
@@ -164,14 +214,14 @@ const DashboardOverview = () => {
                   gap: '0.75rem',
                 }}>
                   <div>
-                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{p.FullName || 'Parent'}</strong>
-                    <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>
-                      {p.Email ? `(${p.Email})` : `@${p.UserName}`}
-                    </span>
+                    <strong style={{ fontSize: '0.95rem', color: 'var(--text-primary)' }}>{parentName}</strong>
+                    {parentDetails && <span style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginLeft: '0.5rem' }}>({parentDetails})</span>}
                   </div>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <button
-                      onClick={() => handleAcceptParent(pid)}
+                      type="button"
+                      onClick={() => handleParentRequest(pid, 'accept')}
+                      disabled={actionsDisabled}
                       style={{
                         padding: '0.4rem 1rem',
                         background: '#10b981',
@@ -179,15 +229,18 @@ const DashboardOverview = () => {
                         border: '2px solid var(--border-color)',
                         borderRadius: 'var(--radius-sm)',
                         fontWeight: '700',
-                        cursor: 'pointer',
+                        cursor: actionsDisabled ? 'not-allowed' : 'pointer',
                         fontSize: '0.82rem',
                         boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                        opacity: actionsDisabled && !isAccepting ? 0.55 : 1,
                       }}
                     >
-                      ✓ Accept
+                      {isAccepting ? 'Accepting…' : '✓ Accept'}
                     </button>
                     <button
-                      onClick={() => handleRejectParent(pid)}
+                      type="button"
+                      onClick={() => handleParentRequest(pid, 'reject')}
+                      disabled={actionsDisabled}
                       style={{
                         padding: '0.4rem 1rem',
                         background: 'var(--bg-tertiary)',
@@ -195,12 +248,13 @@ const DashboardOverview = () => {
                         border: '2px solid var(--border-color)',
                         borderRadius: 'var(--radius-sm)',
                         fontWeight: '700',
-                        cursor: 'pointer',
+                        cursor: actionsDisabled ? 'not-allowed' : 'pointer',
                         fontSize: '0.82rem',
                         boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+                        opacity: actionsDisabled && !isRejecting ? 0.55 : 1,
                       }}
                     >
-                      ✕ Decline
+                      {isRejecting ? 'Declining…' : '✕ Decline'}
                     </button>
                   </div>
                 </div>

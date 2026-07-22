@@ -13,7 +13,7 @@ const ParentOverview = () => {
   const { request } = useApiRequest();
 
   // Fetch children profiles
-  const { data: profiles, loading, error, refetch } = useFetchData('/api/v1/StudentProfile/me');
+  const { data: profiles, loading, error } = useFetchData('/api/v1/StudentProfile/me');
   // Stats (aggregated for all children)
   const { data: taskStats } = useFetchData('/api/v1/task/me/stats');
   const { data: subStats } = useFetchData('/api/v1/submission/me/stats');
@@ -28,6 +28,28 @@ const ParentOverview = () => {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState(null);
   const [linkSuccess, setLinkSuccess] = useState(null);
+  const [linkFailures, setLinkFailures] = useState([]);
+
+  const openLinkModal = () => {
+    setShowLinkModal(true);
+    setLinkError(null);
+    setLinkSuccess(null);
+    setLinkFailures([]);
+  };
+
+  const closeLinkModal = () => {
+    setShowLinkModal(false);
+    setLinkError(null);
+    setLinkSuccess(null);
+    setLinkFailures([]);
+  };
+
+  const changeLinkMode = (mode) => {
+    setLinkMode(mode);
+    setLinkError(null);
+    setLinkSuccess(null);
+    setLinkFailures([]);
+  };
 
   const handleLinkChild = async (e) => {
     e.preventDefault();
@@ -36,6 +58,7 @@ const ParentOverview = () => {
     setLinkLoading(true);
     setLinkError(null);
     setLinkSuccess(null);
+    setLinkFailures([]);
 
     try {
       const endpoint = linkMode === 'bulk'
@@ -47,15 +70,25 @@ const ParentOverview = () => {
         : { childIdentifier: childIdentifier.trim() };
 
       const res = await request(endpoint, 'POST', payload);
-      setLinkSuccess(res.message || 'Child(ren) successfully linked!');
-      setChildIdentifier('');
-      if (refetch) refetch();
-      setTimeout(() => {
-        setShowLinkModal(false);
-        setLinkSuccess(null);
-      }, 2000);
+
+      if (linkMode === 'bulk') {
+        const result = res?.data || {};
+        const failures = Array.isArray(result.failed) ? result.failed : [];
+        const totalLinked = Number(result.totalLinked || 0);
+
+        setLinkFailures(failures);
+        if (totalLinked > 0) {
+          setLinkSuccess(`${totalLinked} link request${totalLinked === 1 ? '' : 's'} sent. Each student must accept before they appear in your children list.`);
+        }
+        if (failures.length === 0) {
+          setChildIdentifier('');
+        }
+      } else {
+        setLinkSuccess('Link request sent. The student must accept it before the account is linked.');
+        setChildIdentifier('');
+      }
     } catch (err) {
-      setLinkError(err.message || 'Failed to link child account(s)');
+      setLinkError(err.message || 'Failed to send the link request');
     } finally {
       setLinkLoading(false);
     }
@@ -127,7 +160,7 @@ const ParentOverview = () => {
           <p className="page-subtitle">Track your children's educational progress below.</p>
         </div>
         <button
-          onClick={() => { setShowLinkModal(true); setLinkError(null); setLinkSuccess(null); }}
+          onClick={openLinkModal}
           style={{
             padding: '0.6rem 1.25rem',
             background: 'var(--brand-primary)',
@@ -144,7 +177,7 @@ const ParentOverview = () => {
             fontSize: '0.9rem',
           }}
         >
-          <i className="fa-solid fa-user-plus" /> + Link Child
+          <i className="fa-solid fa-user-plus" /> Request Child Link
         </button>
       </div>
 
@@ -223,7 +256,7 @@ const ParentOverview = () => {
               <div style={{ padding: '1rem', textAlign: 'center' }}>
                 <p style={{ color: 'var(--text-muted)', marginBottom: '1rem' }}>No children profiles linked to your account yet.</p>
                 <button
-                  onClick={() => setShowLinkModal(true)}
+                  onClick={openLinkModal}
                   style={{
                     padding: '0.5rem 1rem',
                     background: 'var(--brand-primary)',
@@ -234,7 +267,7 @@ const ParentOverview = () => {
                     cursor: 'pointer',
                   }}
                 >
-                  Link Child by Email/Username
+                  Send Link Request
                 </button>
               </div>
             ) : (
@@ -309,13 +342,13 @@ const ParentOverview = () => {
       </div>
 
       {/* Link Child Modal */}
-      <Modal isOpen={showLinkModal} title="Link Your Child's Account" onClose={() => setShowLinkModal(false)}>
+      <Modal isOpen={showLinkModal} title="Request Access to a Child Account" onClose={closeLinkModal}>
         <form onSubmit={handleLinkChild}>
           {/* Mode Switcher Tabs */}
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.25rem', borderBottom: '2px solid var(--border-color)', paddingBottom: '0.5rem' }}>
             <button
               type="button"
-              onClick={() => { setLinkMode('single'); setLinkError(null); setLinkSuccess(null); }}
+              onClick={() => changeLinkMode('single')}
               style={{
                 flex: 1,
                 padding: '0.5rem 0.75rem',
@@ -333,7 +366,7 @@ const ParentOverview = () => {
             </button>
             <button
               type="button"
-              onClick={() => { setLinkMode('bulk'); setLinkError(null); setLinkSuccess(null); }}
+              onClick={() => changeLinkMode('bulk')}
               style={{
                 flex: 1,
                 padding: '0.5rem 0.75rem',
@@ -347,35 +380,54 @@ const ParentOverview = () => {
                 transition: 'all 0.2s ease',
               }}
             >
-              <i className="fa-solid fa-users" style={{ marginRight: '0.4rem' }} /> Bulk Add (Multiple)
+              <i className="fa-solid fa-users" style={{ marginRight: '0.4rem' }} /> Multiple Students
             </button>
           </div>
 
           <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)', marginBottom: '1rem', lineHeight: '1.4' }}>
             {linkMode === 'single'
-              ? "Enter your child's student Email Address or Username to link their profile."
-              : "Enter multiple student Email Addresses or Usernames separated by commas, spaces, or line breaks to link them all at once."}
+              ? "Enter the student's email address or username. This sends a request; it does not link the account immediately."
+              : "Enter multiple student emails or usernames separated by commas, spaces, or line breaks. Every student must approve their own request."}
           </p>
 
+          <div style={{ background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.84rem', color: 'var(--text-secondary)', fontWeight: 600 }}>
+            <i className="fa-solid fa-shield-halved" style={{ marginRight: '0.45rem', color: 'var(--brand-primary)' }} />
+            The student will appear in your dashboard only after accepting your request.
+          </div>
+
           {linkError && (
-            <div className="modal-error" style={{ marginBottom: '1rem' }}>
+            <div role="alert" className="modal-error" style={{ marginBottom: '1rem' }}>
               <i className="fa-solid fa-circle-exclamation" /> {linkError}
             </div>
           )}
           {linkSuccess && (
-            <div style={{ background: 'rgba(16,185,129,0.1)', color: '#10b981', border: '1px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: '700' }}>
+            <div role="status" style={{ background: 'rgba(16,185,129,0.1)', color: '#047857', border: '2px solid #10b981', padding: '0.75rem', borderRadius: 'var(--radius-sm)', marginBottom: '1rem', fontWeight: '700' }}>
               <i className="fa-solid fa-circle-check" /> {linkSuccess}
             </div>
           )}
 
+          {linkFailures.length > 0 && (
+            <div role="alert" style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid var(--error)', borderRadius: 'var(--radius-sm)', padding: '0.75rem', marginBottom: '1rem' }}>
+              <strong style={{ display: 'block', color: 'var(--error)', marginBottom: '0.4rem' }}>{linkSuccess ? 'Requests not sent' : 'No requests were sent'}</strong>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem', color: 'var(--text-secondary)', fontSize: '0.84rem' }}>
+                {linkFailures.map((failure) => (
+                  <li key={`${failure.identifier}-${failure.reason}`}>
+                    <strong>{failure.identifier}</strong>: {failure.reason}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           <div className="modal-form-group" style={{ marginBottom: '1.5rem', width: '100%' }}>
-            <label className="modal-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700 }}>
+            <label htmlFor="child-link-identifiers" className="modal-label" style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 700 }}>
               {linkMode === 'single' ? 'Child Email or Username' : 'Child Emails / Usernames (Bulk)'}
             </label>
 
             {linkMode === 'single' ? (
               <input
                 className="modal-input"
+                id="child-link-identifiers"
                 type="text"
                 placeholder="e.g. child@email.com or ahmed_student"
                 value={childIdentifier}
@@ -387,6 +439,7 @@ const ParentOverview = () => {
             ) : (
               <textarea
                 className="modal-input"
+                id="child-link-identifiers"
                 rows={5}
                 placeholder="Enter email addresses or usernames (separated by commas or new lines)&#10;e.g.&#10;child1@email.com&#10;child2@email.com&#10;student_ahmed"
                 value={childIdentifier}
@@ -399,11 +452,11 @@ const ParentOverview = () => {
           </div>
 
           <div className="modal-actions" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <button type="button" className="modal-btn modal-btn-ghost" onClick={() => setShowLinkModal(false)} disabled={linkLoading}>
-              Cancel
+            <button type="button" className="modal-btn modal-btn-ghost" onClick={closeLinkModal} disabled={linkLoading}>
+              Close
             </button>
             <button type="submit" className="modal-btn modal-btn-primary" disabled={linkLoading || !childIdentifier.trim()}>
-              {linkLoading ? 'Linking...' : linkMode === 'bulk' ? 'Link Multiple Children' : 'Link Child Account'}
+              {linkLoading ? 'Sending...' : linkMode === 'bulk' ? 'Send Link Requests' : 'Send Link Request'}
             </button>
           </div>
         </form>
