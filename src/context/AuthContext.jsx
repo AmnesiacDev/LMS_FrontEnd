@@ -1,7 +1,14 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
-import { logger } from '../utils/logger';
-import { buildApiUrl } from '../utils/apiUrl';
-import { sanitizeErrorMessage } from '../utils/errorSanitizer';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+} from "react";
+import { logger } from "../utils/logger";
+import { buildApiUrl } from "../utils/apiUrl";
+import { sanitizeErrorMessage } from "../utils/errorSanitizer";
 
 const AuthContext = createContext();
 
@@ -12,13 +19,13 @@ export const useAuth = () => useContext(AuthContext);
 // Decode JWT payload without external library
 const decodeJwtPayload = (token) => {
   try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const base64Url = token.split(".")[1];
+    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
     const jsonPayload = decodeURIComponent(
       atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""),
     );
     return JSON.parse(jsonPayload);
   } catch {
@@ -36,14 +43,14 @@ const isTokenExpired = (token, bufferMs = 60000) => {
 export const AuthProvider = ({ children }) => {
   const storedUser = (() => {
     try {
-      const stored = localStorage.getItem('lms-user');
+      const stored = localStorage.getItem("lms-user");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
     }
   })();
 
-  const storedToken = localStorage.getItem('access-token');
+  const storedToken = localStorage.getItem("access-token");
 
   const [user, setUser] = useState(storedUser);
   const [token, setToken] = useState(storedToken);
@@ -59,8 +66,8 @@ export const AuthProvider = ({ children }) => {
   const clearAuth = useCallback(() => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('access-token');
-    localStorage.removeItem('lms-user');
+    localStorage.removeItem("access-token");
+    localStorage.removeItem("lms-user");
     if (refreshIntervalRef.current) {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
@@ -75,9 +82,9 @@ export const AuthProvider = ({ children }) => {
 
     refreshPromise.current = (async () => {
       try {
-        const response = await fetch(buildApiUrl('/api/v1/auth/refresh'), {
-          method: 'POST',
-          credentials: 'include',
+        const response = await fetch(buildApiUrl("/api/v1/auth/refresh"), {
+          method: "POST",
+          credentials: "include",
         });
 
         if (!response.ok) {
@@ -87,17 +94,17 @@ export const AuthProvider = ({ children }) => {
 
         const data = await response.json();
 
-        if (data.status === 'success' && data.data?.token) {
+        if (data.status === "success" && data.data?.token) {
           const newToken = data.data.token;
           setToken(newToken);
-          localStorage.setItem('access-token', newToken);
+          localStorage.setItem("access-token", newToken);
           return true;
         }
 
         clearAuth();
         return false;
       } catch (err) {
-        logger.error('Token refresh failed:', err);
+        logger.error("Token refresh failed:", err);
         clearAuth();
         return false;
       } finally {
@@ -109,44 +116,52 @@ export const AuthProvider = ({ children }) => {
   }, [clearAuth]);
 
   // Setup automatic refresh timer when we have a valid token
-  const setupRefreshTimer = useCallback((currentToken) => {
-    if (refreshIntervalRef.current) {
-      clearInterval(refreshIntervalRef.current);
-      refreshIntervalRef.current = null;
-    }
-
-    if (!currentToken) return;
-
-    const payload = decodeJwtPayload(currentToken);
-    if (!payload?.exp || !payload?.iat) return;
-
-    // Refresh at 80% of the token's lifetime
-    const tokenLifetimeMs = (payload.exp - payload.iat) * 1000;
-    const refreshAfterMs = tokenLifetimeMs * 0.8;
-    const timeSinceIssued = Date.now() - payload.iat * 1000;
-    const timeUntilRefresh = Math.max(refreshAfterMs - timeSinceIssued, 10000); // at least 10s
-
-    logger.debug(`[Auth] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)}s`);
-
-    refreshIntervalRef.current = setTimeout(async () => {
-      logger.debug('[Auth] Proactive token refresh triggered');
-      const success = await refreshAccessToken();
-      if (!success) {
-        logger.warn('[Auth] Proactive refresh failed, user session expired');
+  const setupRefreshTimer = useCallback(
+    (currentToken) => {
+      if (refreshIntervalRef.current) {
+        clearInterval(refreshIntervalRef.current);
+        refreshIntervalRef.current = null;
       }
-    }, timeUntilRefresh);
-  }, [refreshAccessToken]);
+
+      if (!currentToken) return;
+
+      const payload = decodeJwtPayload(currentToken);
+      if (!payload?.exp || !payload?.iat) return;
+
+      // Refresh at 80% of the token's lifetime
+      const tokenLifetimeMs = (payload.exp - payload.iat) * 1000;
+      const refreshAfterMs = tokenLifetimeMs * 0.8;
+      const timeSinceIssued = Date.now() - payload.iat * 1000;
+      const timeUntilRefresh = Math.max(
+        refreshAfterMs - timeSinceIssued,
+        10000,
+      ); // at least 10s
+
+      logger.debug(
+        `[Auth] Token refresh scheduled in ${Math.round(timeUntilRefresh / 1000)}s`,
+      );
+
+      refreshIntervalRef.current = setTimeout(async () => {
+        logger.debug("[Auth] Proactive token refresh triggered");
+        const success = await refreshAccessToken();
+        if (!success) {
+          logger.warn("[Auth] Proactive refresh failed, user session expired");
+        }
+      }, timeUntilRefresh);
+    },
+    [refreshAccessToken],
+  );
 
   // Ensure we have a valid token, refreshing if needed
   const ensureValidToken = useCallback(async () => {
-    const currentToken = localStorage.getItem('access-token');
+    const currentToken = localStorage.getItem("access-token");
 
     if (!currentToken) {
       return false;
     }
 
     if (isTokenExpired(currentToken, 60000)) {
-      logger.debug('[Auth] Token expired or expiring soon, refreshing...');
+      logger.debug("[Auth] Token expired or expiring soon, refreshing...");
       return await refreshAccessToken();
     }
 
@@ -160,7 +175,7 @@ export const AuthProvider = ({ children }) => {
     let cancelled = false;
 
     const checkAuth = async () => {
-      const currentToken = localStorage.getItem('access-token');
+      const currentToken = localStorage.getItem("access-token");
 
       if (!currentToken) {
         // No token at all — clear any stale user data and finish
@@ -170,7 +185,9 @@ export const AuthProvider = ({ children }) => {
       }
 
       if (isTokenExpired(currentToken, 60000)) {
-        logger.debug('[Auth] Stored token expired on mount, attempting silent refresh...');
+        logger.debug(
+          "[Auth] Stored token expired on mount, attempting silent refresh...",
+        );
         const refreshed = await refreshAccessToken();
         if (!cancelled) {
           if (!refreshed) {
@@ -190,24 +207,24 @@ export const AuthProvider = ({ children }) => {
     return () => {
       cancelled = true;
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally runs once on mount only
 
   // Sync token to localStorage and setup refresh timer
   useEffect(() => {
     if (token) {
-      localStorage.setItem('access-token', token);
+      localStorage.setItem("access-token", token);
       setupRefreshTimer(token);
     } else {
-      localStorage.removeItem('access-token');
+      localStorage.removeItem("access-token");
     }
   }, [token, setupRefreshTimer]);
 
   useEffect(() => {
     if (user) {
-      localStorage.setItem('lms-user', JSON.stringify(user));
+      localStorage.setItem("lms-user", JSON.stringify(user));
     } else {
-      localStorage.removeItem('lms-user');
+      localStorage.removeItem("lms-user");
     }
   }, [user]);
 
@@ -224,16 +241,16 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/login'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch(buildApiUrl("/api/v1/auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, password }),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(sanitizeErrorMessage(data.message || 'Login failed'));
+        throw new Error(sanitizeErrorMessage(data.message || "Login failed"));
       }
 
       const data = await response.json();
@@ -243,13 +260,13 @@ export const AuthProvider = ({ children }) => {
       const accessToken = data.data?.token || data.token;
 
       if (!accessToken) {
-        throw new Error('No token received from server');
+        throw new Error("No token received from server");
       }
 
       setToken(accessToken);
-      localStorage.setItem('access-token', accessToken);
+      localStorage.setItem("access-token", accessToken);
       setUser(loggedInUser);
-      localStorage.setItem('lms-user', JSON.stringify(loggedInUser));
+      localStorage.setItem("lms-user", JSON.stringify(loggedInUser));
       return true;
     } catch (err) {
       setError(sanitizeErrorMessage(err.message));
@@ -263,31 +280,38 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(buildApiUrl('/api/v1/auth/signup'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
+      const response = await fetch(buildApiUrl("/api/v1/auth/signup"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         const data = await response.json().catch(() => ({}));
-        throw new Error(sanitizeErrorMessage(data.message || 'Signup failed'));
+        throw new Error(sanitizeErrorMessage(data.message || "Signup failed"));
       }
 
       const data = await response.json();
       const accessToken = data.data?.token || data.token;
       const newUser = data.data?.user;
 
+      if (data.data?.requiresApproval) {
+        // Public parent/student accounts are intentionally not authenticated
+        // until an admin approves them.
+        clearAuth();
+        return { pendingApproval: true, user: newUser };
+      }
+
       if (!accessToken) {
-        throw new Error('No token received from server');
+        throw new Error("No token received from server");
       }
 
       setToken(accessToken);
-      localStorage.setItem('access-token', accessToken);
+      localStorage.setItem("access-token", accessToken);
       setUser(newUser);
-      if (newUser) localStorage.setItem('lms-user', JSON.stringify(newUser));
-      return true;
+      if (newUser) localStorage.setItem("lms-user", JSON.stringify(newUser));
+      return { pendingApproval: false, user: newUser };
     } catch (err) {
       setError(sanitizeErrorMessage(err.message));
       return false;
@@ -298,11 +322,13 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     try {
-      const currentToken = localStorage.getItem('access-token');
-      await fetch(buildApiUrl('/api/v1/auth/logout'), {
-        method: 'GET',
-        credentials: 'include',
-        headers: currentToken ? { Authorization: `Bearer ${currentToken}` } : {},
+      const currentToken = localStorage.getItem("access-token");
+      await fetch(buildApiUrl("/api/v1/auth/logout"), {
+        method: "GET",
+        credentials: "include",
+        headers: currentToken
+          ? { Authorization: `Bearer ${currentToken}` }
+          : {},
       });
     } catch {
       // ignore — we always clear local state regardless
@@ -311,20 +337,22 @@ export const AuthProvider = ({ children }) => {
   }, [clearAuth]);
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      token,
-      loading,
-      error,
-      initializing,
-      login,
-      signup,
-      logout,
-      setError,
-      refreshToken: refreshAccessToken,
-      ensureValidToken,
-      isAuthenticated: !!token && !!user,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        token,
+        loading,
+        error,
+        initializing,
+        login,
+        signup,
+        logout,
+        setError,
+        refreshToken: refreshAccessToken,
+        ensureValidToken,
+        isAuthenticated: !!token && !!user,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

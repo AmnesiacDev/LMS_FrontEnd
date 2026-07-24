@@ -27,25 +27,25 @@
   color: var(--ax-body);
 
   /* ── Daylight palette (default) ── */
-  --ax-accent: #2563EB;
-  --ax-accent-hover: #1D4ED8;
-  --ax-accent-ink: #FFFFFF;
-  --ax-head: #0F172A;
+  --ax-accent: #2563eb;
+  --ax-accent-hover: #1d4ed8;
+  --ax-accent-ink: #ffffff;
+  --ax-head: #0f172a;
   --ax-body: #334155;
   --ax-muted: #475569;
   --ax-panel: rgba(255, 255, 255, 0.92);
-  --ax-field: #FFFFFF;
-  --ax-field-soft: #F0F9FF;
+  --ax-field: #ffffff;
+  --ax-field-soft: #f0f9ff;
   --ax-chip: rgba(240, 249, 255, 0.88);
   --ax-line: #334155;
   --ax-line-soft: rgba(51, 65, 85, 0.45);
-  --ax-shadow: #1E293B;
-  --ax-danger: #B91C1C;
+  --ax-shadow: #1e293b;
+  --ax-danger: #b91c1c;
   --ax-danger-bg: rgba(254, 226, 226, 0.92);
   --ax-ok: #047857;
   --ax-ok-bg: rgba(209, 250, 229, 0.92);
   --ax-halo: 0 0 6px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 255, 255, 0.95);
-  --ax-scrim: rgba(240, 249, 255, 0.90);
+  --ax-scrim: rgba(240, 249, 255, 0.9);
 
   /* ── Brutalist shape tokens ── */
   --ax-bd: 3px solid var(--ax-line);
@@ -60,7 +60,7 @@
 /* ── Deep-space palette ──
    A black offset shadow would vanish against the void, so the dark skin
    throws an ice-blue one instead — same shape language, still readable. */
-[data-theme='dark'] .auth-stage {
+[data-theme="dark"] .auth-stage {
   --ax-accent: #6ea8ff;
   --ax-accent-hover: #8dbcff;
   --ax-accent-ink: #05070f;
@@ -69,7 +69,7 @@
   --ax-muted: rgba(158, 178, 212, 0.82);
   --ax-panel: rgba(12, 20, 40, 0.86);
   --ax-field: rgba(5, 11, 26, 0.72);
-  --ax-field-soft: rgba(140, 170, 235, 0.10);
+  --ax-field-soft: rgba(140, 170, 235, 0.1);
   --ax-chip: rgba(140, 170, 235, 0.12);
   --ax-line: #6c8ac4;
   --ax-line-soft: rgba(108, 138, 196, 0.55);
@@ -77,8 +77,10 @@
   --ax-danger: #ffb4b4;
   --ax-danger-bg: rgba(94, 20, 32, 0.55);
   --ax-ok: #86efac;
-  --ax-ok-bg: rgba(6, 78, 59, 0.50);
-  --ax-halo: 0 0 7px rgba(3, 6, 16, 0.96), 0 0 18px rgba(3, 6, 16, 0.88), 0 0 34px rgba(3, 6, 16, 0.7);
+  --ax-ok-bg: rgba(6, 78, 59, 0.5);
+  --ax-halo:
+    0 0 7px rgba(3, 6, 16, 0.96), 0 0 18px rgba(3, 6, 16, 0.88),
+    0 0 34px rgba(3, 6, 16, 0.7);
   --ax-scrim: rgba(8, 14, 30, 0.62);
 }
 
@@ -144,7 +146,10 @@
   cursor: pointer;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.2s ease;
 }
 
 .auth-theme-btn {
@@ -288,8 +293,14 @@
 }
 
 @keyframes authCardIn {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .auth-card-badge {
@@ -347,8 +358,12 @@
   transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.auth-tabs-indicator[data-side='left']  { left: 4px; }
-.auth-tabs-indicator[data-side='right'] { left: 50%; }
+.auth-tabs-indicator[data-side="left"] {
+  left: 4px;
+}
+.auth-tabs-indicator[data-side="right"] {
+  left: 50%;
+}
 
 .auth-tab {
   position: relative;
@@ -416,7 +431,10 @@
   background: var(--ax-field);
   border: var(--ax-bd-thin);
   border-radius: var(--ax-r-sm);
-  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .auth-control:focus-within {
@@ -529,7 +547,9 @@
   transition: background 0.25s ease;
 }
 
-.auth-strength-bars span.is-filled { background: var(--ax-strength, #f59e0b); }
+.auth-strength-bars span.is-filled {
+  background: var(--ax-strength, #f59e0b);
+}
 
 .auth-strength-label {
   font-size: 0.72rem;
@@ -539,11 +559,21 @@
   color: var(--ax-strength, var(--ax-muted));
 }
 
-.auth-strength[data-score='0'] { --ax-strength: #ef4444; }
-.auth-strength[data-score='1'] { --ax-strength: #f97316; }
-.auth-strength[data-score='2'] { --ax-strength: #eab308; }
-.auth-strength[data-score='3'] { --ax-strength: #22c55e; }
-.auth-strength[data-score='4'] { --ax-strength: #10b981; }
+.auth-strength[data-score="0"] {
+  --ax-strength: #ef4444;
+}
+.auth-strength[data-score="1"] {
+  --ax-strength: #f97316;
+}
+.auth-strength[data-score="2"] {
+  --ax-strength: #eab308;
+}
+.auth-strength[data-score="3"] {
+  --ax-strength: #22c55e;
+}
+.auth-strength[data-score="4"] {
+  --ax-strength: #10b981;
+}
 
 /* ── Role picker — radios drawn as brutalist tiles ── */
 .auth-roles {
@@ -576,7 +606,11 @@
   color: var(--ax-body);
   text-align: center;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease, color 0.2s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 /* Visually hidden, but still the focusable control — keyboard users get the
@@ -649,7 +683,10 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.2s ease;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.2s ease;
 }
 
 .auth-submit-btn:hover:not(:disabled) {
@@ -673,7 +710,9 @@
 }
 
 @keyframes authSpin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ── Messages ── */
@@ -705,9 +744,18 @@
 }
 
 @keyframes authShake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-5px); }
-  40%, 80% { transform: translateX(5px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-5px);
+  }
+  40%,
+  80% {
+    transform: translateX(5px);
+  }
 }
 
 /* ── Footer switch ── */
@@ -722,6 +770,39 @@
   border-top: 2px dashed var(--ax-line-soft);
   font-size: 0.88rem;
   color: var(--ax-muted);
+}
+
+.auth-pending-card {
+  text-align: center;
+}
+
+.auth-pending-icon {
+  width: 4.25rem;
+  height: 4.25rem;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 1rem;
+  border: 1px solid var(--cxc-accent, #fbbf24);
+  border-radius: 50%;
+  color: var(--cxc-accent, #fbbf24);
+  font-size: 1.6rem;
+  background: color-mix(in srgb, var(--cxc-accent, #fbbf24) 12%, transparent);
+}
+
+.auth-pending-note {
+  margin: 1.25rem 0;
+  padding: 0.9rem;
+  border-radius: 0.75rem;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+}
+
+.auth-pending-link {
+  display: flex;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .switch-btn {
