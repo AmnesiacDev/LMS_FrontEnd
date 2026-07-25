@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSocket } from '../../context/SocketContext';
 import { normalizeAppLink } from '../../utils/appLinks';
+import { notificationIcon } from '../../utils/notificationIcons';
 
 const NotificationBell = () => {
   const {
@@ -35,25 +36,6 @@ const NotificationBell = () => {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const typeIcon = (type) => {
-    const icons = {
-      schedule_reminder: '⏰',
-      new_session: '📅',
-      schedule_updated: '🔄',
-      new_task: '📝',
-      xp_earned: '⚡',
-      level_up: '👑',
-      badge_unlocked: '🏆',
-      new_submission: '📥',
-      new_message: '💬',
-      task_graded: '✅',
-      session_review: '⭐',
-      exam_result: '📊',
-      system_alert: '🔔',
-    };
-    return icons[type] || '🔔';
-  };
-
   const timeAgo = (date) => {
     const diff = now - new Date(date).getTime();
     const mins = Math.floor(diff / 60000);
@@ -79,7 +61,7 @@ const NotificationBell = () => {
         onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; }}
         title="Notifications"
       >
-        🔔
+        <i className="fa-solid fa-bell" style={{ color: 'var(--text-primary)' }} />
         {unreadCount > 0 && (
           <span style={{
             position: 'absolute', top: '-5px', right: '-5px', minWidth: '18px', height: '18px',
@@ -126,7 +108,7 @@ const NotificationBell = () => {
               <p style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem' }}>Loading...</p>
             ) : notifications.length === 0 ? (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}>🔕</p>
+                <p style={{ fontSize: '1.5rem', margin: '0 0 0.5rem' }}><i className="fa-solid fa-bell-slash" /></p>
                 <p style={{ fontSize: '0.85rem' }}>No notifications yet</p>
               </div>
             ) : (
@@ -143,7 +125,15 @@ const NotificationBell = () => {
                   onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-tertiary)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = notif.isRead ? 'transparent' : 'rgba(59,130,246,0.05)'; }}
                 >
-                  <span style={{ fontSize: '1.2rem', flexShrink: 0, marginTop: '0.1rem' }}>{typeIcon(notif.type)}</span>
+                  <span style={{
+                    flexShrink: 0, marginTop: '0.1rem', width: '28px', height: '28px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    borderRadius: 'var(--radius-sm)', background: 'var(--bg-tertiary)',
+                    border: '1.5px solid var(--border-color)', fontSize: '0.85rem',
+                    color: notificationIcon(notif.type).color,
+                  }}>
+                    <i className={notificationIcon(notif.type).icon} />
+                  </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: notif.isRead ? 500 : 700, color: 'var(--text-primary)' }}>
                       {notif.title}

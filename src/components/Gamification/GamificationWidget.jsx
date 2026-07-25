@@ -123,7 +123,7 @@ const GamificationWidget = () => {
         color: 'var(--text-primary)',
         textTransform: 'uppercase',
       }}>
-        <span style={{ fontSize: '1rem' }}>🏆</span>
+        <i className="fa-solid fa-trophy" style={{ fontSize: '0.9rem', color: 'var(--warning, #eab308)' }} />
         <span>LVL {profile.level}</span>
       </div>
 
@@ -168,7 +168,7 @@ const GamificationWidget = () => {
         }}
         title={`Current streak: ${profile.currentStreak} days (Record: ${profile.longestStreak} days)`}
       >
-        <span>🔥</span>
+        <i className="fa-solid fa-fire" style={{ fontSize: '0.9rem', color: 'var(--accent-orange, #f97316)' }} />
         <span>{profile.currentStreak}d</span>
       </div>
 
@@ -184,7 +184,7 @@ const GamificationWidget = () => {
         }}
         title={`${profile.badgeCount} Badges earned`}
       >
-        <span>🎖️</span>
+        <i className="fa-solid fa-medal" style={{ fontSize: '0.9rem', color: 'var(--accent-rose, #ec4899)' }} />
         <span>{profile.badgeCount}</span>
       </div>
     </div>

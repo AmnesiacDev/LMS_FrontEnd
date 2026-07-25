@@ -4,6 +4,7 @@ import { useSocket } from '../../context/SocketContext';
 import Pagination from '../../components/Pagination/Pagination';
 import { SkeletonCardGrid } from '../../components/Skeleton/Skeleton';
 import { normalizeAppLink } from '../../utils/appLinks';
+import { notificationIcon } from '../../utils/notificationIcons';
 
 const NotificationsPage = () => {
   const {
@@ -80,25 +81,6 @@ const NotificationsPage = () => {
     if (notif.link) {
       navigate(normalizeAppLink(notif.link));
     }
-  };
-
-  const typeIcon = (type) => {
-    const icons = {
-      schedule_reminder: '⏰',
-      new_session: '📅',
-      schedule_updated: '🔄',
-      new_task: '📝',
-      xp_earned: '⚡',
-      level_up: '👑',
-      badge_unlocked: '🏆',
-      new_submission: '📥',
-      new_message: '💬',
-      task_graded: '✅',
-      session_review: '⭐',
-      exam_result: '📊',
-      system_alert: '🔔',
-    };
-    return icons[type] || '🔔';
   };
 
   const typeDetails = (type) => {
@@ -200,7 +182,7 @@ const NotificationsPage = () => {
               >
                 {/* Type Icon */}
                 <div style={{
-                  fontSize: '2rem',
+                  fontSize: '1.35rem',
                   width: '50px',
                   height: '50px',
                   borderRadius: 'var(--radius-sm)',
@@ -210,9 +192,10 @@ const NotificationsPage = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexShrink: 0,
+                  color: notificationIcon(notif.type).color,
                   boxShadow: '2px 2px 0px 0px var(--shadow-color)'
                 }}>
-                  {typeIcon(notif.type)}
+                  <i className={notificationIcon(notif.type).icon} />
                 </div>
 
                 {/* Content */}

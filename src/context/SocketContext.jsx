@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useApiRequest } from '../hooks/useApiRequest';
 import { getSocketUrl } from '../utils/apiUrl';
 import { normalizeAppLink } from '../utils/appLinks';
+import { notificationIcon } from '../utils/notificationIcons';
 
 const SocketContext = createContext();
 
@@ -12,18 +13,21 @@ const SocketContext = createContext();
 export const useSocket = () => useContext(SocketContext);
 
 const getNotificationDetails = (type) => {
-  const details = {
-    schedule_reminder: { icon: '⏰', bgColor: 'var(--accent-orange, #f97316)' },
-    new_session: { icon: '📅', bgColor: 'var(--brand-primary, #2563eb)' },
-    schedule_updated: { icon: '🔄', bgColor: 'var(--accent-blue, #3b82f6)' },
-    new_task: { icon: '📝', bgColor: 'var(--accent-purple, #a855f7)' },
-    xp_earned: { icon: '⚡', bgColor: 'var(--accent-yellow, #eab308)' },
-    level_up: { icon: '👑', bgColor: 'var(--success, #22c55e)' },
-    badge_unlocked: { icon: '🏆', bgColor: 'var(--accent-rose, #ec4899)' },
-    new_submission: { icon: '📥', bgColor: 'var(--accent-teal, #14b8a6)' },
-    new_message: { icon: '💬', bgColor: 'var(--accent-indigo, #6366f1)' },
+  const bgColors = {
+    schedule_reminder: 'var(--accent-orange, #f97316)',
+    new_session: 'var(--brand-primary, #2563eb)',
+    schedule_updated: 'var(--accent-blue, #3b82f6)',
+    new_task: 'var(--accent-purple, #a855f7)',
+    xp_earned: 'var(--accent-yellow, #eab308)',
+    level_up: 'var(--success, #22c55e)',
+    badge_unlocked: 'var(--accent-rose, #ec4899)',
+    new_submission: 'var(--accent-teal, #14b8a6)',
+    new_message: 'var(--accent-indigo, #6366f1)',
   };
-  return details[type] || { icon: '🔔', bgColor: 'var(--brand-primary, #2563eb)' };
+  return {
+    icon: notificationIcon(type).icon,
+    bgColor: bgColors[type] || 'var(--brand-primary, #2563eb)',
+  };
 };
 
 export const SocketProvider = ({ children }) => {
@@ -172,7 +176,7 @@ export const SocketProvider = ({ children }) => {
         type: 'xp',
         title: `+${data.amount} XP Earned!`,
         message: `Reason: ${data.reason ? data.reason.replace(/_/g, ' ') : 'Task completion'}`,
-        icon: '⚡',
+        icon: 'fa-solid fa-bolt',
         bgColor: 'var(--accent-yellow)',
         data
       });
@@ -181,9 +185,9 @@ export const SocketProvider = ({ children }) => {
     newSocket.on('level:up', (data) => {
       addToast({
         type: 'level',
-        title: `Level Up! 🎉`,
+        title: `Level Up!`,
         message: `Congratulations! You reached Level ${data.newLevel}!`,
-        icon: '👑',
+        icon: 'fa-solid fa-crown',
         bgColor: 'var(--success)',
         data
       });
@@ -193,8 +197,8 @@ export const SocketProvider = ({ children }) => {
       addToast({
         type: 'badge',
         title: `Badge Unlocked: ${data.name}!`,
-        message: `${data.icon} Rare ${data.rarity} badge unlocked (+${data.xpReward} XP)`,
-        icon: data.icon || '🎯',
+        message: `Rare ${data.rarity} badge unlocked (+${data.xpReward} XP)`,
+        icon: 'fa-solid fa-award',
         bgColor: 'var(--accent-rose)',
         data
       });
@@ -272,7 +276,11 @@ export const SocketProvider = ({ children }) => {
               }
             }}
           >
-            <span style={{ fontSize: '2rem', flexShrink: 0 }}>{toast.icon}</span>
+            <span style={{ fontSize: '1.5rem', flexShrink: 0, color: toast.bgColor }}>
+              {typeof toast.icon === 'string' && toast.icon.startsWith('fa-')
+                ? <i className={toast.icon} />
+                : toast.icon}
+            </span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, textTransform: 'uppercase', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{toast.title}</h4>
               <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>{toast.message}</p>
