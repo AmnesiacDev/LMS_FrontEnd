@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Link } from 'react-router-dom';
-import CosmicScene from '../CosmicScene/CosmicScene';
 import Logo from '../Logo/Logo';
 import { useTheme } from '../../context/ThemeContext';
+import useDeviceCapability from '../../hooks/useDeviceCapability';
 import './Auth.css';
+
+// three.js plus five equirectangular maps — kept out of the initial bundle and
+// skipped entirely on devices that cannot spare the memory.
+const CosmicScene = lazy(() => import('../CosmicScene/CosmicScene'));
 
 /**
  * Chrome shared by every /login-family screen.
@@ -20,10 +24,17 @@ import './Auth.css';
  */
 const AuthShell = ({ headline, blurb, points = [], children }) => {
   const { theme, toggleTheme } = useTheme();
+  const { lowPower } = useDeviceCapability();
 
   return (
     <div className="auth-stage">
-      <CosmicScene variant="auth" />
+      {lowPower ? (
+        <div className="auth-sky" aria-hidden="true" />
+      ) : (
+        <Suspense fallback={<div className="auth-sky" aria-hidden="true" />}>
+          <CosmicScene variant="auth" />
+        </Suspense>
+      )}
 
       <header className="auth-topbar">
         <Link to="/" className="auth-home-link" aria-label="AlgoGambit home">

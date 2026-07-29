@@ -135,14 +135,19 @@ const Prism = ({
   hoverStrength = 2,
   inertia = 0.05,
   bloom = 1,
-  suspendWhenOffscreen = false,
-  timeScale = 0.5
+  // The raymarch loop is 100 steps per fragment; never let it run for a section
+  // the visitor cannot see.
+  suspendWhenOffscreen = true,
+  timeScale = 0.5,
+  maxPixelRatio = 1
 }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const H = Math.max(0.001, height);
     const BW = Math.max(0.001, baseWidth);
@@ -163,7 +168,7 @@ const Prism = ({
     const HOVSTR = Math.max(0, hoverStrength || 1);
     const INERT = Math.max(0, Math.min(1, inertia || 0.12));
 
-    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const dpr = Math.min(maxPixelRatio, window.devicePixelRatio || 1);
     const canvas = document.createElement('canvas');
     Object.assign(canvas.style, {
       position: 'absolute',
@@ -177,7 +182,9 @@ const Prism = ({
     const gl = canvas.getContext('webgl', {
       alpha: transparent,
       antialias: false,
-      premultipliedAlpha: false
+      premultipliedAlpha: false,
+      // Decorative backdrop — keep it off a laptop's discrete GPU.
+      powerPreference: 'low-power'
     });
     if (!gl) {
       console.warn('WebGL not supported');
@@ -347,7 +354,7 @@ const Prism = ({
     if (animationType === 'hover') {
       onPointerMove = e => {
         onMove(e);
-        startRAF();
+        if (!reducedMotion) startRAF();
       };
       window.addEventListener('pointermove', onPointerMove, { passive: true });
       window.addEventListener('mouseleave', onLeave);
@@ -412,39 +419,59 @@ const Prism = ({
       }
     };
 
-    if (suspendWhenOffscreen) {
-      const io = new IntersectionObserver(entries => {
-        const vis = entries.some(e => e.isIntersecting);
-        if (vis) startRAF();
-        else stopRAF();
+    /* Pause whenever the section is scrolled away or the tab is backgrounded —
+       a 100-step raymarch is far too expensive to keep running unseen. */
+    let onScreen = true;
+    let tabVisible = document.visibilityState !== 'hidden';
+    const syncRunning = () => {
+      if (onScreen && tabVisible && !reducedMotion) startRAF();
+      else stopRAF();
+    };
+
+    const onVisibility = () => {
+      tabVisible = document.visibilityState !== 'hidden';
+      syncRunning();
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+
+    let io = null;
+    if (suspendWhenOffscreen && typeof IntersectionObserver !== 'undefined') {
+      io = new IntersectionObserver(entries => {
+        onScreen = entries.some(e => e.isIntersecting);
+        syncRunning();
       });
       io.observe(container);
-      startRAF();
-      container.__prismIO = io;
+    }
+
+    if (reducedMotion) {
+      // One static frame instead of an animation loop.
+      render(performance.now());
+      stopRAF();
     } else {
-      startRAF();
+      syncRunning();
     }
 
     return () => {
       stopRAF();
       ro.disconnect();
+      io?.disconnect();
+      document.removeEventListener('visibilitychange', onVisibility);
       if (animationType === 'hover') {
         if (onPointerMove) window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('mouseleave', onLeave);
         window.removeEventListener('blur', onBlur);
-      }
-      if (suspendWhenOffscreen) {
-        const io = container.__prismIO;
-        if (io) io.disconnect();
-        delete container.__prismIO;
       }
       canvas.remove();
       gl.deleteProgram(prog);
       gl.deleteShader(vs);
       gl.deleteShader(fs);
       gl.deleteBuffer(buf);
+      // Hand the GPU memory back now rather than waiting for the canvas to be
+      // collected; browsers cap live WebGL contexts per page.
+      gl.getExtension('WEBGL_lose_context')?.loseContext();
     };
   }, [
+    maxPixelRatio,
     height,
     baseWidth,
     animationType,

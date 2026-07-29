@@ -13,6 +13,22 @@
    here sits in normal flow above it and keeps a translucent panel.
    ===================================================================== */
 
+/* Static stand-in for the WebGL sky, used when the CosmicScene is skipped
+   (phones, low-memory machines, prefers-reduced-motion). Mirrors the poster
+   gradient CosmicScene.css paints under its canvas. */
+.auth-sky {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background:
+    radial-gradient(130% 90% at 75% 10%, #ffffff 0%, #f0f9ff 35%, #e0f2fe 70%, #bae6fd 100%);
+}
+
+[data-theme='dark'] .auth-sky {
+  background:
+    radial-gradient(130% 90% at 80% 12%, #12213f 0%, #0a1124 40%, #05070f 78%, #03040a 100%);
+}
+
 .auth-stage {
   position: relative;
   z-index: 1;

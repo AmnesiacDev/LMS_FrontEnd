@@ -132,18 +132,11 @@ export default defineConfig(({ command, mode }) => {
       // Warn when a chunk exceeds 500 kB
       chunkSizeWarningLimit: 500,
 
-      rollupOptions: {
-        output: {
-          // Split vendor code so users don't re-download React on every deploy
-          manualChunks(id) {
-            if (!id.includes('node_modules')) return undefined;
-            if (id.includes('react') || id.includes('react-router-dom')) return 'vendor-react';
-            if (id.includes('recharts')) return 'vendor-charts';
-            if (id.includes('lucide-react')) return 'vendor-icons';
-            return undefined;
-          },
-        },
-      },
+      // No manualChunks: every route and every WebGL backdrop is behind a
+      // dynamic import, so the bundler derives the split from the real import
+      // graph. Hand-written vendor buckets used to mis-file React's CJS build
+      // into the recharts chunk, which made the landing page download all of
+      // recharts before it could render.
     },
 
     test: {

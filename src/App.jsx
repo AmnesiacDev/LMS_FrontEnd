@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -12,41 +12,50 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LandingLayout from "./components/Layout/LandingLayout";
 import DashboardLayout from "./components/Layout/DashboardLayout";
 
-import Auth from "./components/Auth/Auth";
-import AccountPending from "./components/Auth/AccountPending";
-import ForgotPassword from "./components/Auth/ForgotPassword";
-import ResetPassword from "./components/Auth/ResetPassword";
-import Home from "./pages/Home";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import NotFound from "./pages/NotFound";
-import Unauthorized from "./pages/Unauthorized";
-import Error403 from "./pages/Error403";
-import DashboardIndex from "./pages/Dashboard/DashboardIndex";
-import SessionsPage from "./pages/Dashboard/SessionsPage";
-import TasksPage from "./pages/Dashboard/TasksPage";
-import SubmissionsPage from "./pages/Dashboard/SubmissionsPage";
-import ReviewsPage from "./pages/Dashboard/ReviewsPage";
-import ExternalCoursesPage from "./pages/Dashboard/ExternalCoursesPage";
-import UsersPage from "./pages/Dashboard/UsersPage";
-import StudentProfilesPage from "./pages/Dashboard/StudentProfilesPage";
-import ChildDetailsPage from "./pages/Dashboard/ChildDetailsPage";
-import ProgressPage from "./pages/Dashboard/ProgressPage";
-import ExamsPage from "./pages/Dashboard/ExamsPage";
-import MessagesPage from "./pages/Dashboard/MessagesPage";
-import ChannelsPage from "./pages/Dashboard/ChannelsPage";
-import AnnouncementsPage from "./pages/Dashboard/AnnouncementsPage";
-import AuditLogsPage from "./pages/Dashboard/AuditLogsPage";
-import AccountProfilePage from "./pages/Dashboard/AccountProfilePage";
-import WeeklySchedulePage from "./pages/Dashboard/WeeklySchedulePage";
-import LeaderboardPage from "./pages/Dashboard/LeaderboardPage";
-import ChallengesPage from "./pages/Dashboard/ChallengesPage";
-import InstructorChallengesPage from "./pages/Dashboard/InstructorChallengesPage";
-import NotificationsPage from "./pages/Dashboard/NotificationsPage";
-import CurriculumPage from "./pages/Dashboard/CurriculumPage";
-import LessonViewPage from "./pages/Dashboard/LessonViewPage";
-import AchievementsPage from "./pages/Dashboard/AchievementsPage";
+/* Every route is code-split. Loading all thirty pages (plus three.js, recharts
+   and socket.io) up front was a ~1.1 MB single chunk that every visitor paid
+   for just to read the home page. */
+const Auth = lazy(() => import("./components/Auth/Auth"));
+const AccountPending = lazy(() => import("./components/Auth/AccountPending"));
+const ForgotPassword = lazy(() => import("./components/Auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./components/Auth/ResetPassword"));
+const Home = lazy(() => import("./pages/Home"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Unauthorized = lazy(() => import("./pages/Unauthorized"));
+const Error403 = lazy(() => import("./pages/Error403"));
+const DashboardIndex = lazy(() => import("./pages/Dashboard/DashboardIndex"));
+const SessionsPage = lazy(() => import("./pages/Dashboard/SessionsPage"));
+const TasksPage = lazy(() => import("./pages/Dashboard/TasksPage"));
+const SubmissionsPage = lazy(() => import("./pages/Dashboard/SubmissionsPage"));
+const ReviewsPage = lazy(() => import("./pages/Dashboard/ReviewsPage"));
+const ExternalCoursesPage = lazy(() => import("./pages/Dashboard/ExternalCoursesPage"));
+const UsersPage = lazy(() => import("./pages/Dashboard/UsersPage"));
+const StudentProfilesPage = lazy(() => import("./pages/Dashboard/StudentProfilesPage"));
+const ChildDetailsPage = lazy(() => import("./pages/Dashboard/ChildDetailsPage"));
+const ProgressPage = lazy(() => import("./pages/Dashboard/ProgressPage"));
+const ExamsPage = lazy(() => import("./pages/Dashboard/ExamsPage"));
+const MessagesPage = lazy(() => import("./pages/Dashboard/MessagesPage"));
+const ChannelsPage = lazy(() => import("./pages/Dashboard/ChannelsPage"));
+const AnnouncementsPage = lazy(() => import("./pages/Dashboard/AnnouncementsPage"));
+const AuditLogsPage = lazy(() => import("./pages/Dashboard/AuditLogsPage"));
+const AccountProfilePage = lazy(() => import("./pages/Dashboard/AccountProfilePage"));
+const WeeklySchedulePage = lazy(() => import("./pages/Dashboard/WeeklySchedulePage"));
+const LeaderboardPage = lazy(() => import("./pages/Dashboard/LeaderboardPage"));
+const ChallengesPage = lazy(() => import("./pages/Dashboard/ChallengesPage"));
+const InstructorChallengesPage = lazy(() => import("./pages/Dashboard/InstructorChallengesPage"));
+const NotificationsPage = lazy(() => import("./pages/Dashboard/NotificationsPage"));
+const LessonViewPage = lazy(() => import("./pages/Dashboard/LessonViewPage"));
+const AchievementsPage = lazy(() => import("./pages/Dashboard/AchievementsPage"));
 import { SocketProvider } from "./context/SocketContext";
+
+const RouteFallback = () => (
+  <div className="route-fallback" role="status" aria-live="polite">
+    <span className="route-fallback-spinner" aria-hidden="true" />
+    <span className="sr-only">Loading…</span>
+  </div>
+);
 
 function App() {
   return (
@@ -55,6 +64,7 @@ function App() {
         <Router>
           <SocketProvider>
             <div className="app-container">
+              <Suspense fallback={<RouteFallback />}>
               <Routes>
                 <Route path="/" element={<LandingLayout />}>
                   <Route index element={<Home />} />
@@ -415,6 +425,7 @@ function App() {
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              </Suspense>
             </div>
           </SocketProvider>
         </Router>
