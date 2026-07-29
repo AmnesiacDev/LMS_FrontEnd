@@ -1,9 +1,14 @@
-import React, { useState } from 'react';
+import React, { lazy, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import Prism from '../components/Prism/Prism';
-import PixelBlast from '../components/PixelBlast/PixelBlast';
+import DeferredVisual from '../components/DeferredVisual/DeferredVisual';
+import useDeviceCapability from '../hooks/useDeviceCapability';
 import './Home.css';
+
+// Both backdrops pull in three.js/postprocessing, so they are split out of the
+// initial bundle and only fetched once the section they decorate is in view.
+const Prism = lazy(() => import('../components/Prism/Prism'));
+const PixelBlast = lazy(() => import('../components/PixelBlast/PixelBlast'));
 
 const TRACKS = [
   {
@@ -84,26 +89,31 @@ const Home = () => {
   const [activePath, setActivePath] = useState(0);
   const themeApi = useTheme();
   const isDark = themeApi?.theme === 'dark';
+  const { lowPower } = useDeviceCapability();
+  // Phones, low-memory/low-core machines and reduced-motion visitors get the
+  // page without the WebGL backdrops rather than a page that fights for RAM.
+  const showBackdrops = !lowPower;
 
   return (
     <div className="home-container is-home-page">
 
       {/* ══════════ HERO ══════════ */}
       <section className="hero-section-wrapper">
-        <div className="hero-pixel-bg">
-          <PixelBlast
-            variant="square"
-            pixelSize={3.5}
-            color={isDark ? '#3B82F6' : '#2563EB'}
-            patternScale={2.2}
-            patternDensity={1.05}
-            transparent={true}
-            edgeFade={0.5}
-            enableRipples={true}
-            speed={0.4}
-          />
-        </div>
-        
+        <DeferredVisual
+          className="hero-pixel-bg"
+          component={PixelBlast}
+          enabled={showBackdrops}
+          variant="square"
+          pixelSize={3.5}
+          color={isDark ? '#3B82F6' : '#2563EB'}
+          patternScale={2.2}
+          patternDensity={1.05}
+          transparent={true}
+          edgeFade={0.5}
+          enableRipples={true}
+          speed={0.4}
+        />
+
         <div className="hero-section">
           <div className="hero-badge">
             <i className="fa-solid fa-star" /> Learn to Code the Fun Way
@@ -216,19 +226,20 @@ const Home = () => {
 
       {/* ══════════ LANGUAGES ══════════ */}
       <section className="stack-section-wrapper reveal slide-up">
-        <div className="stack-prism-bg">
-          <Prism
-            height={3.0}
-            baseWidth={5.0}
-            animationType="3drotate"
-            glow={1.2}
-            noise={0.15}
-            transparent={true}
-            scale={3.2}
-            bloom={1.5}
-            timeScale={0.3}
-          />
-        </div>
+        <DeferredVisual
+          className="stack-prism-bg"
+          component={Prism}
+          enabled={showBackdrops}
+          height={3.0}
+          baseWidth={5.0}
+          animationType="3drotate"
+          glow={1.2}
+          noise={0.15}
+          transparent={true}
+          scale={3.2}
+          bloom={1.5}
+          timeScale={0.3}
+        />
         <div className="stack-section">
           <div className="section-eyebrow">
             <i className="fa-solid fa-toolbox" /> Tools & Languages

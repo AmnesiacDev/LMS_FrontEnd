@@ -25,3 +25,4 @@ dist-ssr
 
 # Local AI-agent runtime state
 .claude-flow/
+.claude/

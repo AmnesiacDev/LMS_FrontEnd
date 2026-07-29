@@ -251,7 +251,9 @@ const CosmicScene = ({ variant = 'home' }) => {
       mount.classList.add('cosmic--failed');
       return undefined;
     }
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1.5 : 2));
+    // A full-viewport backdrop at 2x costs ~33 MB of framebuffer on a 1080p
+    // screen and is invisibly better than 1.5x, so cap it lower.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, small ? 1 : 1.5));
     renderer.setClearColor(0x000000, 0);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     mount.appendChild(renderer.domElement);
@@ -287,16 +289,75 @@ const CosmicScene = ({ variant = 'home' }) => {
     bodySpin.rotation.z = THREE.MathUtils.degToRad(isMoon ? 6.7 : 23.4);
     bodyPivot.add(bodySpin);
 
-    const texManager = new THREE.LoadingManager();
-    const loader = new THREE.TextureLoader(texManager);
-    const srgb = (t) => {
-      t.colorSpace = THREE.SRGBColorSpace;
-      t.anisotropy = 4;
-      return t;
+    /* ---------- Textures ----------
+       The source maps are equirectangular (2:1) and the day map ships at
+       4096x2048, which alone is ~45 MB of GPU memory once mipmapped. The globe
+       never covers more than a fraction of the viewport, so each map is
+       downscaled while it is decoded — `createImageBitmap` does that off the
+       main thread and skips ever materialising the full-size bitmap. */
+    const BASE_TEX_WIDTH = small ? 1024 : 2048;
+    const DETAIL_TEX_WIDTH = BASE_TEX_WIDTH / 2;
+    const supportsBitmap = typeof createImageBitmap === 'function';
+
+    const textures = [];
+    let pendingTextures = 0;
+    let disposed = false;
+    let onTexturesSettled = null;
+
+    const settleTexture = () => {
+      pendingTextures -= 1;
+      if (pendingTextures === 0) onTexturesSettled?.();
     };
-    const lin = (t) => {
-      t.colorSpace = THREE.NoColorSpace;
-      return t;
+
+    const loadTexture = (url, colorSpace, width) => {
+      const texture = new THREE.Texture();
+      texture.colorSpace = colorSpace;
+      texture.anisotropy = 4;
+      // createImageBitmap flips during decode, so three must not flip again.
+      texture.flipY = !supportsBitmap;
+      textures.push(texture);
+      pendingTextures += 1;
+
+      if (!supportsBitmap) {
+        const image = new Image();
+        image.addEventListener(
+          'load',
+          () => {
+            if (!disposed) {
+              texture.image = image;
+              texture.needsUpdate = true;
+            }
+            settleTexture();
+          },
+          { once: true },
+        );
+        image.addEventListener('error', settleTexture, { once: true });
+        image.src = url;
+        return texture;
+      }
+
+      fetch(url)
+        .then((res) => res.blob())
+        .then((blob) =>
+          createImageBitmap(blob, {
+            resizeWidth: width,
+            resizeHeight: width / 2,
+            resizeQuality: 'high',
+            imageOrientation: 'flipY',
+          }),
+        )
+        .then((bitmap) => {
+          if (disposed) {
+            bitmap.close();
+            return;
+          }
+          texture.image = bitmap;
+          texture.needsUpdate = true;
+        })
+        .catch(() => {})
+        .finally(settleTexture);
+
+      return texture;
     };
 
     let bodyMesh;
@@ -305,21 +366,31 @@ const CosmicScene = ({ variant = 'home' }) => {
     let uniforms;
 
     if (isMoon) {
-      const moonColor = srgb(loader.load(MOON_TEX + 'moon_color_2048.jpg'));
-      const moonHeight = lin(loader.load(MOON_TEX + 'moon_height_2048.jpg'));
+      const moonColor = loadTexture(
+        MOON_TEX + 'moon_color_2048.jpg',
+        THREE.SRGBColorSpace,
+        BASE_TEX_WIDTH,
+      );
+      const moonHeight = loadTexture(
+        MOON_TEX + 'moon_height_2048.jpg',
+        THREE.NoColorSpace,
+        BASE_TEX_WIDTH,
+      );
 
       uniforms = {
         colorMap: { value: moonColor },
         heightMap: { value: moonHeight },
         sunDir: { value: new THREE.Vector3(0.6, 0.24, 0.76).normalize() },
-        texel: { value: new THREE.Vector2(1 / 2048, 1 / 1024) },
-        bumpScale: { value: 36 },
+        texel: { value: new THREE.Vector2(1 / BASE_TEX_WIDTH, 2 / BASE_TEX_WIDTH) },
+        // The bump is a finite difference over one texel, so the strength has
+        // to track the texture size to keep the same relief.
+        bumpScale: { value: 36 * (BASE_TEX_WIDTH / 2048) },
         dayMix: { value: 0 },
         amt: { value: 1 },
       };
 
       bodyMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(cfg.radius, 96, 96),
+        new THREE.SphereGeometry(cfg.radius, 64, 48),
         new THREE.ShaderMaterial({
           vertexShader: MOON_VERT,
           fragmentShader: MOON_FRAG,
@@ -329,10 +400,18 @@ const CosmicScene = ({ variant = 'home' }) => {
       bodySpin.add(bodyMesh);
     } else {
       uniforms = {
-        dayMap: { value: srgb(loader.load(TEX + 'earth_day_4096.jpg')) },
-        nightMap: { value: srgb(loader.load(TEX + 'earth_night_2048.jpg')) },
-        specMap: { value: lin(loader.load(TEX + 'earth_specular_2048.jpg')) },
-        normalMap: { value: lin(loader.load(TEX + 'earth_normal_2048.jpg')) },
+        dayMap: {
+          value: loadTexture(TEX + 'earth_day_4096.jpg', THREE.SRGBColorSpace, BASE_TEX_WIDTH),
+        },
+        nightMap: {
+          value: loadTexture(TEX + 'earth_night_2048.jpg', THREE.SRGBColorSpace, DETAIL_TEX_WIDTH),
+        },
+        specMap: {
+          value: loadTexture(TEX + 'earth_specular_2048.jpg', THREE.NoColorSpace, DETAIL_TEX_WIDTH),
+        },
+        normalMap: {
+          value: loadTexture(TEX + 'earth_normal_2048.jpg', THREE.NoColorSpace, DETAIL_TEX_WIDTH),
+        },
         sunDir: { value: sunDir },
         normalStrength: { value: 0.25 },
         dayMix: { value: 0 },
@@ -340,7 +419,7 @@ const CosmicScene = ({ variant = 'home' }) => {
       };
 
       bodyMesh = new THREE.Mesh(
-        new THREE.SphereGeometry(cfg.radius, 96, 96),
+        new THREE.SphereGeometry(cfg.radius, 64, 48),
         new THREE.ShaderMaterial({
           vertexShader: EARTH_VERT,
           fragmentShader: EARTH_FRAG,
@@ -350,8 +429,11 @@ const CosmicScene = ({ variant = 'home' }) => {
       bodySpin.add(bodyMesh);
 
       // Cloud shell (Earth only)
-      const cloudTex = lin(loader.load(TEX + 'earth_clouds_2048.jpg'));
-      cloudTex.anisotropy = 4;
+      const cloudTex = loadTexture(
+        TEX + 'earth_clouds_2048.jpg',
+        THREE.NoColorSpace,
+        DETAIL_TEX_WIDTH,
+      );
       cloudMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
         alphaMap: cloudTex,
@@ -362,7 +444,7 @@ const CosmicScene = ({ variant = 'home' }) => {
         metalness: 0,
       });
       clouds = new THREE.Mesh(
-        new THREE.SphereGeometry(cfg.radius * 1.012, 64, 64),
+        new THREE.SphereGeometry(cfg.radius * 1.012, 48, 32),
         cloudMat,
       );
       bodySpin.add(clouds);
@@ -562,7 +644,7 @@ const CosmicScene = ({ variant = 'home' }) => {
         readScroll();
         render();
       };
-      texManager.onLoad = render;
+      onTexturesSettled = render;
       render();
       window.addEventListener('scroll', repaint, { passive: true });
       window.addEventListener('resize', repaint);
@@ -572,7 +654,8 @@ const CosmicScene = ({ variant = 'home' }) => {
     }
 
     return () => {
-      texManager.onLoad = undefined;
+      disposed = true;
+      onTexturesSettled = null;
       applyThemeRef.current = null;
       document.body.classList.remove('cosmic-grabbing');
       cancelAnimationFrame(raf);
@@ -598,9 +681,15 @@ const CosmicScene = ({ variant = 'home' }) => {
           else m?.dispose?.();
         }
       });
-      Object.values(uniforms).forEach((u) => u.value?.isTexture && u.value.dispose());
       cloudMat?.dispose();
+      // ImageBitmaps hold memory outside the JS heap; three does not close them.
+      textures.forEach((texture) => {
+        texture.image?.close?.();
+        texture.image = null;
+        texture.dispose();
+      });
       renderer.dispose();
+      renderer.forceContextLoss();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
   }, [variant]);

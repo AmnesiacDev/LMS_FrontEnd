@@ -1,4 +1,5 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import './Pet.css';
 
 /* ══════════════════════════════════════════════════════════════════
    SVG PIXEL CREATURES
@@ -280,6 +281,14 @@ const CREATURES = [
 
 const STORAGE_KEY = 'lms-pet-choice';
 
+/* The sprite is ~20 <rect> nodes. Memoising on the component identity keeps
+   React from reconciling all of them every time the pet is hovered or clicked. */
+const Sprite = React.memo((props) => {
+  const Svg = props.svg;
+  return <Svg />;
+});
+Sprite.displayName = 'Sprite';
+
 /* ══════════════════════════════════════════════════════════════════
    PET PICKER PANEL — dark card style matching the screenshot
 ══════════════════════════════════════════════════════════════════ */
@@ -472,24 +481,14 @@ const Pet = () => {
   if (isAnimating) spriteAnim = creature.clickAnim;
   else if (isHovered && !showPicker) spriteAnim = creature.hoverAnim;
 
-  const glowFilter = isHovered && !isAnimating
-    ? `drop-shadow(0 0 8px ${creature.glowColor})`
-    : 'drop-shadow(0 3px 0 rgba(0,0,0,0.2))';
+  const showGlow = isHovered && !isAnimating;
+  const spriteStyle = useMemo(
+    () => ({ animation: spriteAnim, '--pet-glow': creature.glowColor }),
+    [spriteAnim, creature.glowColor],
+  );
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: '24px',
-        right: '24px',
-        zIndex: 9999,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '4px',
-        userSelect: 'none',
-      }}
-    >
+    <div className="pet-root">
       {/* Picker panel */}
       {showPicker && (
         <PetPicker
@@ -501,28 +500,14 @@ const Pet = () => {
 
       {/* Speech bubble */}
       {bubble && !showPicker && (
-        <div style={{
-          background: 'var(--card-bg)',
-          border: '2px solid var(--border-color)',
-          borderRadius: '8px',
-          padding: '4px 10px',
-          fontSize: '0.72rem',
-          fontWeight: 700,
-          whiteSpace: 'nowrap',
-          boxShadow: '3px 3px 0 var(--shadow-color)',
-          animation: 'fadeIn 0.15s ease',
-          position: 'relative',
-          color: creature.glowColor,
-        }}>
+        <div className="pet-bubble" style={{ color: creature.glowColor }}>
           {bubble}
-          <div style={{ position: 'absolute', bottom: '-7px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent', borderTop: '7px solid var(--border-color)' }} />
-          <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '5px solid transparent', borderRight: '5px solid transparent', borderTop: '6px solid var(--card-bg)' }} />
         </div>
       )}
 
       {/* Sprite wrapper — click to talk, right-click / long-press opens picker */}
       <div
-        style={{ position: 'relative', cursor: 'pointer' }}
+        className="pet-hit"
         onClick={handleClick}
         onContextMenu={(e) => { e.preventDefault(); setShowPicker(p => !p); }}
         onMouseEnter={() => setIsHovered(true)}
@@ -538,39 +523,19 @@ const Pet = () => {
         aria-label={`Pet: ${creature.name}. Click to interact, right-click to change.`}
         title="Click to interact · Right-click to change pet"
       >
-        <div style={{
-          width: '80px',
-          height: '80px',
-          imageRendering: 'pixelated',
-          animation: spriteAnim,
-          filter: glowFilter,
-          transition: 'filter 0.2s ease',
-        }}>
-          <creature.Svg />
+        <div
+          className={`pet-sprite${showGlow ? ' pet-sprite--glow' : ''}`}
+          style={spriteStyle}
+        >
+          <Sprite svg={creature.Svg} />
         </div>
 
         {/* Change-pet button (visible on hover) */}
         {isHovered && (
           <button
+            type="button"
+            className="pet-swap-btn"
             onClick={(e) => { e.stopPropagation(); setShowPicker(p => !p); }}
-            style={{
-              position: 'absolute',
-              top: '-8px',
-              right: '-8px',
-              width: '22px',
-              height: '22px',
-              borderRadius: '50%',
-              border: '2px solid var(--border-color)',
-              background: 'var(--card-bg)',
-              fontSize: '11px',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '2px 2px 0 var(--shadow-color)',
-              animation: 'fadeIn 0.1s ease',
-              lineHeight: 1,
-            }}
             title="Change pet"
           >
             🔄
@@ -579,18 +544,14 @@ const Pet = () => {
       </div>
 
       {/* Shadow */}
-      <div style={{
-        width: '48px',
-        height: '6px',
-        background: 'rgba(0,0,0,0.18)',
-        borderRadius: '50%',
-        marginTop: '-8px',
-        animation: isAnimating ? 'petShadowPulse 0.55s forwards' : 'none',
-        transform: isHovered ? 'scaleX(1.2)' : 'scaleX(1)',
-        transition: 'transform 0.2s',
-      }} />
+      <div
+        className={`pet-shadow${isAnimating ? ' pet-shadow--pulse' : ''}${
+          isHovered ? ' pet-shadow--wide' : ''
+        }`}
+      />
     </div>
   );
 };
 
-export default Pet;
+// The dashboard layout re-renders on every navigation; the pet does not need to.
+export default React.memo(Pet);
