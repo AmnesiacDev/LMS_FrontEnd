@@ -41,18 +41,11 @@ const isTokenExpired = (token, bufferMs = 60000) => {
 };
 
 export const AuthProvider = ({ children }) => {
-  const storedUser = (() => {
-    try {
-      const stored = localStorage.getItem("lms-user");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  })();
-
   const storedToken = localStorage.getItem("access-token");
 
-  const [user, setUser] = useState(storedUser);
+  // Identity and role are never restored from browser-controlled storage.
+  // They are hydrated from the protected /auth/me endpoint on every startup.
+  const [user, setUser] = useState(null);
   const [token, setToken] = useState(storedToken);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -72,6 +65,33 @@ export const AuthProvider = ({ children }) => {
       clearInterval(refreshIntervalRef.current);
       refreshIntervalRef.current = null;
     }
+  }, []);
+
+  const fetchCurrentUser = useCallback(async (currentToken) => {
+    if (!currentToken) {
+      throw new Error("Cannot load the current user without an access token");
+    }
+
+    const response = await fetch(buildApiUrl("/api/v1/auth/me"), {
+      method: "GET",
+      credentials: "include",
+      headers: { Authorization: `Bearer ${currentToken}` },
+    });
+
+    if (!response.ok) {
+      throw new Error("Current user validation failed");
+    }
+
+    const data = await response.json();
+    const currentUser = data.data?.user;
+
+    if (!currentUser?._id || !currentUser.role) {
+      throw new Error("Current user response is invalid");
+    }
+
+    setUser(currentUser);
+    localStorage.removeItem("lms-user");
+    return currentUser;
   }, []);
 
   const refreshAccessToken = useCallback(async () => {
@@ -98,6 +118,7 @@ export const AuthProvider = ({ children }) => {
           const newToken = data.data.token;
           setToken(newToken);
           localStorage.setItem("access-token", newToken);
+          await fetchCurrentUser(newToken);
           return true;
         }
 
@@ -113,7 +134,7 @@ export const AuthProvider = ({ children }) => {
     })();
 
     return refreshPromise.current;
-  }, [clearAuth]);
+  }, [clearAuth, fetchCurrentUser]);
 
   // Setup automatic refresh timer when we have a valid token
   const setupRefreshTimer = useCallback(
@@ -176,6 +197,7 @@ export const AuthProvider = ({ children }) => {
 
     const checkAuth = async () => {
       const currentToken = localStorage.getItem("access-token");
+      localStorage.removeItem("lms-user");
 
       if (!currentToken) {
         // No token at all — clear any stale user data and finish
@@ -197,8 +219,14 @@ export const AuthProvider = ({ children }) => {
           setInitializing(false);
         }
       } else {
-        // Token is still valid — nothing to do
-        if (!cancelled) setInitializing(false);
+        try {
+          await fetchCurrentUser(currentToken);
+        } catch (err) {
+          logger.error("Current user validation failed:", err);
+          if (!cancelled) clearAuth();
+        } finally {
+          if (!cancelled) setInitializing(false);
+        }
       }
     };
 
@@ -219,14 +247,6 @@ export const AuthProvider = ({ children }) => {
       localStorage.removeItem("access-token");
     }
   }, [token, setupRefreshTimer]);
-
-  useEffect(() => {
-    if (user) {
-      localStorage.setItem("lms-user", JSON.stringify(user));
-    } else {
-      localStorage.removeItem("lms-user");
-    }
-  }, [user]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -266,7 +286,6 @@ export const AuthProvider = ({ children }) => {
       setToken(accessToken);
       localStorage.setItem("access-token", accessToken);
       setUser(loggedInUser);
-      localStorage.setItem("lms-user", JSON.stringify(loggedInUser));
       return true;
     } catch (err) {
       setError(sanitizeErrorMessage(err.message));
@@ -310,7 +329,6 @@ export const AuthProvider = ({ children }) => {
       setToken(accessToken);
       localStorage.setItem("access-token", accessToken);
       setUser(newUser);
-      if (newUser) localStorage.setItem("lms-user", JSON.stringify(newUser));
       return { pendingApproval: false, user: newUser };
     } catch (err) {
       setError(sanitizeErrorMessage(err.message));
