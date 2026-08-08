@@ -37,6 +37,13 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
   const [toasts, setToasts] = useState([]);
 
+  // The connection effect below depends on this, not on `user`. AuthContext
+  // rebuilds the user object from the /auth/me response on every hydration and
+  // every token refresh, so depending on the object itself tore down and
+  // rebuilt the whole socket each time — dropping notifications in the gap.
+  // The role is the only field the effect actually reads.
+  const userRole = user?.role;
+
   // Centralized Notification States
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -142,6 +149,28 @@ export const SocketProvider = ({ children }) => {
       setSocket(newSocket);
     });
 
+    // Without these, a failed handshake was completely silent from the app's
+    // side: nothing logged, `socket` stayed null forever, and the only clue was
+    // the raw WebSocket error the browser itself prints. A rejected handshake
+    // (expired token, deactivated account) and an unroutable /socket.io/ path
+    // looked identical — like nothing had happened at all.
+    newSocket.on('connect_error', (err) => {
+      console.error(
+        `Socket.io connection failed (${newSocket.io.engine?.transport?.name ?? 'unknown transport'}):`,
+        err.message,
+      );
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.warn('Socket.io disconnected:', reason);
+      // "io server disconnect" means the server dropped us deliberately — an
+      // expired access token, or an account that is no longer active. The
+      // client does not auto-reconnect from that state, and it should not:
+      // reconnecting needs a fresh token, which arrives as a new `token` value
+      // and re-runs this effect.
+      if (reason === 'io server disconnect') setSocket(null);
+    });
+
     // Handle generic notifications
     newSocket.on('notification', (notif) => {
       const normalizedNotif = {
@@ -155,7 +184,7 @@ export const SocketProvider = ({ children }) => {
       setNotifications((prev) => [normalizedNotif, ...prev]);
 
       // 3. Optional Toast: Suppress gamification toasts for student role to avoid duplication
-      const isStudent = user?.role === 'student';
+      const isStudent = userRole === 'student';
       const isGamification = ['xp_earned', 'level_up', 'badge_unlocked'].includes(normalizedNotif.type);
 
       if (!(isStudent && isGamification)) {
@@ -205,10 +234,11 @@ export const SocketProvider = ({ children }) => {
     });
 
     return () => {
+      newSocket.removeAllListeners();
       newSocket.disconnect();
       setSocket(null);
     };
-  }, [token, user]);
+  }, [token, userRole]);
 
   return (
     <SocketContext.Provider
