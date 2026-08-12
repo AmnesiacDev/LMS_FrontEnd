@@ -23,6 +23,7 @@ const getNotificationDetails = (type) => {
     badge_unlocked: 'var(--accent-rose, #ec4899)',
     new_submission: 'var(--accent-teal, #14b8a6)',
     new_message: 'var(--accent-indigo, #6366f1)',
+    canvas_shared: 'var(--accent-purple, #a855f7)',
   };
   return {
     icon: notificationIcon(type).icon,

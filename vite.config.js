@@ -1,6 +1,57 @@
 /// <reference types="vitest" />
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { defineConfig, loadEnv } from 'vite'
 import react from '@vitejs/plugin-react'
+
+const projectRoot = path.dirname(fileURLToPath(import.meta.url))
+
+// Where the canvas module expects Excalidraw's font files to live. Must match
+// window.EXCALIDRAW_ASSET_PATH in src/components/Canvas/excalidrawAssets.js.
+const EXCALIDRAW_ASSET_DIR = 'excalidraw-assets'
+
+// Excalidraw's default is to pull fonts from unpkg.com at runtime. The
+// production CSP below is `font-src 'self' …` with no CDN, so that fetch is
+// blocked and every hand-drawn font silently falls back. Copying the fonts into
+// public/ makes them same-origin and keeps the CSP tight.
+//
+// Xiaolai is deliberately excluded: it is the CJK face and accounts for 13 MB
+// of the package's 14 MB of fonts, and this platform's content is English and
+// Arabic. If CJK text is ever pasted onto a board it will render in a fallback
+// face rather than Excalifont's CJK companion — add 'Xiaolai' back here if that
+// ever matters more than 13 MB of build artifact.
+const EXCLUDED_FONT_FAMILIES = new Set(['Xiaolai'])
+
+const excalidrawAssetsPlugin = () => ({
+  name: 'algogambit-excalidraw-assets',
+  // buildStart fires for `vite` and `vite build` alike, and public/ is served
+  // in dev and copied to dist on build — so one hook covers both modes.
+  buildStart() {
+    const source = path.join(
+      projectRoot,
+      'node_modules/@excalidraw/excalidraw/dist/prod/fonts',
+    )
+    const destination = path.join(projectRoot, 'public', EXCALIDRAW_ASSET_DIR, 'fonts')
+
+    if (!fs.existsSync(source)) {
+      this.warn(
+        '@excalidraw/excalidraw fonts not found — run npm install. Boards will render with fallback fonts.',
+      )
+      return
+    }
+
+    fs.rmSync(destination, { recursive: true, force: true })
+    fs.mkdirSync(destination, { recursive: true })
+
+    for (const family of fs.readdirSync(source)) {
+      if (EXCLUDED_FONT_FAMILIES.has(family)) continue
+      fs.cpSync(path.join(source, family), path.join(destination, family), {
+        recursive: true,
+      })
+    }
+  },
+})
 
 const isLocalHostname = (hostname) => (
   hostname === 'localhost' ||
@@ -80,6 +131,9 @@ const createContentSecurityPolicy = ({ apiOrigin, socketOrigin, errorOrigin }) =
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
     "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:",
     "img-src 'self' data: blob: https:",
+    // Excalidraw runs its font-subsetting work in a blob: worker; without this
+    // it falls back to default-src and the worker is refused.
+    "worker-src 'self' blob:",
     `connect-src ${connectSources.join(' ')}`,
     "object-src 'none'",
     "base-uri 'self'",
@@ -112,6 +166,7 @@ export default defineConfig(({ command, mode }) => {
   return {
     plugins: [
       react(),
+      excalidrawAssetsPlugin(),
       ...(productionOrigins ? [productionCspPlugin(productionOrigins)] : []),
     ],
 

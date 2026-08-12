@@ -48,6 +48,8 @@ const InstructorChallengesPage = lazy(() => import("./pages/Dashboard/Instructor
 const NotificationsPage = lazy(() => import("./pages/Dashboard/NotificationsPage"));
 const LessonViewPage = lazy(() => import("./pages/Dashboard/LessonViewPage"));
 const AchievementsPage = lazy(() => import("./pages/Dashboard/AchievementsPage"));
+const CanvasPage = lazy(() => import("./pages/Dashboard/CanvasPage"));
+const CanvasBoardPage = lazy(() => import("./pages/Dashboard/CanvasBoardPage"));
 import { SocketProvider } from "./context/SocketContext";
 
 const RouteFallback = () => (
@@ -270,6 +272,41 @@ function App() {
                         ]}
                       >
                         <ExamsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Canvas: instructors and admins author boards, students and
+                      parents open the ones that have been shared with them.
+                      Write access is enforced by the API, not by this list. */}
+                  <Route
+                    path="canvas"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={[
+                          "student",
+                          "parent",
+                          "instructor",
+                          "admin",
+                        ]}
+                      >
+                        <CanvasPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="canvas/:canvasId"
+                    element={
+                      <ProtectedRoute
+                        allowedRoles={[
+                          "student",
+                          "parent",
+                          "instructor",
+                          "admin",
+                        ]}
+                      >
+                        <CanvasBoardPage />
                       </ProtectedRoute>
                     }
                   />
