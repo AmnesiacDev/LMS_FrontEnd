@@ -26,3 +26,7 @@ dist-ssr
 # Local AI-agent runtime state
 .claude-flow/
 .claude/
+
+# Excalidraw fonts, copied out of node_modules by vite.config.js on every
+# build/dev start. Generated, never edited by hand.
+public/excalidraw-assets/

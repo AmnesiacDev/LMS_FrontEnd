@@ -207,6 +207,47 @@ const styles = {
     letterSpacing: '0.04em', boxShadow: '2px 2px 0px 0px var(--shadow-color)',
     whiteSpace: 'nowrap', fontFamily: 'var(--font-body)',
   },
+
+  /* ── Session Boards (canvas) ── */
+  boardsSection: {
+    marginBottom: '1rem', padding: '1rem', background: 'var(--card-bg)',
+    border: '2px solid var(--border-color)', borderRadius: 'var(--radius-sm)',
+    boxShadow: '2px 2px 0px 0px var(--shadow-color)',
+  },
+  boardsRow: {
+    display: 'flex', gap: '0.6rem', flexWrap: 'wrap', alignItems: 'stretch',
+  },
+  boardChip: {
+    display: 'flex', flexDirection: 'column', gap: '0.35rem',
+    width: '150px', padding: '0', overflow: 'hidden',
+    background: 'var(--bg-tertiary)', border: '2px solid var(--border-color)',
+    borderRadius: 'var(--radius-sm)', cursor: 'pointer',
+    color: 'var(--text-primary)', font: 'inherit', textAlign: 'left',
+    transition: 'all 0.1s ease',
+  },
+  boardThumb: {
+    height: '78px', width: '100%', objectFit: 'contain', display: 'block',
+    background: 'var(--card-bg)', borderBottom: '2px solid var(--border-color)',
+  },
+  boardThumbEmpty: {
+    height: '78px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+    background: 'var(--card-bg)', borderBottom: '2px solid var(--border-color)',
+    color: 'var(--text-muted)', fontSize: '1.35rem',
+  },
+  boardChipBody: { padding: '0 0.55rem 0.55rem', display: 'flex', flexDirection: 'column', gap: '0.2rem' },
+  boardChipTitle: {
+    fontSize: '0.8rem', fontWeight: 700, margin: 0,
+    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+  },
+  boardChipMeta: {
+    fontSize: '0.68rem', color: 'var(--text-muted)', fontWeight: 600,
+    display: 'flex', alignItems: 'center', gap: '0.3rem',
+  },
+  boardShareDot: (shared) => ({
+    display: 'inline-block', width: '0.5rem', height: '0.5rem', flexShrink: 0,
+    borderRadius: '50%', border: '1px solid var(--border-color)',
+    background: shared ? 'var(--success, #22c55e)' : 'var(--text-muted)',
+  }),
 };
 
 const SessionsPage = () => {
@@ -243,6 +284,13 @@ const SessionsPage = () => {
   // AI summary generation (instructor/admin)
   const [aiLoadingId, setAiLoadingId] = useState(null);
   const [aiErrors, setAiErrors] = useState({});
+
+  // Canvas boards, keyed by session id and fetched only when a card is
+  // expanded. Loading them for every session in the list would be one request
+  // per row on a page that already shows twenty.
+  // Shape: { status: 'loading' | 'ready' | 'error', docs: [], error: string }
+  const [boardsBySession, setBoardsBySession] = useState({});
+  const [boardCreatingId, setBoardCreatingId] = useState(null);
 
   const [showCreate, setShowCreate] = useState(false);
   const [editSession, setEditSession] = useState(null);
@@ -321,13 +369,59 @@ const SessionsPage = () => {
   useEffect(() => { fetchStudentProfiles(); }, [fetchStudentProfiles]);
 
   /* ── Toggle expand ── */
+  /* ── Canvas boards attached to a session ── */
+  const loadSessionBoards = useCallback(async (sessionId) => {
+    setBoardsBySession(prev => ({ ...prev, [sessionId]: { status: 'loading', docs: [] } }));
+    try {
+      const data = await request(`/api/v1/session-canvas/session/${sessionId}?limit=50`);
+      setBoardsBySession(prev => ({
+        ...prev,
+        [sessionId]: { status: 'ready', docs: data.data?.docs || [] },
+      }));
+    } catch (err) {
+      setBoardsBySession(prev => ({
+        ...prev,
+        [sessionId]: { status: 'error', docs: [], error: sanitizeErrorMessage(err.message) },
+      }));
+    }
+  }, [request]);
+
+  const handleCreateBoard = async (session) => {
+    if (boardCreatingId) return;
+    setBoardCreatingId(session._id);
+    try {
+      const data = await request('/api/v1/session-canvas', 'POST', {
+        sessionId: session._id,
+        title: `${session.title} — board`,
+      });
+      navigate(`/dashboard/canvas/${data.data.canvas._id}`);
+    } catch (err) {
+      setBoardsBySession(prev => ({
+        ...prev,
+        [session._id]: {
+          status: 'error',
+          docs: prev[session._id]?.docs || [],
+          error: sanitizeErrorMessage(err.message),
+        },
+      }));
+      setBoardCreatingId(null);
+    }
+  };
+
   const toggleExpand = (id) => {
+    // Decided before the updater runs, not inside it: React can invoke a state
+    // updater more than once, and a fetch fired from in there would double up.
+    const willExpand = !expandedIds.has(id);
+
     setExpandedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
+
+    // Fetch on first expand only; re-opening a card reuses what is already there.
+    if (willExpand && !boardsBySession[id]) loadSessionBoards(id);
   };
 
   /* ── Generate / regenerate AI summary (instructor own + admin) ── */
@@ -773,6 +867,10 @@ const SessionsPage = () => {
           const hasAi = !!aiSummary?.text;
           const aiBusy = aiLoadingId === session._id;
           const aiErr = aiErrors[session._id];
+          const boardState = boardsBySession[session._id];
+          const boards = boardState?.docs || [];
+          const boardErr = boardState?.error;
+          const boardBusy = boardCreatingId === session._id;
 
           return (
             <div 
@@ -915,6 +1013,72 @@ const SessionsPage = () => {
                       !aiErr && (
                         <p style={styles.emptyState}>
                           {isAdmin ? 'No summary yet — generate a parent-friendly recap from this session.' : 'No summary yet.'}
+                        </p>
+                      )
+                    )}
+                  </div>
+
+                  {/* ── Canvas boards attached to this session ── */}
+                  <div style={styles.boardsSection}>
+                    <div style={styles.aiHeader}>
+                      <p style={{ ...styles.sectionTitle, margin: 0 }}>
+                        <i className="fa-solid fa-pen-ruler" style={{ color: '#a855f7' }} /> Session Boards
+                      </p>
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          disabled={boardBusy}
+                          onClick={(e) => { e.stopPropagation(); handleCreateBoard(session); }}
+                          style={{ ...styles.aiBtn, opacity: boardBusy ? 0.6 : 1, cursor: boardBusy ? 'not-allowed' : 'pointer' }}
+                        >
+                          {boardBusy
+                            ? <><i className="fa-solid fa-spinner fa-spin" /> Creating…</>
+                            : <><i className="fa-solid fa-plus" /> New Board</>}
+                        </button>
+                      )}
+                    </div>
+
+                    {boardErr && (
+                      <div className="modal-error" style={{ marginBottom: boards.length ? '0.75rem' : 0 }}>
+                        <i className="fa-solid fa-triangle-exclamation" /> {boardErr}
+                      </div>
+                    )}
+
+                    {boardState?.status === 'loading' ? (
+                      <p style={styles.emptyState}>
+                        <i className="fa-solid fa-circle-notch fa-spin" /> Loading boards…
+                      </p>
+                    ) : boards.length > 0 ? (
+                      <div style={styles.boardsRow}>
+                        {boards.map(board => (
+                          <button
+                            key={board._id}
+                            type="button"
+                            style={styles.boardChip}
+                            title={board.title}
+                            onClick={(e) => { e.stopPropagation(); navigate(`/dashboard/canvas/${board._id}`); }}
+                            onMouseEnter={e => { e.currentTarget.style.transform = 'translate(-1px, -1px)'; e.currentTarget.style.boxShadow = '2px 2px 0px 0px var(--shadow-color)'; }}
+                            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+                          >
+                            {board.thumbnail
+                              ? <img src={board.thumbnail} alt="" style={styles.boardThumb} />
+                              : <div style={styles.boardThumbEmpty}><i className="fa-solid fa-pen-ruler" /></div>}
+                            <div style={styles.boardChipBody}>
+                              <p style={styles.boardChipTitle}>{board.title}</p>
+                              <span style={styles.boardChipMeta}>
+                                {isAdmin && <span style={styles.boardShareDot(board.isShared)} />}
+                                {isAdmin ? (board.isShared ? 'Shared' : 'Private') : `${board.elementCount ?? 0} shapes`}
+                              </span>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    ) : (
+                      !boardErr && (
+                        <p style={styles.emptyState}>
+                          {isAdmin
+                            ? 'No boards yet — create one to sketch during this session.'
+                            : 'No boards shared for this session yet.'}
                         </p>
                       )
                     )}

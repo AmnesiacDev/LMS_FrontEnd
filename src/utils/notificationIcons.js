@@ -12,6 +12,7 @@ const ICONS = {
   lesson_completed: { icon: 'fa-solid fa-book-open', color: 'var(--success, #22c55e)' },
   exam_result: { icon: 'fa-solid fa-chart-column', color: 'var(--info, #3b82f6)' },
   session_review: { icon: 'fa-solid fa-star', color: 'var(--warning, #eab308)' },
+  canvas_shared: { icon: 'fa-solid fa-pen-ruler', color: 'var(--accent-purple, #a855f7)' },
   xp_earned: { icon: 'fa-solid fa-bolt', color: 'var(--warning, #eab308)' },
   level_up: { icon: 'fa-solid fa-crown', color: 'var(--warning, #eab308)' },
   badge_unlocked: { icon: 'fa-solid fa-award', color: 'var(--accent-rose, #ec4899)' },
