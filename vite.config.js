@@ -171,12 +171,27 @@ export default defineConfig(({ command, mode }) => {
     ],
 
     server: {
+      // Excalidraw ships its font files as static assets under public/. They
+      // never change while the dev server runs, and on Windows the browser
+      // holding one open makes chokidar's watch() throw EBUSY, which takes the
+      // whole dev server down. Nothing is lost by not watching them.
+      watch: {
+        ignored: ['**/public/excalidraw-assets/**'],
+      },
       proxy: {
         '/api': {
           target: 'http://localhost:3000',
           changeOrigin: true,
           secure: false,
-        }
+        },
+        // Socket.IO needs its own entry: the handshake starts as HTTP polling
+        // and then upgrades, so it is not covered by the /api rule above.
+        '/socket.io': {
+          target: 'http://localhost:3000',
+          changeOrigin: true,
+          secure: false,
+          ws: true,
+        },
       }
     },
 

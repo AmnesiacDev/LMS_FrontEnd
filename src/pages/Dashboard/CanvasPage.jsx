@@ -101,6 +101,8 @@ const CanvasPage = () => {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [sessionsLoading, setSessionsLoading] = useState(true);
+  const [sessionsError, setSessionsError] = useState('');
 
   // The selected session lives in the URL so a board card can link straight
   // back to the right session's list, and so a refresh keeps its place.
@@ -108,8 +110,13 @@ const CanvasPage = () => {
 
   // ─── Sessions (authors only) ────────────────────────────────────────────────
   useEffect(() => {
-    if (!isAuthor) return undefined;
+    if (!isAuthor) {
+      setSessionsLoading(false);
+      return undefined;
+    }
     let cancelled = false;
+    setSessionsLoading(true);
+    setSessionsError('');
 
     (async () => {
       try {
@@ -120,9 +127,16 @@ const CanvasPage = () => {
           : '/api/v1/session/me?limit=100&sort=-date';
         const res = await request(url);
         if (cancelled) return;
-        setSessions(res.data?.docs ?? []);
+        const docs = res.data?.docs
+          ?? res.data?.sessions
+          ?? (Array.isArray(res.data) ? res.data : []);
+        setSessions(Array.isArray(docs) ? docs : []);
       } catch (err) {
-        if (!cancelled) setError(sanitizeErrorMessage(err.message));
+        // Kept separate from `error`, which belongs to the board list: a failed
+        // session lookup must not be wiped out by the next board reload.
+        if (!cancelled) setSessionsError(sanitizeErrorMessage(err.message));
+      } finally {
+        if (!cancelled) setSessionsLoading(false);
       }
     })();
 
@@ -151,15 +165,27 @@ const CanvasPage = () => {
   useEffect(() => { loadBoards(); }, [loadBoards]);
 
   // ─── Create ─────────────────────────────────────────────────────────────────
+  // The dropdown defaults to "All my boards" (an empty value), so keying the
+  // create button off the selection alone left it permanently disabled on
+  // arrival. Fall back to the newest session instead: the list is fetched
+  // sorted by -date, so sessions[0] is the one an instructor almost always
+  // means. The dropdown still overrides it for any other session.
+  const targetSessionId = selectedSessionId || sessions[0]?._id || '';
+
+  const targetSession = useMemo(
+    () => sessions.find((session) => session._id === targetSessionId),
+    [sessions, targetSessionId],
+  );
+
   const createBoard = useCallback(async () => {
-    if (!selectedSessionId || creating) return;
+    if (!targetSessionId || creating) return;
 
     setCreating(true);
     setError('');
 
     try {
       const res = await request('/api/v1/session-canvas', 'POST', {
-        sessionId: selectedSessionId,
+        sessionId: targetSessionId,
         title: `Board ${new Date().toLocaleDateString()}`,
       });
       navigate(`/dashboard/canvas/${res.data.canvas._id}`);
@@ -167,18 +193,22 @@ const CanvasPage = () => {
       setError(sanitizeErrorMessage(err.message));
       setCreating(false);
     }
-  }, [creating, navigate, request, selectedSessionId]);
+  }, [creating, navigate, request, targetSessionId]);
 
   const selectedSession = useMemo(
     () => sessions.find((session) => session._id === selectedSessionId),
     [sessions, selectedSessionId],
   );
 
-  const emptyMessage = isAuthor
-    ? selectedSessionId
-      ? 'No boards on this session yet. Create one to start drawing.'
-      : 'No boards yet. Pick a session above and create your first board.'
-    : 'Nothing here yet — boards appear once an instructor shares one with you.';
+  const canCreate = Boolean(targetSessionId) && !creating;
+
+  const emptyMessage = !isAuthor
+    ? 'Nothing here yet — boards appear once an instructor shares one with you.'
+    : sessions.length === 0 && !sessionsLoading
+      ? 'You have no sessions yet. A board is always attached to a session, so create a session first.'
+      : selectedSessionId
+        ? 'No boards on this session yet. Create one to start drawing.'
+        : 'No boards yet. Hit New board to start one on your latest session.';
 
   return (
     <div>
@@ -194,6 +224,7 @@ const CanvasPage = () => {
       </div>
 
       {error && <div style={styles.error}>{error}</div>}
+      {sessionsError && <div style={styles.error}>{sessionsError}</div>}
 
       {isAuthor && (
         <div style={styles.controls}>
@@ -219,12 +250,18 @@ const CanvasPage = () => {
             type="button"
             style={{
               ...styles.button('primary'),
-              opacity: selectedSessionId && !creating ? 1 : 0.5,
-              cursor: selectedSessionId && !creating ? 'pointer' : 'not-allowed',
+              opacity: canCreate ? 1 : 0.5,
+              cursor: canCreate ? 'pointer' : 'not-allowed',
             }}
             onClick={createBoard}
-            disabled={!selectedSessionId || creating}
-            title={selectedSessionId ? 'Create a board on this session' : 'Pick a session first'}
+            disabled={!canCreate}
+            title={
+              targetSession
+                ? `Create a board on "${targetSession.title}"`
+                : sessionsLoading
+                  ? 'Loading your sessions…'
+                  : 'Create a session first — a board is always attached to one'
+            }
           >
             <i className="fa-solid fa-plus" />
             {creating ? 'Creating…' : 'New board'}
