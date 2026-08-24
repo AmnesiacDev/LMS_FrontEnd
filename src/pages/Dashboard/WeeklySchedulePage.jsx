@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import useScheduleApi from '../../hooks/useScheduleApi';
 import { getWeekBounds } from '../../utils/weekBoundary';
+import { safeUrl } from '../../utils/safeUrl';
 
 // ── Helpers ──────────────────────────────────────────────────────────
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -482,7 +483,9 @@ const WeeklySchedulePage = () => {
                     dayEntries.map((entry, eIdx) => {
                       const subjectName = entry.subject || entry.title || 'Untitled Session';
                       const timeRange = formatTimeRange(entry.startAt, entry.endAt);
-                      const meetingLink = entry.meetingLink;
+                      // Instructor-supplied and rendered as a link, so it goes
+                      // through the same scheme allowlist as every other stored URL.
+                      const meetingLink = safeUrl(entry.meetingLink);
                       const participantName = role === 'student' ? entry.instructorName : entry.studentName;
                       const isSession = entry.entryType === 'session';
 

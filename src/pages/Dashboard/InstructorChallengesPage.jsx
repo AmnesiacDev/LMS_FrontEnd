@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useApiRequest } from '../../hooks/useApiRequest';
+import { safeUrl } from '../../utils/safeUrl';
 
 const InstructorChallengesPage = () => {
   const { request } = useApiRequest();
@@ -310,7 +311,7 @@ const InstructorChallengesPage = () => {
                     <ul style={{ paddingLeft: '1.25rem', fontSize: '0.85rem', margin: 0 }}>
                       {gradingAttempt.codeLinks.map((link, idx) => (
                         <li key={idx}>
-                          <a href={link.url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', fontWeight: 600 }}>
+                          <a href={safeUrl(link.url)} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'underline', fontWeight: 600 }}>
                             {link.name || 'Repository Link'}
                           </a>
                         </li>
