@@ -8,13 +8,25 @@ export const useApiRequest = () => {
   const { ensureValidToken, refreshToken, logout } = useAuth();
   const navigate = useNavigate();
 
+  // A failed refresh used to mean "log the user out". It does not: refresh also
+  // fails on a 429, on a backend restart, and while offline. AuthContext now
+  // clears the session itself when (and only when) the token was truly
+  // rejected, so here we just stop the request and leave the session alone
+  // unless the token is already gone.
+  const endSession = useCallback(() => {
+    if (!localStorage.getItem('access-token')) {
+      logout();
+      navigate('/login');
+      return new Error('Session expired. Please login again.');
+    }
+    return new Error('Could not reach the server. Please try again.');
+  }, [logout, navigate]);
+
   const request = useCallback(async (url, method = 'GET', body = null) => {
     // Ensure we have a valid (non-expired) token before making the request
     const isValid = await ensureValidToken();
     if (!isValid) {
-      logout();
-      navigate('/login');
-      throw new Error('Please login to continue.');
+      throw endSession();
     }
 
     const headers = {
@@ -36,9 +48,7 @@ export const useApiRequest = () => {
     if (response.status === 401 || response.status === 419) {
       const refreshed = await refreshToken();
       if (!refreshed) {
-        logout();
-        navigate('/login');
-        throw new Error('Session expired. Please login again.');
+        throw endSession();
       }
 
       const newToken = localStorage.getItem('access-token') || '';
@@ -63,14 +73,12 @@ export const useApiRequest = () => {
     }
     
     return data;
-  }, [ensureValidToken, refreshToken, logout, navigate]);
+  }, [ensureValidToken, refreshToken, endSession]);
 
   const requestFormData = useCallback(async (url, method = 'POST', formData = null) => {
     const isValid = await ensureValidToken();
     if (!isValid) {
-      logout();
-      navigate('/login');
-      throw new Error('Please login to continue.');
+      throw endSession();
     }
 
     const buildOptions = () => ({
@@ -88,9 +96,7 @@ export const useApiRequest = () => {
     if (response.status === 401 || response.status === 419) {
       const refreshed = await refreshToken();
       if (!refreshed) {
-        logout();
-        navigate('/login');
-        throw new Error('Session expired. Please login again.');
+        throw endSession();
       }
       response = await fetch(requestUrl, buildOptions());
     }
@@ -100,7 +106,7 @@ export const useApiRequest = () => {
       throw new Error(sanitizeErrorMessage(data.message || `Request failed (${response.status})`));
     }
     return data;
-  }, [ensureValidToken, refreshToken, logout, navigate]);
+  }, [ensureValidToken, refreshToken, endSession]);
 
   return { request, requestFormData };
 };

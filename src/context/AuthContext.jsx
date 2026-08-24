@@ -79,7 +79,14 @@ export const AuthProvider = ({ children }) => {
     });
 
     if (!response.ok) {
-      throw new Error("Current user validation failed");
+      // Only 401/403 mean "this token is no longer good for anything". A 404
+      // (backend deployed without /auth/me), a 429, or a 5xx say nothing about
+      // the session — treating them as auth failures logged people out on a
+      // healthy token. Flag the difference so callers can react correctly.
+      const err = new Error("Current user validation failed");
+      err.status = response.status;
+      err.isAuthFailure = response.status === 401 || response.status === 403;
+      throw err;
     }
 
     const data = await response.json();
@@ -108,7 +115,16 @@ export const AuthProvider = ({ children }) => {
         });
 
         if (!response.ok) {
-          clearAuth();
+          // A refresh can fail for reasons that have nothing to do with the
+          // session: rate limiting (429), a restarting backend (5xx), a proxy
+          // hiccup. Only a rejected refresh token (401/403/404 from the token
+          // lookup) actually invalidates the login. Anything else keeps the
+          // session and lets the caller retry.
+          if (response.status === 401 || response.status === 403) {
+            clearAuth();
+          } else {
+            logger.warn(`[Auth] Refresh failed with ${response.status} — keeping session`);
+          }
           return false;
         }
 
@@ -118,15 +134,26 @@ export const AuthProvider = ({ children }) => {
           const newToken = data.data.token;
           setToken(newToken);
           localStorage.setItem("access-token", newToken);
-          await fetchCurrentUser(newToken);
+          try {
+            await fetchCurrentUser(newToken);
+          } catch (err) {
+            // The new token is valid — the server just said it minted it. If
+            // /auth/me is unreachable, keep the refreshed token rather than
+            // throwing away a working session.
+            if (err.isAuthFailure) {
+              clearAuth();
+              return false;
+            }
+            logger.warn("[Auth] /auth/me unavailable after refresh — keeping session");
+          }
           return true;
         }
 
         clearAuth();
         return false;
       } catch (err) {
+        // Network-level failure (offline, DNS, CORS). Not an auth decision.
         logger.error("Token refresh failed:", err);
-        clearAuth();
         return false;
       } finally {
         refreshPromise.current = null;
@@ -223,7 +250,9 @@ export const AuthProvider = ({ children }) => {
           await fetchCurrentUser(currentToken);
         } catch (err) {
           logger.error("Current user validation failed:", err);
-          if (!cancelled) clearAuth();
+          // Same rule as above: only a rejected token ends the session. A 404
+          // or a transient server error must not wipe a valid login.
+          if (!cancelled && err.isAuthFailure) clearAuth();
         } finally {
           if (!cancelled) setInitializing(false);
         }
