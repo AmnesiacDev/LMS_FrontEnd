@@ -1,21 +1,20 @@
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../Logo/Logo';
 import { useTheme } from '../../context/ThemeContext';
-import useDeviceCapability from '../../hooks/useDeviceCapability';
 import './Auth.css';
-
-// three.js plus five equirectangular maps — kept out of the initial bundle and
-// skipped entirely on devices that cannot spare the memory.
-const CosmicScene = lazy(() => import('../CosmicScene/CosmicScene'));
 
 /**
  * Chrome shared by every /login-family screen.
  *
- * Renders the deep-space WebGL backdrop used by the landing pages (in its
- * `auth` variant, which parks the globe to the left of the card), a slim top
- * bar, a marketing column, and a slot for the form card. Everything wears the
- * same neo-brutalist ink borders and hard offset shadows as the rest of the app.
+ * Renders the gridded paper backdrop, a slim top bar, a marketing column, and
+ * a slot for the form card. Everything wears the same neo-brutalist ink borders
+ * and hard offset shadows as the rest of the app.
+ *
+ * The backdrop used to be a three.js scene (globe, stars, five equirectangular
+ * maps). It cost a lazy chunk and a chunk of memory on every visit to a login
+ * form, and had to be skipped on low-power devices anyway — so the page never
+ * looked the same to everyone. Flat CSS renders identically everywhere.
  *
  * Props:
  *   headline / blurb — copy for the left-hand column
@@ -24,17 +23,10 @@ const CosmicScene = lazy(() => import('../CosmicScene/CosmicScene'));
  */
 const AuthShell = ({ headline, blurb, points = [], children }) => {
   const { theme, toggleTheme } = useTheme();
-  const { lowPower } = useDeviceCapability();
 
   return (
     <div className="auth-stage">
-      {lowPower ? (
-        <div className="auth-sky" aria-hidden="true" />
-      ) : (
-        <Suspense fallback={<div className="auth-sky" aria-hidden="true" />}>
-          <CosmicScene variant="auth" />
-        </Suspense>
-      )}
+      <div className="auth-sky" aria-hidden="true" />
 
       <header className="auth-topbar">
         <Link to="/" className="auth-home-link" aria-label="AlgoGambit home">

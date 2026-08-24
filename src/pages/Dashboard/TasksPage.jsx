@@ -91,7 +91,7 @@ const TasksPage = () => {
       const students = [];
 
       // Fetch student profiles
-      const profileRes = await request('/api/v1/student-profile?limit=200').catch(() => null);
+      const profileRes = await request('/api/v1/StudentProfile?limit=200').catch(() => null);
       const allProfiles = profileRes?.data?.docs || profileRes?.data?.profiles || profileRes?.data || [];
       if (Array.isArray(allProfiles)) {
         allProfiles.forEach(p => {

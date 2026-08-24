@@ -30,3 +30,6 @@ dist-ssr
 # Excalidraw fonts, copied out of node_modules by vite.config.js on every
 # build/dev start. Generated, never edited by hand.
 public/excalidraw-assets/
+
+# Claude Code scratch worktrees
+.claude/worktrees/

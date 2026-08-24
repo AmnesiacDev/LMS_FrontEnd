@@ -68,13 +68,15 @@
   justify-content: center;
   align-items: center;
   margin-bottom: 5rem;
-  background: linear-gradient(135deg, #F8FAFC 0%, #EFF6FF 50%, #E0F2FE 100%);
+  /* The page background itself, with a single soft wash of the brand colour
+     bleeding down from the top. No pattern and no second palette: every value
+     here is a global theme token, so the hero follows the theme switch
+     automatically and reads as the same surface as the rest of the app. */
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(80% 55% at 50% 0%, var(--brand-light) 0%, transparent 72%);
   border-bottom: var(--border-width) solid var(--border-color);
-  transition: background 0.3s ease, border-color 0.3s ease;
-}
-
-[data-theme='dark'] .hero-section-wrapper {
-  background: linear-gradient(135deg, #070B14 0%, #0F172A 50%, #1E293B 100%);
+  transition: background-color 0.3s ease, border-color 0.3s ease;
 }
 
 @media (max-width: 768px) {

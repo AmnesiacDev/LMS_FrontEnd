@@ -1,32 +1,31 @@
 /* =====================================================================
    AUTH — sign in / sign up / recovery
-   Laid over the same WebGL CosmicScene the landing pages use (variant
-   "auth", which parks the globe left of the card), wearing the app's
-   neo-brutalist chrome: ink borders, hard offset shadows, Outfit
+   Laid over the same minimal backdrop as the landing hero, wearing the
+   app's neo-brutalist chrome: ink borders, hard offset shadows, Outfit
    headings, Inter prose.
 
    Two skins driven by the global [data-theme] switch:
-     light -> daylight orbit, ink-on-white panels
-     dark  -> deep space, ice-blue offsets on navy panels
-
-   The 3D backdrop is portalled to <body> at z-index:-1, so everything
-   here sits in normal flow above it and keeps a translucent panel.
+     light -> page white, ink-on-white panels
+     dark  -> page navy, ice-blue offsets on navy panels
    ===================================================================== */
 
-/* Static stand-in for the WebGL sky, used when the CosmicScene is skipped
-   (phones, low-memory machines, prefers-reduced-motion). Mirrors the poster
-   gradient CosmicScene.css paints under its canvas. */
+/* The same minimal surface the landing hero uses: the global page background
+   plus one soft wash of the brand colour. Built entirely from global theme
+   tokens, so it follows the theme switch and matches the rest of the app
+   rather than introducing a palette of its own.
+
+   This replaced a three.js starfield. The scene had to be skipped on
+   low-power devices, so the login screen looked like two different products
+   depending on the visitor's hardware — and it pulled a heavy lazy chunk in
+   front of the one page a user needs to load fast. Flat CSS costs nothing
+   and renders identically everywhere. */
 .auth-sky {
   position: fixed;
   inset: 0;
   z-index: -1;
-  background:
-    radial-gradient(130% 90% at 75% 10%, #ffffff 0%, #f0f9ff 35%, #e0f2fe 70%, #bae6fd 100%);
-}
-
-[data-theme='dark'] .auth-sky {
-  background:
-    radial-gradient(130% 90% at 80% 12%, #12213f 0%, #0a1124 40%, #05070f 78%, #03040a 100%);
+  background-color: var(--bg-primary);
+  background-image:
+    radial-gradient(70% 55% at 50% 0%, var(--brand-light) 0%, transparent 70%);
 }
 
 .auth-stage {
