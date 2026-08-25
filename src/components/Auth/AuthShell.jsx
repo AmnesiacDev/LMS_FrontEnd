@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Logo from '../Logo/Logo';
+import Typewriter from '../Typewriter/Typewriter';
 import { useTheme } from '../../context/ThemeContext';
 import './Auth.css';
 
@@ -52,7 +53,11 @@ const AuthShell = ({ headline, blurb, points = [], children }) => {
       <main className="auth-layout">
         <section className="auth-pitch">
           <p className="auth-pitch-eyebrow">AlgoGambit Learning Platform</p>
-          <h1 className="auth-pitch-title">{headline}</h1>
+          {/* Keyed on the headline so switching sign-in/create-account
+              retypes the new line instead of resuming mid-word. */}
+          <h1 className="auth-pitch-title">
+            <Typewriter key={headline} text={headline} />
+          </h1>
           <p className="auth-pitch-blurb">{blurb}</p>
 
           {points.length > 0 && (

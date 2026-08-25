@@ -1,0 +1,36 @@
+.typewriter {
+  /* The caret is an inline block inside a heading whose own line-height and
+     letter-spacing already apply — nothing to reset here beyond keeping the
+     wrapper out of the layout's way. */
+  display: inline;
+}
+
+/* Sized in em so it tracks whatever type size it is dropped into. */
+.typewriter-caret {
+  display: inline-block;
+  width: 0.07em;
+  height: 0.78em;
+  margin-left: 0.05em;
+  vertical-align: -0.04em;
+  background: currentColor;
+  border-radius: 1px;
+  animation: typewriter-blink 1.05s steps(1, end) infinite;
+}
+
+/* Once the line is finished the caret stays, blinking slower — it reads as a
+   live prompt rather than an animation that stalled. */
+.typewriter-caret.is-done {
+  animation-duration: 1.5s;
+  opacity: 0.85;
+}
+
+@keyframes typewriter-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .typewriter-caret {
+    display: none;
+  }
+}

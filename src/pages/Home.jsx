@@ -1,14 +1,20 @@
-import React, { lazy, useState } from 'react';
+import React, { lazy, useCallback, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 import DeferredVisual from '../components/DeferredVisual/DeferredVisual';
+import Typewriter from '../components/Typewriter/Typewriter';
 import useDeviceCapability from '../hooks/useDeviceCapability';
 import './Home.css';
 
-// Both backdrops pull in three.js/postprocessing, so they are split out of the
-// initial bundle and only fetched once the section they decorate is in view.
+// The hero headline, typed line by line. Kept out here so the second line can
+// be scheduled off the first line's length.
+const HERO_LINE_1 = 'Your Coding Journey';
+const HERO_LINE_2 = 'Starts Right Here';
+const HERO_SPEED = 52;
+const HERO_DELAY = 320;
+
+// Prism pulls in three.js/postprocessing, so it is split out of the initial
+// bundle and only fetched once the section it decorates is in view.
 const Prism = lazy(() => import('../components/Prism/Prism'));
-const PixelBlast = lazy(() => import('../components/PixelBlast/PixelBlast'));
 
 const TRACKS = [
   {
@@ -87,8 +93,9 @@ const WHY = [
 
 const Home = () => {
   const [activePath, setActivePath] = useState(0);
-  const themeApi = useTheme();
-  const isDark = themeApi?.theme === 'dark';
+  const [firstLineDone, setFirstLineDone] = useState(false);
+  // Stable identity: the callback is an effect dependency inside Typewriter.
+  const handleFirstLineDone = useCallback(() => setFirstLineDone(true), []);
   const { lowPower } = useDeviceCapability();
   // Phones, low-memory/low-core machines and reduced-motion visitors get the
   // page without the WebGL backdrops rather than a page that fights for RAM.
@@ -98,29 +105,35 @@ const Home = () => {
     <div className="home-container is-home-page">
 
       {/* ══════════ HERO ══════════ */}
+      {/* The hero's backdrop is CSS — see .hero-section-wrapper in Home.css.
+          It used to be a PixelBlast field of drifting squares on a flat page
+          colour, which read as a dotted grid over an empty background and was
+          skipped entirely on low-power devices, so the front page looked like
+          two different products depending on the visitor's hardware. */}
       <section className="hero-section-wrapper">
-        <DeferredVisual
-          className="hero-pixel-bg"
-          component={PixelBlast}
-          enabled={showBackdrops}
-          variant="square"
-          pixelSize={3.5}
-          color={isDark ? '#3B82F6' : '#2563EB'}
-          patternScale={2.2}
-          patternDensity={1.05}
-          transparent={true}
-          edgeFade={0.5}
-          enableRipples={true}
-          speed={0.4}
-        />
-
         <div className="hero-section">
           <div className="hero-badge">
             <i className="fa-solid fa-star" /> Learn to Code the Fun Way
           </div>
+          {/* Typed one line after the other. The second line waits on the
+              first line's onDone rather than on a computed delay, so the caret
+              hands off at the line break however the timers actually ran. */}
           <h1 className="hero-title">
-            Your Coding Journey<br />
-            <span className="hero-accent">Starts Right Here</span>
+            <Typewriter
+              text={HERO_LINE_1}
+              speed={HERO_SPEED}
+              startDelay={HERO_DELAY}
+              persistCaret={false}
+              onDone={handleFirstLineDone}
+            />
+            <br />
+            <Typewriter
+              className="hero-accent"
+              text={HERO_LINE_2}
+              speed={HERO_SPEED}
+              startDelay={160}
+              start={firstLineDone}
+            />
           </h1>
           <p className="hero-subtitle">
             AlgoGambit is a warm, friendly place where kids and teens learn real programming skills —

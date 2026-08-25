@@ -9,23 +9,76 @@
      dark  -> page navy, ice-blue offsets on navy panels
    ===================================================================== */
 
-/* The same minimal surface the landing hero uses: the global page background
-   plus one soft wash of the brand colour. Built entirely from global theme
-   tokens, so it follows the theme switch and matches the rest of the app
-   rather than introducing a palette of its own.
+/* The backdrop the whole login family sits on.
 
    This replaced a three.js starfield. The scene had to be skipped on
    low-power devices, so the login screen looked like two different products
    depending on the visitor's hardware — and it pulled a heavy lazy chunk in
    front of the one page a user needs to load fast. Flat CSS costs nothing
-   and renders identically everywhere. */
+   and renders identically everywhere.
+
+   Its first flat version was one pale wash on the page colour, which read as
+   an empty field: the layout leaves the left half of a wide viewport almost
+   bare, and one near-transparent blob has nothing to hold that space. It is
+   now an aurora in the brand blue — the same blue as the primary button —
+   built from three layers:
+
+     sky      base page colour with a floor that deepens toward the bottom
+     ::before the aurora itself: a brand-blue bloom top-left, a cyan sweep
+              across the top-right, an indigo pool along the bottom. Drifts
+              on a slow loop; transform only, so it stays on the compositor
+     ::after  a faint blueprint grid with the vignette painted over it, which
+              is what fades the grid out toward the frame — one layer doing
+              the work of a mask
+
+   Every colour is a token defined on .auth-stage, so the whole backdrop
+   follows the theme switch with the rest of the page. */
 .auth-sky {
   position: fixed;
   inset: 0;
   z-index: -1;
+  overflow: hidden;
   background-color: var(--bg-primary);
   background-image:
-    radial-gradient(70% 55% at 50% 0%, var(--brand-light) 0%, transparent 70%);
+    linear-gradient(180deg, transparent 34%, var(--ax-sky-deep) 100%);
+}
+
+.auth-sky::before {
+  content: '';
+  position: absolute;
+  /* Overhang the viewport so the drift never walks an edge into view. */
+  inset: -22%;
+  background:
+    radial-gradient(40% 44% at 24% 20%, var(--ax-aurora-a) 0%, transparent 63%),
+    radial-gradient(36% 34% at 74% 10%, var(--ax-aurora-b) 0%, transparent 62%),
+    radial-gradient(52% 40% at 52% 98%, var(--ax-aurora-c) 0%, transparent 66%);
+  animation: auth-aurora-drift 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes auth-aurora-drift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(2.5%, 1.5%, 0) scale(1.08); }
+  100% { transform: translate3d(-1%, 3%, 0) scale(1.04); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-sky::before {
+    animation: none;
+  }
+}
+
+.auth-sky::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  /* Vignette first: later layers paint underneath, so it is what dissolves
+     the grid into the corners. */
+  background-image:
+    radial-gradient(125% 105% at 50% 40%, transparent 40%, var(--ax-sky-vignette) 100%),
+    linear-gradient(to right, var(--ax-sky-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--ax-sky-grid) 1px, transparent 1px);
+  background-size: auto, 72px 72px, 72px 72px;
 }
 
 .auth-stage {
@@ -62,6 +115,22 @@
   --ax-halo: 0 0 6px rgba(255, 255, 255, 1), 0 0 15px rgba(255, 255, 255, 0.95);
   --ax-scrim: rgba(240, 249, 255, 0.9);
 
+  /* ── Backdrop layers (see .auth-sky) ──
+     Daylight takes the same three aurora hues at a fraction of the strength:
+     the ink-on-white panels need the page to stay bright behind them.
+
+     Every layer here is tinted blue, never neutral. Slate greys — a slate
+     floor, a slate grid, a slate vignette — are what turned this skin muddy:
+     grey over near-white does not read as depth, it reads as dirt. Blue at the
+     same lightness keeps the page clean and puts the daylight skin in the same
+     colour story as the dark one. */
+  --ax-aurora-a: rgba(37, 99, 235, 0.2);
+  --ax-aurora-b: rgba(14, 165, 233, 0.16);
+  --ax-aurora-c: rgba(99, 102, 241, 0.12);
+  --ax-sky-deep: rgba(219, 234, 254, 0.72);
+  --ax-sky-grid: rgba(37, 99, 235, 0.07);
+  --ax-sky-vignette: rgba(37, 99, 235, 0.05);
+
   /* ── Brutalist shape tokens ── */
   --ax-bd: 3px solid var(--ax-line);
   --ax-bd-thin: 2px solid var(--ax-line);
@@ -97,6 +166,18 @@
     0 0 7px rgba(3, 6, 16, 0.96), 0 0 18px rgba(3, 6, 16, 0.88),
     0 0 34px rgba(3, 6, 16, 0.7);
   --ax-scrim: rgba(8, 14, 30, 0.62);
+
+  /* Deep space carries the aurora at full strength — anything paler sinks
+     into the navy and the page reads flat again. The bloom is the same
+     #2563eb family as the primary button, so the page has one blue. */
+  --ax-aurora-a: rgba(37, 99, 235, 0.72);
+  /* Sky blue rather than true cyan: #22d3ee over navy turns teal and pulls the
+     top-right corner out of the blue family the rest of the page lives in. */
+  --ax-aurora-b: rgba(56, 189, 248, 0.26);
+  --ax-aurora-c: rgba(79, 70, 229, 0.42);
+  --ax-sky-deep: rgba(2, 5, 16, 0.94);
+  --ax-sky-grid: rgba(141, 172, 232, 0.085);
+  --ax-sky-vignette: rgba(2, 5, 16, 0.78);
 }
 
 .auth-stage :where(h1, h2, h3) {
@@ -208,7 +289,7 @@
    glow bleeds through thin antialiased stems and washes them out at body
    size — that is why the two treatments differ. */
 .auth-pitch {
-  max-width: 34rem;
+  max-width: 32rem;
 }
 
 .auth-pitch-eyebrow {
@@ -229,67 +310,77 @@
   -webkit-backdrop-filter: blur(10px);
 }
 
+/* `balance` is what keeps the last word off a line of its own: the natural
+   break put "Welcome back to the" on one line and left "orbit." stranded.
+   Browsers without it fall back to the old ragged break, which still reads. */
 .auth-pitch-title {
   font-size: clamp(2.2rem, 4.4vw, 3.4rem);
   font-weight: 900;
   line-height: 1.05;
   letter-spacing: -0.03em;
   margin-bottom: 1rem;
+  text-wrap: balance;
   text-shadow: var(--ax-halo);
 }
 
-/* A soft radial scrim was not enough here: body-size text over the bright
-   daylight globe needs a real slab. This matches the frosted chips above and
-   below it, so the column reads as one stack rather than a patch. */
 .auth-pitch-blurb {
-  max-width: 30rem;
-  width: fit-content;
+  /* Narrow enough that the em dash stays on the first line rather than
+     leading the second one. */
+  max-width: 25rem;
   font-size: 1.05rem;
   line-height: 1.6;
   color: var(--ax-head);
+  /* The scrim needs to reach past the text to fade out, but the text itself
+     has to stay on the column's left edge with the headline and the pills —
+     hence padding out and the same amount of margin back. */
   padding: 0.7rem 1.1rem;
-  background: var(--ax-scrim);
+  margin: 0 0 0 -1.1rem;
+  /* A flat panel here used to be invisible against a near-flat page. Over the
+     aurora it reads as a stray rectangle, so the scrim fades out before it
+     reaches its own edges — same contrast under the text, no box. */
+  background: radial-gradient(115% 150% at 26% 50%, var(--ax-scrim) 0%, transparent 76%);
   border-radius: var(--ax-r);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
 }
 
+/* Three outlined capsules stacked on top of each other read as buttons the
+   visitor is meant to press, and they are not — they are a feature list. A
+   ruled list carries the same three facts without the toy shapes: rows
+   separated by hairlines, one square-cornered icon tile per row, in the same
+   ink language as the form panel opposite. */
 .auth-pitch-points {
   list-style: none;
-  margin: 1.75rem 0 0;
+  margin: 2rem 0 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.7rem;
+  width: fit-content;
+  max-width: 100%;
+  border-top: 1px solid var(--ax-line-soft);
 }
 
 .auth-pitch-points li {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  width: fit-content;
-  padding: 0.45rem 0.9rem 0.45rem 0.45rem;
-  background: var(--ax-chip);
-  border: var(--ax-bd-thin);
-  border-radius: 999px;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.85rem 0.25rem;
+  border-bottom: 1px solid var(--ax-line-soft);
   color: var(--ax-head);
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   font-weight: 600;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  letter-spacing: -0.005em;
 }
 
 .auth-point-icon {
   display: grid;
   place-items: center;
-  width: 1.85rem;
-  height: 1.85rem;
+  width: 1.9rem;
+  height: 1.9rem;
   flex-shrink: 0;
   background: var(--ax-accent);
   color: var(--ax-accent-ink);
-  border: 2px solid var(--ax-line);
-  border-radius: 50%;
-  font-size: 0.75rem;
+  border-radius: var(--ax-r-sm);
+  font-size: 0.78rem;
 }
 
 /* ══════════════════════════════════════════════════════════════

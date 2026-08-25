@@ -68,15 +68,72 @@
   justify-content: center;
   align-items: center;
   margin-bottom: 5rem;
-  /* The page background itself, with a single soft wash of the brand colour
-     bleeding down from the top. No pattern and no second palette: every value
-     here is a global theme token, so the hero follows the theme switch
-     automatically and reads as the same surface as the rest of the app. */
+  /* An aurora in the brand blue, matching the login backdrop so the two front
+     doors of the product read as one place. No pattern layer: the drifting
+     PixelBlast squares that used to sit here looked like a dotted grid over an
+     empty page, and they cost a three.js chunk that low-power devices never
+     loaded anyway. Two CSS layers replace it, everywhere, for free. */
   background-color: var(--bg-primary);
   background-image:
-    radial-gradient(80% 55% at 50% 0%, var(--brand-light) 0%, transparent 72%);
+    linear-gradient(180deg, transparent 38%, var(--hero-sky-deep) 100%);
   border-bottom: var(--border-width) solid var(--border-color);
   transition: background-color 0.3s ease, border-color 0.3s ease;
+
+  /* ── Daylight ──
+     Blue-tinted at every level, never neutral grey: grey over near-white reads
+     as dirt rather than depth. Same reasoning as the login backdrop. */
+  --hero-aurora-a: rgba(37, 99, 235, 0.2);
+  --hero-aurora-b: rgba(14, 165, 233, 0.16);
+  --hero-aurora-c: rgba(99, 102, 241, 0.12);
+  --hero-sky-deep: rgba(219, 234, 254, 0.72);
+  --hero-vignette: rgba(37, 99, 235, 0.05);
+}
+
+[data-theme='dark'] .hero-section-wrapper {
+  --hero-aurora-a: rgba(37, 99, 235, 0.66);
+  --hero-aurora-b: rgba(56, 189, 248, 0.24);
+  --hero-aurora-c: rgba(79, 70, 229, 0.4);
+  --hero-sky-deep: rgba(2, 5, 16, 0.92);
+  --hero-vignette: rgba(2, 5, 16, 0.72);
+}
+
+/* The aurora. Overhangs the section so the drift never walks an edge into
+   view, and animates transform only, so it stays on the compositor. */
+.hero-section-wrapper::before {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 40% at 22% 24%, var(--hero-aurora-a) 0%, transparent 62%),
+    radial-gradient(34% 34% at 78% 14%, var(--hero-aurora-b) 0%, transparent 62%),
+    radial-gradient(50% 40% at 50% 100%, var(--hero-aurora-c) 0%, transparent 66%);
+  animation: hero-aurora-drift 28s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+/* Vignette, so the headline sits in the brightest part of the frame. */
+.hero-section-wrapper::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 100% at 50% 42%, transparent 44%, var(--hero-vignette) 100%);
+}
+
+@keyframes hero-aurora-drift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50% { transform: translate3d(2.5%, 1.5%, 0) scale(1.07); }
+  100% { transform: translate3d(-1%, 2.5%, 0) scale(1.03); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-section-wrapper::before {
+    animation: none;
+  }
 }
 
 @media (max-width: 768px) {
@@ -85,14 +142,6 @@
     min-height: 100vh;
     padding: 8rem 1rem 4rem;
   }
-}
-
-.hero-pixel-bg {
-  position: absolute;
-  inset: 0;
-  z-index: 0;
-  pointer-events: none;
-  opacity: 0.85;
 }
 
 .hero-section {

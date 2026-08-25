@@ -20,6 +20,12 @@ const SIZES = {
 const Logo = ({ size = 'md', variant = 'full', onClick, style = {} }) => {
   const s = SIZES[size] || SIZES.md;
 
+  // A disc, not a rounded square. Every chrome the mark sits in — the auth top
+  // bar chip, the landing nav pill, the sidebar rail — is a full-radius pill,
+  // and a 10px-cornered tile inside a 999px capsule reads as two shapes that
+  // missed each other. A circle shares the pill's curvature at every point.
+  // The artwork stays on a light disc in both themes: it is a solid navy glyph
+  // with no light variant, so it needs the contrast.
   const mark = (
     <div
       className="ag-logo-mark"
@@ -27,7 +33,7 @@ const Logo = ({ size = 'md', variant = 'full', onClick, style = {} }) => {
         width: s.mark,
         height: s.mark,
         flexShrink: 0,
-        borderRadius: '10px',
+        borderRadius: '50%',
         background: '#ffffff',
         border: '1.5px solid var(--border-color)',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
@@ -36,15 +42,19 @@ const Logo = ({ size = 'md', variant = 'full', onClick, style = {} }) => {
         justifyContent: 'center',
         position: 'relative',
         overflow: 'hidden',
-        padding: '3px',
       }}
     >
       <img
         src="/logo.png"
         alt="AlgoGambit Logo"
         style={{
-          width: '100%',
-          height: '100%',
+          // logo.png is a square canvas with a wide transparent margin baked
+          // in, so `contain` at 100% renders the glyph far smaller than the
+          // disc it sits in. Oversizing the box cancels that margin out.
+          // The glyph is landscape (~0.68 x 0.50 of the canvas), so its
+          // corners leave the circle past ~119% — this keeps clearance.
+          width: '106%',
+          height: '106%',
           objectFit: 'contain',
           display: 'block',
         }}
