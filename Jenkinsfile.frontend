@@ -15,6 +15,8 @@ pipeline {
         SERVICE_NAME     = 'frontend'
         IMAGE_NAME       = 'lms-frontend'
         IMAGE_TAG        = "${env.BUILD_NUMBER}"
+        INFRA_DIR        = 'LMS_Infra'
+        INFRA_REPO_URL   = 'https://github.com/AmnesiacDev/LMS_INFRA.git'
     }
 
     stages {
@@ -31,8 +33,7 @@ pipeline {
             steps {
                 dir("${INFRA_DIR}") {
                     git branch: 'main',
-                        url: "${INFRA_REPO_URL}",
-                        credentialsId: "${GIT_CREDENTIALS}"
+                        url: "${INFRA_REPO_URL}"                
                 }
             }
         }
@@ -52,7 +53,7 @@ pipeline {
             agent {label 'node-agent'}
             steps {
                 script {
-                    imageTestNode(${IMAGE_NAME}:${IMAGE_TAG})
+                    imageTestNode("${IMAGE_NAME}:${IMAGE_TAG}")
                 }
             }
         }
