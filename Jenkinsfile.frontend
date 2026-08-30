@@ -1,0 +1,80 @@
+
+@Library('leroy-jenkins-library') _
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    environment {
+        ENV_FILE = credentials('lms-env')
+        SERVICE_NAME     = 'frontend'
+        IMAGE_NAME       = 'lms-frontend'
+        IMAGE_TAG        = "${env.BUILD_NUMBER}"
+    }
+
+    stages {
+
+        stage('Checkout Frontend') {
+            steps {
+                dir('LMS_FrontEnd') {
+                    checkout scm
+                }
+            }
+        }
+
+        stage('Checkout Infra') {
+            steps {
+                dir("${INFRA_DIR}") {
+                    git branch: 'main',
+                        url: "${INFRA_REPO_URL}",
+                        credentialsId: "${GIT_CREDENTIALS}"
+                }
+            }
+        }
+
+        stage('Build Image') {
+            agent {label 'node-agent'}
+            steps {
+                dir('LMS_FrontEnd') {
+                    script{
+                        dockerBuild(${IMAGE_NAME}, ${IMAGE_TAG}) 
+                    }
+                }
+            }
+        }
+
+        stage('Test') {
+            agent {label 'node-agent'}
+            steps {
+                script {
+                    imageTestNode(${IMAGE_NAME}:${IMAGE_TAG})
+                }
+            }
+        }
+
+        stage('Deploy') {
+            agent {label 'node-agent'}
+            steps {
+                dir("${INFRA_DIR}") {
+                    script {
+                        composeDeploy(${SERVICE_NAME})
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Frontend pipeline failed at stage: ${env.STAGE_NAME}. Check frontend-debug.log artifact if present."
+        }
+        always {
+            sh 'docker image prune -f || true'
+        }
+    }
+}
