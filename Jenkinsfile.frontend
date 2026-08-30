@@ -43,7 +43,7 @@ pipeline {
             steps {
                 dir('LMS_FrontEnd') {
                     script{
-                        dockerBuild(${IMAGE_NAME}, ${IMAGE_TAG}) 
+                        dockerBuild("${IMAGE_NAME}", "${IMAGE_TAG}") 
                     }
                 }
             }
@@ -63,7 +63,7 @@ pipeline {
             steps {
                 dir("${INFRA_DIR}") {
                     script {
-                        composeDeploy(${SERVICE_NAME})
+                        composeDeploy("${SERVICE_NAME}")
                     }
                 }
             }
