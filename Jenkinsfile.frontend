@@ -9,11 +9,17 @@ pipeline {
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '20'))
     }
+    parameters {
+        string(
+            name: 'IMAGE_TAG',
+            defaultValue: '',
+            description: 'Docker image tag supplied by orchestrator'
+        )
+    }
 
     environment {
         SERVICE_NAME     = 'frontend'
         IMAGE_NAME       = 'lms-frontend'
-        IMAGE_TAG        = "${env.BUILD_NUMBER}"
         INFRA_DIR        = 'LMS_Infra'
         INFRA_REPO_URL   = 'https://github.com/AmnesiacDev/LMS_INFRA.git'
     }
