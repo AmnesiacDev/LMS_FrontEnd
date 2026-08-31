@@ -76,14 +76,6 @@ const validatePublicOrigin = (name, rawValue) => {
     throw new Error(`${name} must be a valid absolute URL.`)
   }
 
-  if (url.protocol !== 'https:') {
-    throw new Error(`${name} must use HTTPS for production builds.`)
-  }
-
-  if (isLocalHostname(url.hostname.toLowerCase())) {
-    throw new Error(`${name} must not point to a local host in production.`)
-  }
-
   if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) {
     throw new Error(`${name} must be an origin only (for example, https://api.example.com).`)
   }
