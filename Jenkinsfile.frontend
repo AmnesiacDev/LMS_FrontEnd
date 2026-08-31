@@ -38,6 +38,19 @@ pipeline {
                 }
             }
         }
+        stage('Frontend Env File') {
+            agent { label 'node-agent' }
+        
+            steps {
+                withCredentials([
+                    file(credentialsId: 'frontend-env', variable: 'ENV_FILE')
+                ]) {
+                    dir('LMS_FrontEnd') {
+                        sh 'cp "$ENV_FILE" .env.production'
+                    }
+                }
+            }
+        }
 
         stage('Build Image') {
             agent {label 'node-agent'}
